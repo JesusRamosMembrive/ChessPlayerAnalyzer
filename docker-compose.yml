@@ -1,0 +1,49 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: chess_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: chess
+      POSTGRES_PASSWORD: chess
+      POSTGRES_DB: chessdb
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    container_name: chess_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  api:
+    build: ./backend
+    container_name: chess_api
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    env_file:
+      - .env
+    volumes:
+      - ./backend:/code
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis              # <- stockfish ya no
+
+  worker:
+    build: ./backend
+    container_name: chess_worker
+    command: celery -A app.celery_app worker --loglevel=info --concurrency=1
+    env_file:
+      - .env
+    volumes:
+      - ./backend:/code
+    depends_on:
+      - postgres
+      - redis
+
+volumes:
+  db_data:
