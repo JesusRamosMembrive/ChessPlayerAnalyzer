@@ -21,29 +21,18 @@ services:
 
   api:
     build: ./backend
-    container_name: chess_api
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-    env_file:
-      - .env
-    volumes:
-      - ./backend:/code
-    ports:
-      - "8000:8000"
-    depends_on:
-      - postgres
-      - redis              # <- stockfish ya no
+    volumes: [ "./backend:/code" ]
+    environment: { POSTGRES_HOST: postgres }
+    depends_on: [ postgres, redis ]
+    ports: [ "8000:8000" ]
 
   worker:
     build: ./backend
-    container_name: chess_worker
-    command: celery -A app.celery_app worker --loglevel=info --concurrency=1
-    env_file:
-      - .env
-    volumes:
-      - ./backend:/code
-    depends_on:
-      - postgres
-      - redis
+    volumes: [ "./backend:/code" ]
+    environment: { POSTGRES_HOST: postgres }
+    entrypoint: [ "/usr/local/bin/entrypoint.sh", "worker" ]
+    depends_on: [ postgres, redis ]
+
 
 volumes:
   db_data:

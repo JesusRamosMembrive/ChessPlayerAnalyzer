@@ -8,7 +8,7 @@ from app.database import get_session, engine
 from app import models  # ensure models are registered
 
 # Crea las tablas (desarrollo). En producción usa Alembic.
-models.SQLModel.metadata.create_all(engine)
+# models.SQLModel.metadata.create_all(engine)
 
 app = FastAPI(title="Chess Analyzer API", version="0.2.1")
 
@@ -54,3 +54,10 @@ def get_game(game_id: int, session: Session = Depends(get_session)):
         "pgn": game.pgn,
         "moves": [m.dict(exclude={"game"}) for m in game.moves],
     }
+
+@app.get("/metrics/game/{game_id}")
+def metrics_game(game_id: int, session: Session = Depends(get_session)):
+    gm = session.exec(select(models.GameMetrics).where(models.GameMetrics.game_id == game_id)).first()
+    if not gm:
+        raise HTTPException(status_code=404, detail="Metrics not found")
+    return gm

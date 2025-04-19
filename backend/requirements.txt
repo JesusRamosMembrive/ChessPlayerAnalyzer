@@ -10,3 +10,4 @@ python-chess
 celery
 sqlmodel
 psycopg[binary]
+alembic
