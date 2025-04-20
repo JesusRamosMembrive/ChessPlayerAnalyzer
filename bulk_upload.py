@@ -13,7 +13,8 @@ def main(path: str):
     data = json.loads(pathlib.Path(path).read_text(encoding="utf‑8"))
     for i, game in enumerate(data, 1):
         pgn = game["pgn"]
-        resp = requests.post(API, json={"pgn": pgn}, timeout=10)
+        game = {"pgn": pgn, "move_times": game.get("move_times_seconds")}
+        resp = requests.post(API, json=game, timeout=10)
         resp.raise_for_status()
         out = resp.json()
         print(f"{i:>3}. game_id={out['game_id']}  task_id={out['task_id']}")

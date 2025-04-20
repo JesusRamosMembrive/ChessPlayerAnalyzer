@@ -24,13 +24,13 @@ def ping():
 
 @app.post("/analyze")
 def analyze(req: GameAnalysisRequest, session: Session = Depends(get_session)):
-    game = models.Game(pgn=req.pgn)
-    session.add(game)
+    game_db = models.Game(pgn=payload.pgn, move_times=payload.move_times)
+    session.add(game_db)
     session.commit()
-    session.refresh(game)
+    session.refresh(game_db)
 
-    task = analyze_game_task.delay(req.pgn, game.id)
-    return {"task_id": task.id, "game_id": game.id, "state": task.state}
+    task = analyze_game_task.delay(req.pgn, game_db.id)
+    return {"task_id": task.id, "game_id": game_db.id, "state": task.state}
 
 
 @app.get("/tasks/{task_id}")

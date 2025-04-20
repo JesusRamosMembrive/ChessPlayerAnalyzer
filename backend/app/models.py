@@ -1,6 +1,7 @@
 from datetime import datetime, UTC
 from typing import Optional, List
 from sqlmodel import SQLModel, Field, Relationship
+from sqlalchemy import Column, JSON   # ←  faltaba
 
 class Game(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -9,6 +10,8 @@ class Game(SQLModel, table=True):
 
     moves: List["MoveAnalysis"] = Relationship(back_populates="game")
     metrics: Optional["GameMetrics"] = Relationship(back_populates="game")
+    move_times: list[int] | None = Field(sa_column=Column(JSON))
+
 
 class MoveAnalysis(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -25,6 +28,10 @@ class MoveAnalysis(SQLModel, table=True):
 class GameMetrics(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     game_id: int = Field(foreign_key="game.id", unique=True)
+
+    sigma_total: float | None = None
+    constant_time: bool = False
+    pause_spike: bool = False
 
     pct_top1: float      # % jugadas rank 0
     pct_top3: float      # % jugadas rank ≤2

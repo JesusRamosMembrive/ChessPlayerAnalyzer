@@ -17,6 +17,8 @@ MAX_DEPTH = int(os.getenv("STOCKFISH_DEPTH", "12"))
 def compute_game_metrics(game_id: int):
     """Calcula métricas básicas y las graba en GameMetrics."""
     from statistics import mean
+    import statistics as stats
+
     with Session(engine) as session:
         game = session.get(models.Game, game_id)
         if not game or not game.moves:
@@ -31,12 +33,31 @@ def compute_game_metrics(game_id: int):
 
         suspicious = (pct_top3 > 85 and acl < 20)
 
+        times = game.move_times or []
+        if times:
+            sigma_total = stats.stdev(times) if len(times) > 1 else 0
+            constant_time = sigma_total < 1.0
+
+            # pausa + pico
+            T_PAUSE = 10
+            pause_index = next((i for i, t in enumerate(times) if t > T_PAUSE), None)
+            pause_spike = False
+            if pause_index is not None and pause_index + 5 < len(game.moves):
+                ranks_after = [m.best_rank for m in game.moves[pause_index + 1: pause_index + 6]]
+                pct_top3_after = sum(r <= 2 for r in ranks_after) / 5 * 100
+                pause_spike = pct_top3_after >= 80
+        else:
+            sigma_total = None
+
         gm = models.GameMetrics(
             game_id=game_id,
             pct_top1=pct_top1,
             pct_top3=pct_top3,
             acl=acl,
-            suspicious=suspicious,
+            sigma_total=sigma_total,
+            constant_time=constant_time,
+            pause_spike=pause_spike,
+            suspicious=suspicious or constant_time or pause_spike,
         )
         session.add(gm)
         session.commit()
