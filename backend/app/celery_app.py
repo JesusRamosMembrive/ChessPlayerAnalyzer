@@ -7,6 +7,10 @@ from sqlmodel import Session
 from app.database import engine
 from app import models
 
+from sqlalchemy import or_
+from sqlmodel import Session, select        #  ya traes Session, añade select
+from statistics import mean, stdev          #  opcional: evita 'stats' aparte
+
 REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
 celery_app = Celery("chess_tasks", broker=REDIS_URL, backend=REDIS_URL)
 
@@ -34,14 +38,19 @@ def compute_game_metrics(game_id: int):
         suspicious = (pct_top3 > 85 and acl < 20)
 
         times = game.move_times or []
+
+        # valores por defecto para que siempre existan
+        sigma_total: float | None = None
+        constant_time = False
+        pause_spike = False
+
         if times:
-            sigma_total = stats.stdev(times) if len(times) > 1 else 0
+            sigma_total = stdev(times) if len(times) > 1 else 0.0
             constant_time = sigma_total < 1.0
 
             # pausa + pico
             T_PAUSE = 10
             pause_index = next((i for i, t in enumerate(times) if t > T_PAUSE), None)
-            pause_spike = False
             if pause_index is not None and pause_index + 5 < len(game.moves):
                 ranks_after = [m.best_rank for m in game.moves[pause_index + 1: pause_index + 6]]
                 pct_top3_after = sum(r <= 2 for r in ranks_after) / 5 * 100
@@ -61,6 +70,10 @@ def compute_game_metrics(game_id: int):
         )
         session.add(gm)
         session.commit()
+
+        compute_player_metrics.delay(game.white_username)
+        compute_player_metrics.delay(game.black_username)
+
     return {"game_id": game_id, "pct_top3": pct_top3, "acl": acl}
 
 @celery_app.task(name="analyze_game_task")
@@ -122,6 +135,15 @@ def analyze_game_task(pgn_text: str, game_id: int, depth: int = MAX_DEPTH, multi
 
     engine_sf.quit()
 
+    game_info = game.headers
+    eco = game_info.get("ECO")
+    # Primeros 8 plies en SAN, sin números ni “...”
+    opening_moves = " ".join(
+        node.san() for i, node in enumerate(game.mainline()) if i < 8
+    )
+    game_db.eco_code = eco
+    game_db.opening_key = opening_moves
+
     with Session(engine) as session:
         session.add_all(moves_for_db)
         session.commit()
@@ -134,3 +156,37 @@ def analyze_game_task(pgn_text: str, game_id: int, depth: int = MAX_DEPTH, multi
         "move_count": len(moves_for_db),
         "analyzed_at": datetime.now(UTC).isoformat(),
     }
+
+
+@celery_app.task(name="compute_player_metrics")
+def compute_player_metrics(username: str):
+    from collections import Counter
+    from math import log2
+
+    with Session(engine) as s:
+        rows = s.exec(
+            select(models.Game.opening_key)
+            .where(or_(models.Game.white == username,
+                       models.Game.black == username))
+            .where(models.Game.opening_key.is_not(None))
+        ).all()
+
+        total = len(rows)
+        if total < 5:       # aún pocos datos
+            return
+
+        counts = Counter(rows)
+        probs = [c / total for c in counts.values()]
+        entropy = -sum(p * log2(p) for p in probs)
+        most_played = counts.most_common(1)[0][0]
+        low = entropy < 1.0
+
+        pm = s.get(models.PlayerMetrics, {"username": username})
+        if not pm:
+            pm = models.PlayerMetrics(username=username)
+        pm.game_count = total
+        pm.opening_entropy = entropy
+        pm.most_played = most_played
+        pm.low_entropy = low
+        s.add(pm)
+        s.commit()

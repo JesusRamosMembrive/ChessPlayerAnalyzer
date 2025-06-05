@@ -61,3 +61,12 @@ def metrics_game(game_id: int, session: Session = Depends(get_session)):
     if not gm:
         raise HTTPException(status_code=404, detail="Metrics not found")
     return gm
+
+
+@app.get("/metrics/player/{username}")
+def player_metrics(username: str, session: Session = Depends(get_session)):
+    pm = session.exec(select(models.PlayerMetrics)
+                      .where(models.PlayerMetrics.username == username)).first()
+    if not pm:
+        raise HTTPException(404, "No metrics yet")
+    return pm
