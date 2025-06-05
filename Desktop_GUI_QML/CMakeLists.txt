@@ -10,6 +10,7 @@ qt_standard_project_setup(REQUIRES 6.8)
 
 qt_add_executable(appDesktop_GUI_QML
     main.cpp
+    PlayerHistory.cpp
 )
 
 qt_add_qml_module(appDesktop_GUI_QML

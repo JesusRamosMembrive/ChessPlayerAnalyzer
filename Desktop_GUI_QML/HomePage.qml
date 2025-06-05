@@ -66,9 +66,11 @@ Page {
                     height: 40
                     font.pixelSize: 16
                     background: Rectangle { color: root.accent; radius: 6 }
-                    onClicked: if (userField.text.trim().length > 0)
+                    onClicked: if (userField.text.trim().length > 0) {
+                                   historyModel.addPlayer(userField.text.trim())
                                    stack.push(Qt.resolvedUrl("ResultsPage.qml"),
                                               { username: userField.text.trim() })
+                               }
                 }
             }
         }
@@ -85,7 +87,5 @@ Page {
                 onClicked: stack.push(Qt.resolvedUrl("ResultsPage.qml"), { username: modelData })
             }
         }
-
-        ListModel { id: historyModel }
     }
 }
