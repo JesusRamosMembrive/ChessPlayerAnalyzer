@@ -1,0 +1,38 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: chess_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: chess
+      POSTGRES_PASSWORD: chess
+      POSTGRES_DB: chessdb
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    container_name: chess_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  api:
+    build: ./backend
+    volumes: [ "./backend:/code" ]
+    environment: { POSTGRES_HOST: postgres }
+    depends_on: [ postgres, redis ]
+    ports: [ "8000:8000" ]
+
+  worker:
+    build: ./backend
+    volumes: [ "./backend:/code" ]
+    environment: { POSTGRES_HOST: postgres }
+    entrypoint: [ "/usr/local/bin/entrypoint.sh", "worker" ]
+    depends_on: [ postgres, redis ]
+
+
+volumes:
+  db_data:

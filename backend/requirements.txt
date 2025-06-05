@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+sqlmodel
+python-dotenv
+python-chess
+celery[redis]
+psycopg[binary]
+pydantic
+python-chess
+celery
+sqlmodel
+psycopg[binary]
+alembic
