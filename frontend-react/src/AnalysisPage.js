@@ -9,26 +9,26 @@ function AnalysisPage() {
   ];
 
   return (
-    <div>
-      <h1>Player Analysis</h1>
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4 text-gray-100">Player Analysis</h1>
 
-      <div>
-        <label htmlFor="playerName">Player Name: </label>
-        <input type="text" id="playerName" name="playerName" />
+      <div className="mb-4"> {/* Added margin-bottom for spacing */}
+        <label htmlFor="playerName" className="mr-2 text-gray-300">Player Name: </label> {/* Added styling for label */}
+        <input type="text" id="playerName" name="playerName" className="bg-gray-700 border border-gray-600 text-white rounded px-3 py-2 focus:outline-none focus:border-blue-500" />
       </div>
 
-      <button style={{ marginTop: '10px' }}>Start Analysis</button>
+      <button className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded ml-2">Start Analysis</button>
 
-      <div style={{ marginTop: '20px' }}>
-        <h2>Analyzed Players History</h2>
+      <div className="mt-6"> {/* Increased top margin */}
+        <h2 className="text-xl font-semibold mb-3 text-gray-100">Analyzed Players History</h2> {/* Styled h2 */}
         {playerHistory.length > 0 ? (
-          <ul>
+          <ul className="list-disc pl-5 mt-4 text-gray-300">
             {playerHistory.map(player => (
-              <li key={player.id}>{player.name}</li>
+              <li key={player.id} className="mb-2">{player.name}</li>
             ))}
           </ul>
         ) : (
-          <p>No players analyzed yet.</p>
+          <p className="text-gray-400">No players analyzed yet.</p> {/* Styled placeholder text */}
         )}
       </div>
     </div>
