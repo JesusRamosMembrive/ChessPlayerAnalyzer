@@ -15,5 +15,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # 3) Copiamos el resto del proyecto (incluye entrypoint.sh)
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh \
+    && sed -i 's/\r$//' /usr/local/bin/entrypoint.sh
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

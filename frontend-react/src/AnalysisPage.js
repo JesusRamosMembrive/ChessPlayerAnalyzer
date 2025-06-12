@@ -20,7 +20,7 @@ function AnalysisPage() {
       <button className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded ml-2">Start Analysis</button>
 
       <div className="mt-6"> {/* Increased top margin */}
-        <h2 className="text-xl font-semibold mb-3 text-gray-100">Analyzed Players History</h2> {/* Styled h2 */}
+        <h2 className="text-xl font-semibold mb-3 text-gray-100">Analyzed Players History</h2>
         {playerHistory.length > 0 ? (
           <ul className="list-disc pl-5 mt-4 text-gray-300">
             {playerHistory.map(player => (
@@ -28,7 +28,7 @@ function AnalysisPage() {
             ))}
           </ul>
         ) : (
-          <p className="text-gray-400">No players analyzed yet.</p> {/* Styled placeholder text */}
+          <p className="text-gray-400">No players analyzed yet.</p>
         )}
       </div>
     </div>

@@ -8,7 +8,7 @@ from __future__ import annotations
 import json, re, requests, pathlib
 from datetime import UTC, datetime
 
-USER = "Sonnka8489"                 # ← cambia al usuario que quieras vigilar
+USER = "anynoname"                 # ← cambia al usuario que quieras vigilar
 OUT  = pathlib.Path(f"{USER}_games.json")
 CLK_RGX = re.compile(r"\[%clk\s+([\d:.]+)]")
 
@@ -35,22 +35,28 @@ archives = fetch(f"https://api.chess.com/pub/player/{USER}/games/archives")["arc
 
 all_games: list[dict] = []
 for archive_url in archives:
-    for g in fetch(archive_url)["games"]:
-        pgn = g["pgn"]
-        clocks = CLK_RGX.findall(pgn)
-        # diferencias entre relojes consecutivos
-        deltas = [clocks[i-1] for i in range(1, len(clocks))] if clocks else []
-        move_times = [sec(clocks[i-1]) - sec(clocks[i]) for i in range(1, len(clocks))]
-        all_games.append({
-            "url": g["url"],
-            "end_time": datetime.fromtimestamp(g["end_time"], UTC).isoformat(),
-            "time_class": g["time_class"],
-            "time_control": g["time_control"],
-            "white": g["white"],
-            "black": g["black"],
-            "pgn": pgn,
-            "move_times_seconds": move_times
-        })
+    # print(f"Descargando partidas de {archive_url}...")
+
+        for g in fetch(archive_url)["games"]:
+            try:
+                pgn = g["pgn"]
+                clocks = CLK_RGX.findall(pgn)
+                # diferencias entre relojes consecutivos
+                deltas = [clocks[i-1] for i in range(1, len(clocks))] if clocks else []
+                move_times = [sec(clocks[i-1]) - sec(clocks[i]) for i in range(1, len(clocks))]
+                all_games.append({
+                    "url": g["url"],
+                    "end_time": datetime.fromtimestamp(g["end_time"], UTC).isoformat(),
+                    "time_class": g["time_class"],
+                    "time_control": g["time_control"],
+                    "white": g["white"],
+                    "black": g["black"],
+                    "pgn": pgn,
+                    "move_times_seconds": move_times
+                })
+            except KeyError as e:
+                print(f"Error al descargar {archive_url}: {e}")
+                continue
 
 OUT.write_text(json.dumps(all_games, ensure_ascii=False, indent=2), encoding="utf-8")
 print(f"Guardado en {OUT}")

@@ -2,7 +2,8 @@ from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
 from celery.result import AsyncResult
 from sqlmodel import Session
-
+from typing import List, Optional
+from sqlmodel import select
 from app.celery_app import celery_app, analyze_game_task
 from app.database import get_session, engine
 from app import models  # ensure models are registered
@@ -12,25 +13,36 @@ from app import models  # ensure models are registered
 
 app = FastAPI(title="Chess Analyzer API", version="0.2.1")
 
-
 class GameAnalysisRequest(BaseModel):
     pgn: str
-
+    move_times: Optional[List[int]] = None   # ← opcional
 
 @app.get("/ping")
 def ping():
     return {"status": "ok"}
 
 
+
 @app.post("/analyze")
-def analyze(req: GameAnalysisRequest, session: Session = Depends(get_session)):
-    game_db = models.Game(pgn=payload.pgn, move_times=payload.move_times)
+def analyze(
+    req: GameAnalysisRequest,
+    session: Session = Depends(get_session),
+):
+    # 1) crea el registro Game en la BD
+    game_db = models.Game(pgn=req.pgn, move_times=req.move_times)
     session.add(game_db)
     session.commit()
     session.refresh(game_db)
 
+    # 2) lanza la tarea Celery
     task = analyze_game_task.delay(req.pgn, game_db.id)
-    return {"task_id": task.id, "game_id": game_db.id, "state": task.state}
+
+    # 3) respuesta inmediata
+    return {
+        "game_id": game_db.id,
+        "task_id": task.id,
+        "state": task.state,
+    }
 
 
 @app.get("/tasks/{task_id}")
