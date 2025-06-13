@@ -1,15 +1,14 @@
-import os, io, chess.pgn, chess.engine
+import os
 from datetime import datetime, UTC
-from typing import List
-from celery import Celery
-from sqlmodel import Session
+from statistics import stdev
 
-from app.database import engine
 from app import models
-
+from app.database import engine
+from celery import Celery
 from sqlalchemy import or_
-from sqlmodel import Session, select        #  ya traes Session, añade select
-from statistics import mean, stdev          #  opcional: evita 'stats' aparte
+from sqlmodel import Session, select
+
+from app.utils import fetch_games, notify_ws
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
 celery_app = Celery("chess_tasks", broker=REDIS_URL, backend=REDIS_URL)
@@ -21,7 +20,6 @@ MAX_DEPTH = int(os.getenv("STOCKFISH_DEPTH", "12"))
 def compute_game_metrics(game_id: int):
     """Calcula métricas básicas y las graba en GameMetrics."""
     from statistics import mean
-    import statistics as stats
 
     with Session(engine) as session:
         game = session.get(models.Game, game_id)
@@ -76,117 +74,244 @@ def compute_game_metrics(game_id: int):
 
     return {"game_id": game_id, "pct_top3": pct_top3, "acl": acl}
 
-@celery_app.task(name="analyze_game_task")
-def analyze_game_task(pgn_text: str, game_id: int, depth: int = MAX_DEPTH, multipv: int = 3):
-    """Analiza la partida usando Stockfish con *multipv* y guarda rank y cp_loss.
-
-    • *rank*  → posición (0‑based) de la jugada entre las `multipv` mejores.
-      Si no aparece, se registra multipv (p.ej. 3 ⇒ «fuera del top‑3»).
-    • *cp_loss*  → diferencia absolutizada entre la evaluación
-      del mejor movimiento y la jugada elegida.
+@celery_app.task(name="analyze_game_task", bind=True)
+def analyze_game_task(
+    self,
+    pgn_text: str,
+    game_id: int | None = None,
+    *,
+    move_times: list[int] | None = None,
+    player: str | None = None,
+    depth: int = MAX_DEPTH,
+    multipv: int = 3,
+):
     """
-    # --- Recupera el objeto Game --------------------------------------------------
-    with Session(engine) as session:
-        game_db = session.get(models.Game, game_id)
-        if not game_db:
-            raise ValueError("Game not found in DB")
+    Analiza una partida con Stockfish.
 
-    # --- Analiza PGN --------------------------------------------------------------
+    • Si `game_id` es None se crea primero el registro Game.
+    • Para cada jugada se guarda:
+        – best_rank   (0 == mejor jugada)
+        – cp_loss     (centipawns perdidos respecto PV1)
+    • Al final dispara compute_game_metrics y actualiza claves de apertura.
+    """
     import io, chess.pgn, chess.engine
+    from sqlmodel import Session
+
+    # ---------- 1.  Asegurar objeto Game en BD --------------------
+    if game_id is None:
+        game_pgn = chess.pgn.read_game(io.StringIO(pgn_text))
+        if game_pgn is None:
+            raise ValueError("PGN inválido")
+
+        game_headers = game_pgn.headers
+        white = game_headers.get("White")
+        black = game_headers.get("Black")
+
+        with Session(engine) as s:
+            game_db = models.Game(
+                pgn=pgn_text,
+                move_times=move_times or [],
+                white_username=white,
+                black_username=black,
+            )
+            s.add(game_db)
+            s.commit()
+            s.refresh(game_db)
+            game_id = game_db.id
+    else:
+        #  buscamos el registro ya existente
+        with Session(engine) as s:
+            game_db = s.get(models.Game, game_id)
+            if game_db is None:
+                raise ValueError(f"Game id {game_id} no existe")
+
+    # ---------- 2.  Preparar tablero y motor ----------------------
     game = chess.pgn.read_game(io.StringIO(pgn_text))
-    if game is None:
-        raise ValueError("Invalid PGN")
-
-    engine_sf = chess.engine.SimpleEngine.popen_uci(ENGINE_PATH)
     board = game.board()
-    moves_for_db: list[models.MoveAnalysis] = []
+    engine_sf = chess.engine.SimpleEngine.popen_uci(ENGINE_PATH)
 
-    for idx, move in enumerate(game.mainline_moves(), 1):
-        infos = engine_sf.analyse(board, chess.engine.Limit(depth=depth), multipv=multipv)
-        # "infos" es lista ordenada PV1, PV2… cuando multipv>1
+    analyses: list[models.MoveAnalysis] = []
+
+    for idx, move in enumerate(game.mainline_moves(), start=1):
+        infos = engine_sf.analyse(
+            board, chess.engine.Limit(depth=depth), multipv=multipv
+        )
+
+        # lista de los movimientos PV1..PVn
+        top_moves = [info["pv"][0] for info in infos]
         best_eval = infos[0]
         best_move = best_eval["pv"][0]
         best_score = best_eval["score"].white().score(mate_score=100000)
 
-        # Lista de los primeros movimientos de cada PV
-        top_moves = [inf["pv"][0] for inf in infos]
+        # rank: 0-based; multipv si está fuera del top-N
         try:
-            rank = top_moves.index(move)  # 0 = mejor
+            rank = top_moves.index(move)
         except ValueError:
-            rank = multipv  # fuera del top‑multipv
+            rank = multipv
 
-        # Evalúa tras la jugada del jugador para estimar cp_loss
+        # evaluamos la posición *después* del movimiento real
         board.push(move)
-        after_info = engine_sf.analyse(board, chess.engine.Limit(depth=depth))
-        after_score = after_info["score"].white().score(mate_score=100000)
+        after = engine_sf.analyse(board, chess.engine.Limit(depth=depth))
+        after_score = after["score"].white().score(mate_score=100000)
         board.pop()
+
         cp_loss = abs((best_score or 0) - (after_score or 0))
 
-        moves_for_db.append(models.MoveAnalysis(
-            game_id=game_id,
-            move_number=idx,
-            played=board.san(move),
-            best=board.san(best_move),
-            best_rank=rank,
-            cp_loss=int(cp_loss),
-        ))
+        analyses.append(
+            models.MoveAnalysis(
+                game_id=game_id,
+                move_number=idx,
+                played=board.san(move),
+                best=board.san(best_move),
+                best_rank=rank,
+                cp_loss=int(cp_loss),
+            )
+        )
 
         board.push(move)
 
     engine_sf.quit()
 
-    game_info = game.headers
-    eco = game_info.get("ECO")
-    # Primeros 8 plies en SAN, sin números ni “...”
-    opening_moves = " ".join(
+    # ---------- 3.  Guardar análisis y metadatos ------------------
+    opening_key = " ".join(
         node.san() for i, node in enumerate(game.mainline()) if i < 8
     )
-    game_db.eco_code = eco
-    game_db.opening_key = opening_moves
+    eco_code = game.headers.get("ECO")
 
-    with Session(engine) as session:
-        session.add_all(moves_for_db)
-        session.commit()
+    with Session(engine) as s:
+        if game_id is None:
+            g = models.Game(
+                pgn=pgn_text,
+                move_times=move_times or [],
+                white_username=game.headers.get("White"),
+                black_username=game.headers.get("Black"),
+            )
+            s.add(g)
+            s.commit()
+            s.refresh(g)
+            game_id = g.id
 
-    # Encola el cálculo de métricas en una cadena
+        s.add_all(analyses)
+
+        # actualizar campos en Game
+        game_db = s.get(models.Game, game_id)
+        game_db.opening_key = opening_key
+        game_db.eco_code = eco_code
+        s.add(game_db)
+        s.commit()
+
+    # ---------- 4.  Encolar métricas ------------------------------
     compute_game_metrics.delay(game_id)
+
+    if player:
+        pl = s.get(models.Player, player)
+        if pl:
+            pl.done_games += 1
+            pl.progress = int(pl.done_games / pl.total_games * 100)
+            # ¿terminado?
+            if pl.done_games == pl.total_games:
+                pl.status = "ready"
+                pl.finished_at = datetime.now(UTC)
+                notify_ws(player, {"status": "ready"})
+            else:
+                notify_ws(
+                    player,
+                    {"progress": pl.progress, "status": "pending"},
+                )
+            s.add(pl)
+            s.commit()
 
     return {
         "game_id": game_id,
-        "move_count": len(moves_for_db),
+        "move_count": len(analyses),
         "analyzed_at": datetime.now(UTC).isoformat(),
     }
 
 
 @celery_app.task(name="compute_player_metrics")
-def compute_player_metrics(username: str):
+def compute_player_metrics(username: str, months: int = 12):
+    """
+    Recalcula las métricas agregadas del jugador:
+        • nº de partidas en BD
+        • entropía de aperturas
+        • apertura más frecuente
+        • flag de baja entropía
+    """
     from collections import Counter
     from math import log2
+    from sqlmodel import Session, select
 
     with Session(engine) as s:
-        rows = s.exec(
-            select(models.Game.opening_key)
-            .where(or_(models.Game.white == username,
-                       models.Game.black == username))
-            .where(models.Game.opening_key.is_not(None))
-        ).all()
+        # --- extraemos las aperturas almacenadas -------------------
+        rows = (
+            s.exec(
+                select(models.Game.opening_key)
+                .where(
+                    (models.Game.white_username == username)
+                    | (models.Game.black_username == username)
+                )
+                .where(models.Game.opening_key.is_not(None))
+            )
+            .all()
+        )
+        openings = [r[0] for r in rows]          # <─ cada fila es (opening_key,)
 
-        total = len(rows)
-        if total < 5:       # aún pocos datos
+        total = len(openings)
+        if total < 5:            # aún no hay muestra suficiente
             return
 
-        counts = Counter(rows)
-        probs = [c / total for c in counts.values()]
+        # --- estadísticas ------------------------------------------
+        counts = Counter(openings)
+        probs  = [c / total for c in counts.values()]
         entropy = -sum(p * log2(p) for p in probs)
         most_played = counts.most_common(1)[0][0]
-        low = entropy < 1.0
+        low_entropy = entropy < 1.0
 
-        pm = s.get(models.PlayerMetrics, {"username": username})
-        if not pm:
+        # --- upsert en PlayerMetrics -------------------------------
+        pm = (
+            s.exec(select(models.PlayerMetrics)
+                   .where(models.PlayerMetrics.username == username))
+            .first()
+        )
+        if pm is None:
             pm = models.PlayerMetrics(username=username)
+
         pm.game_count = total
         pm.opening_entropy = entropy
         pm.most_played = most_played
-        pm.low_entropy = low
+        pm.low_entropy = low_entropy
+        pm.updated_at = datetime.now(UTC)
+
         s.add(pm)
         s.commit()
+
+@celery_app.task(name="process_player")
+def process_player(username: str, months: int = 6):
+    from app.database import engine
+    from sqlmodel import Session
+    from datetime import datetime, UTC
+
+    games = fetch_games(username, months)          # puede lanzar excepción
+    total = len(games)
+
+    with Session(engine) as s:
+        # crea/limpia registro
+        player = models.Player(
+            username=username,
+            status="pending",
+            requested_at=datetime.now(UTC),
+            progress=0,
+            total_games=total,
+            done_games=0,
+        )
+        s.merge(player)          # INSERT o UPDATE
+        s.commit()
+
+    # encola las partidas
+    for g in games:
+        analyze_game_task.delay(
+            g["pgn"],
+            None,                        # game_id lo crea el task
+            move_times=g["move_times"],
+            player=username              # <-- parámetro extra
+        )

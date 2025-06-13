@@ -11,3 +11,6 @@ celery
 sqlmodel
 psycopg[binary]
 alembic
+sse-starlette
+sseclient-py
+requests

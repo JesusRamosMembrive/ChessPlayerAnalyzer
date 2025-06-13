@@ -1,12 +1,17 @@
+from datetime import datetime, UTC
+from typing import List
+import json
+
 from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
+from sse_starlette.sse import EventSourceResponse
 from celery.result import AsyncResult
-from sqlmodel import Session
-from typing import List, Optional
-from sqlmodel import select
-from app.celery_app import celery_app, analyze_game_task
-from app.database import get_session, engine
-from app import models  # ensure models are registered
+from sqlmodel import Session, select
+
+from app import models
+from app.celery_app import celery_app, analyze_game_task, process_player
+from app.database import get_session
+from app.utils import redis_client, notify_ws
 
 # Crea las tablas (desarrollo). En producción usa Alembic.
 # models.SQLModel.metadata.create_all(engine)
@@ -15,12 +20,11 @@ app = FastAPI(title="Chess Analyzer API", version="0.2.1")
 
 class GameAnalysisRequest(BaseModel):
     pgn: str
-    move_times: Optional[List[int]] = None   # ← opcional
+    move_times: List[int] = None   # ← opcional
 
 @app.get("/ping")
 def ping():
     return {"status": "ok"}
-
 
 
 @app.post("/analyze")
@@ -82,3 +86,34 @@ def player_metrics(username: str, session: Session = Depends(get_session)):
     if not pm:
         raise HTTPException(404, "No metrics yet")
     return pm
+
+
+@app.get("/players/{username}", response_model=models.Player)
+def player(username: str, session: Session = Depends(get_session)):
+    p = session.get(models.Player, username)
+    if p is None:
+        # crear registro y lanzar tarea
+        p = models.Player(username=username, status="pending")
+        p.requested_at = datetime.now(UTC)
+        session.add(p)
+        session.commit()
+        process_player.delay(username)
+        notify_ws(username, {"status": "pending"})
+    return p
+
+@app.post("/players/{username}/refresh")
+def refresh(username: str):
+    process_player.delay(username)
+    return {"status": "queued"}
+
+@app.get("/stream/{username}")
+async def stream(username: str):
+    async def event_generator():
+        pubsub = redis_client.pubsub()
+        await pubsub.subscribe(f"player:{username}")
+
+        async for msg in pubsub.listen():
+            if msg["type"] != "message":
+                continue
+            yield {"data": msg["data"]}     # ya es str
+    return EventSourceResponse(event_generator())
