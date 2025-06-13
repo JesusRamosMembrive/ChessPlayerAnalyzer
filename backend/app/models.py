@@ -2,6 +2,7 @@ from datetime import datetime, UTC
 from typing import Optional, List
 from sqlmodel import SQLModel, Field, Relationship
 from sqlalchemy import Column, JSON   # ←  faltaba
+import sqlalchemy as sa
 
 class Game(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -13,6 +14,8 @@ class Game(SQLModel, table=True):
     move_times: list[int] | None = Field(sa_column=Column(JSON))
     eco_code: str | None = None          # «C23», «B12»…
     opening_key: str | None = None       # SAN de los 1-8 plies (“e4 e5 Nf3 …”)
+    white_username: str | None = None
+    black_username: str | None = None
 
 class MoveAnalysis(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -44,10 +47,26 @@ class GameMetrics(SQLModel, table=True):
 
 
 class PlayerMetrics(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    username: str = Field(unique=True)
+    username: str = Field(primary_key=True)
     game_count: int
     opening_entropy: float               # H bits
     most_played: str | None = None       # opening_key más frecuente
     low_entropy: bool = False            # bandera (< 1.0 bits)
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+
+class Player(SQLModel, table=True):
+    username: str = Field(primary_key=True)
+    status: str = Field(
+        sa_column=sa.Column(
+            sa.Enum("not_analyzed", "pending", "ready", "error",
+                    name="player_status"),
+            nullable=False,
+            default="not_analyzed",
+        )
+    )
+    progress: int = 0
+    total_games: int | None = None
+    done_games: int | None = None
+    requested_at: datetime | None = None
+    finished_at: datetime | None = None
+    error: str | None = None
