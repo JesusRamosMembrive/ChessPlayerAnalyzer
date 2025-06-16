@@ -14,3 +14,6 @@ alembic
 sse-starlette
 sseclient-py
 requests
+pandas
+numpy
+scikit-learn
