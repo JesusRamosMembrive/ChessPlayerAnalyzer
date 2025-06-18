@@ -5,10 +5,15 @@ from datetime import datetime, UTC
 from typing import List, Dict
 
 import redis.asyncio as redis
+from fastapi import HTTPException
 from sqlmodel import Session, select
 
 from app.database import engine
 from app import models
+
+from contextlib import contextmanager
+import redis
+import os
 
 # ──────────────────────────────────────────────────────────────────────────────
 #  Configuración común
@@ -97,3 +102,23 @@ def update_progress(username: str, percent: int) -> None:
         s.commit()
 
     notify_ws(username, {"progress": percent})
+
+@contextmanager
+def player_lock(username: str, timeout: int = 900, block: int = 5):
+    """
+    Lock distribuido de Redis para impedir que dos pods/procesos
+    inicien el mismo análisis simultáneamente.
+
+    * `timeout` → segundos tras los cuales el lock expira automáticamente
+                  (p.ej. 15 min).
+    * `block`   → segundos que un segundo hilo espera antes de abortar con
+                  HTTP 423 (Locked).
+    """
+    lock = redis_client.lock(f"lock:player:{username}", timeout=timeout)
+    if not lock.acquire(blocking=True, blocking_timeout=block):
+        raise RuntimeError(f"player {username!r} is already locked")
+    try:
+        yield
+    finally:
+        # Si el código dentro del with explota no dejamos el lock colgado
+        lock.release()

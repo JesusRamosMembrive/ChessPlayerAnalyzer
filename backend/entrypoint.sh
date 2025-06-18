@@ -15,6 +15,7 @@ case "$mode" in
       exec uvicorn app.main:app --host 0.0.0.0 --port 8000
       ;;
   worker)
+      alembic upgrade head
       shift
       exec celery -A app.celery_app worker --loglevel=info "$@"
       ;;

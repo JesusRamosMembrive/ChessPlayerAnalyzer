@@ -99,6 +99,8 @@ class Player(SQLModel, table=True):
     requested_at: Optional[datetime] = None
     finished_at: Optional[datetime] = None
     error: Optional[str] = None
+    last_task_id: str | None = Field(default=None, description="Celery id de la tarea en curso")
+
 
     # Relación con análisis detallado
     detailed_analysis: Optional["PlayerAnalysisDetailed"] = Relationship(back_populates="player")

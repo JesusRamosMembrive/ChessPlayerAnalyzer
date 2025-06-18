@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 from datetime import datetime, UTC
 from statistics import stdev
@@ -9,6 +11,19 @@ from sqlalchemy import or_
 from sqlmodel import Session, select
 from pathlib import Path
 from app.utils import fetch_games, notify_ws
+from celery_once import QueueOnce
+
+from app.analysis.engine import ChessAnalysisEngine
+
+from datetime import datetime, UTC
+from sqlmodel import Session
+from celery import states
+from celery.result import AsyncResult
+
+from app.database import engine
+from app import models
+from app.utils import fetch_games, notify_ws            # :contentReference[oaicite:0]{index=0}
+
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
 celery_app = Celery("chess_tasks", broker=REDIS_URL, backend=REDIS_URL)
@@ -284,40 +299,106 @@ def compute_player_metrics(username: str, months: int = 12):
 
         s.add(pm)
         s.commit()
+@celery_app.task(
+    name="process_player",
+    bind=True,           # para acceder a self.request
+    acks_late=True,      # la tarea sólo se ACKea cuando acaba
+    max_retries=3,       # reintentos automáticos (p.ej. si Chess.com da 5xx)
+    default_retry_delay=30
+)
+def process_player(self, username: str, months: int = 6) -> dict:
+    """
+    Descarga las partidas recientes de *username*, crea/actualiza el registro
+    Player y encola una tarea `analyze_game_task` por cada partida.
 
-@celery_app.task(name="process_player")
-def process_player(username: str, months: int = 6):
-    from app.database import engine
-    from sqlmodel import Session
-    from datetime import datetime, UTC
+    – Idempotente: si ya hay un Player.pending REAL no hace nada.
+    – Trazabilidad: guarda el `last_task_id` para poder comprobar si la tarea
+      sigue viva desde el endpoint.
+    – Robusto: cualquier excepción deja al jugador en estado 'error' con mensaje.
+    """
+    from celery.exceptions import Reject
 
-    games = fetch_games(username, months)          # puede lanzar excepción
-    total = len(games)
+    try:
+        # ────────────────────────── 1.  Pre-chequeos ─────────────────────────
+        with Session(engine) as s:
+            pl = s.get(models.Player, username)
+            if pl and pl.status == "pending":
+                # ¿de verdad hay una tarea viva?
+                if pl.last_task_id and AsyncResult(pl.last_task_id).state in {
+                    states.PENDING, states.STARTED
+                }:
+                    # Otra instancia ya trabaja → idempotente
+                    return {"username": username, "status": "already_processing"}
 
-    with Session(engine) as s:
-        # crea/limpia registro
-        player = models.Player(
-            username=username,
-            status="pending",
-            requested_at=datetime.now(UTC),
-            progress=0,
-            total_games=total,
-            done_games=0,
-        )
-        s.merge(player)          # INSERT o UPDATE
-        s.commit()
+            # si estamos aquí relanzaremos análisis
+        # ───────────────────────── 2.  Download PGNs ─────────────────────────
+        games = fetch_games(username, months)      # puede lanzar excepción
+        total = len(games)
 
-    # encola las partidas
-    for g in games:
-        analyze_game_task.delay(
-            g["pgn"],
-            None,                        # game_id lo crea el task
-            move_times=g["move_times"],
-            player=username              # <-- parámetro extra
-        )
+        # ─────────────────────── 3.  Registrar Player ───────────────────────
+        with Session(engine) as s:
+            pl = s.get(models.Player, username) or models.Player(username=username)
+
+            if total == 0:
+                pl.status = "ready"
+                pl.progress = 100
+                pl.total_games = 0
+                pl.done_games = 0
+                pl.requested_at = datetime.now(UTC)
+                pl.finished_at = datetime.now(UTC)
+                pl.error = None
+                pl.last_task_id = self.request.id
+                s.add(pl)
+                s.commit()
+                notify_ws(username, {"status": "ready", "progress": 100})
+                return {"username": username, "games_queued": 0}
+
+            pl.status = "pending"
+            pl.progress = 0
+            pl.total_games = total
+            pl.done_games = 0
+            pl.requested_at = datetime.now(UTC)
+            pl.finished_at = None
+            pl.error = None
+            pl.last_task_id = self.request.id
+            s.add(pl)
+            s.commit()
+
+        notify_ws(username, {"status": "pending", "progress": 0})
+
+        # ─────────────────────── 4.  Encolar partidas ───────────────────────
+        for g in games:
+            analyze_game_task.delay(
+                g["pgn"],
+                None,                     # game_id lo crea el task
+                move_times=g["move_times"],
+                player=username
+            )
+
+        return {
+            "username": username,
+            "games_queued": total,
+            "task_id": self.request.id,
+            "status": "pending",
+        }
+
+    # ─────────────────────────── 5.  Errores ────────────────────────────────
+    except Exception as exc:
+        with Session(engine) as s:
+            pl = s.get(models.Player, username) or models.Player(username=username)
+            pl.status = "error"
+            pl.error = str(exc)
+            pl.finished_at = datetime.now(UTC)
+            pl.progress = 0
+            pl.last_task_id = self.request.id
+            s.add(pl)
+            s.commit()
+
+        notify_ws(username, {"status": "error", "error": str(exc)})
+        # rechazamos la tarea sin re-queue si se trata de un 4xx de Chess.com
+        raise Reject(exc, requeue=isinstance(exc, (ConnectionError, TimeoutError)))
 
 
-from app.analysis.engine import ChessAnalysisEngine
 
 # Inicializar el motor de análisis (configurar rutas según tu sistema)
 analysis_engine = ChessAnalysisEngine(
@@ -475,3 +556,18 @@ def process_player_enhanced(username: str, months: int = 6):
         "games_queued": total,
         "enhanced_analysis": True
     }
+
+
+from celery.signals import task_failure
+
+@task_failure.connect
+def on_task_failure(sender=None, task_id=None, args=None, kwargs=None, **k):
+    if sender.name == "process_player":
+        username = args[0]
+        with Session(engine) as s:
+            pl = s.get(models.Player, username)
+            if pl:
+                pl.status = "error"
+                pl.error = str(k.get("exception", "unknown"))
+                s.add(pl); s.commit()
+        notify_ws(username, {"status": "error"})

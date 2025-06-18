@@ -1,70 +1,92 @@
-# docker-compose.yml
-# NO incluir 'version' - está obsoleto en Docker Compose V2
-
+# docker-compose.yml  (Compose V2, sin clave 'version')
 services:
-  # Base de datos PostgreSQL
+# ──────────────────────────────────────────────────────────────
   postgres:
-    image: postgres:15-alpine  # Mantener versión 15 para compatibilidad
+    image: postgres:15-alpine
     environment:
       POSTGRES_USER: chess
       POSTGRES_PASSWORD: chess
       POSTGRES_DB: chessdb
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U chess"]
+      test: ["CMD-SHELL", "pg_isready -U chess -d chessdb"]
       interval: 5s
       timeout: 5s
       retries: 5
+    ports:
+      - "5432:5432"
 
-  # Redis para Celery
+# ──────────────────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 5s
       retries: 5
+    ports:
+      - "6379:6379"
 
-  # API Backend (FastAPI)
+# ──────────────────────────────────────────────────────────────
+  migrate:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    working_dir: /app              # ← aquí está el código copiado
+    entrypoint: >
+      sh -c "
+        echo '⏳ Waiting for Postgres…';
+        until pg_isready -h postgres -U chess -d chessdb; do sleep 1; done;
+        echo '✅ Postgres up – creating schema';
+        cd /app && python -m app.init_db      # ← cd antes de ejecutar
+      "
+    environment:
+      DATABASE_URL: postgresql+psycopg://chess:chess@postgres:5432/chessdb
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+# ──────────────────────────────────────────────────────────────
   backend:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./backend:/app
+    environment:
+      DATABASE_URL: postgresql+psycopg://chess:chess@postgres:5432/chessdb
+      REDIS_URL: redis://redis:6379/0
+      STOCKFISH_PATH: /usr/games/stockfish
+      STOCKFISH_DEPTH: 12
     ports:
       - "8000:8000"
-    environment:
-      DATABASE_URL: postgresql+psycopg://chess:chess@postgres:5432/chessdb
-      REDIS_URL: redis://redis:6379/0
-      STOCKFISH_PATH: /usr/games/stockfish
-      STOCKFISH_DEPTH: 12
-    volumes:
-      - ./backend:/app
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
-  # Worker Celery
+# ──────────────────────────────────────────────────────────────
   celery:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: celery -A app.celery_app worker --loglevel=info
+    volumes:
+      - ./backend:/app
     environment:
       DATABASE_URL: postgresql+psycopg://chess:chess@postgres:5432/chessdb
       REDIS_URL: redis://redis:6379/0
       STOCKFISH_PATH: /usr/games/stockfish
       STOCKFISH_DEPTH: 12
-    volumes:
-      - ./backend:/app
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
-    command: celery -A app.celery_app worker --loglevel=info
 
+# ──────────────────────────────────────────────────────────────
 volumes:
   postgres_data:

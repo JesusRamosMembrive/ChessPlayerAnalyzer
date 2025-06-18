@@ -4,20 +4,29 @@ API principal de Chess Analyzer.
 Versión simplificada que combina lo mejor del original y el refactor.
 """
 from datetime import datetime, UTC
-from typing import List, Optional
+from typing import List, Optional, Literal
 import logging
 
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
-from celery.result import AsyncResult
-from sqlmodel import Session, select
+
 
 from app import models
 from app.celery_app import celery_app, analyze_game_task, process_player
 from app.database import get_session
-from app.utils import redis_client, notify_ws
+from app.utils import redis_client, notify_ws, player_lock
+
+from datetime import datetime, UTC
+from fastapi import Depends, HTTPException, status
+from sqlmodel import Session, select
+from celery.result import AsyncResult
+
+from app.database import get_session
+from app import models
+from app.celery_app import process_player
+from app.utils import player_lock, notify_ws
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -169,51 +178,92 @@ def get_player(username: str, session: Session = Depends(get_session)):
         "error": player.error
     }
 
-@app.post("/players/{username}")
-def analyze_player(username: str, session: Session = Depends(get_session)):
-    """Inicia el análisis de todas las partidas de un jugador."""
-    try:
-        # Verificar si ya existe
-        player = session.get(models.Player, username)
-        
-        if player and player.status == "pending":
+@app.post("/players/{username}", status_code=status.HTTP_202_ACCEPTED)
+def analyze_player(
+    username: str,
+    months: int = 6,
+    session: Session = Depends(get_session),
+) -> dict[str, str | int | Literal["pending", "already_processing"]]:
+    """
+    Lanza (o reaprovecha) el análisis completo de *username*.
+
+    • Idempotente: varias peticiones concurrentes jamás crean dos análisis.
+    • Distribuido: usa un lock Redis + row-lock para evitar carreras entre pods.
+    • Fiable: si el análisis previo murió, lo detecta y lo relanza.
+    """
+    # 🔒 EXCLUSIÓN A NIVEL DE CLÚSTER (Redis)
+    with player_lock(username):
+        # ── 1 · Obtener y BLOQUEAR la fila (segunda barrera) ────────────────
+        player = session.exec(
+            select(models.Player)
+            .where(models.Player.username == username)
+            .with_for_update(nowait=True)
+        ).first()
+
+        # Flag para saber si hay que disparar una tarea nueva
+        relaunch_needed = False
+
+        # ── 2 · Decidir qué hacer según el estado actual ────────────────────
+        if player:
+            if player.status == "pending":
+                # ¿La tarea realmente sigue viva?
+                alive = (
+                    player.last_task_id
+                    and AsyncResult(player.last_task_id).state
+                    in {"PENDING", "STARTED"}
+                )
+                if alive:
+                    # Análisis en curso → salida idempotente
+                    return {
+                        "username": username,
+                        "status": "already_processing",
+                        "task_id": player.last_task_id,
+                        "progress": player.progress,
+                    }
+                # Tarea zombi → relanzar
+                relaunch_needed = True
+
+            elif player.status in {"ready", "error"}:
+                # Se permite volver a empezar desde cero
+                relaunch_needed = True
+        else:
+            # Primer análisis de este jugador
+            player = models.Player(username=username)
+            session.add(player)
+            relaunch_needed = True
+
+        # ── 3 · (Re)inicializar registro y publicar tarea ───────────────────
+        if relaunch_needed:
+            now = datetime.now(UTC)
+            player.status = "pending"
+            player.progress = 0
+            player.done_games = 0
+            player.total_games = 0
+            player.requested_at = now
+            player.finished_at = None
+            player.error = None
+            player.last_task_id = None
+            session.add(player)
+            session.commit()
+
+            # Publicar tarea única
+            task = process_player.delay(username, months)
+            player.last_task_id = task.id
+            session.add(player)
+            session.commit()
+
+            # Aviso opcional vía WebSocket
+            notify_ws(username, {"status": "pending", "progress": 0})
+
             return {
                 "username": username,
-                "status": "already_processing",
-                "progress": player.progress,
-                "message": "Analysis already in progress"
+                "status": "pending",
+                "task_id": task.id,
+                "progress": 0,
             }
-        
-        # Crear o actualizar registro
-        if not player:
-            player = models.Player(username=username)
-        
-        player.status = "pending"
-        player.progress = 0
-        player.requested_at = datetime.now(UTC)
-        player.error = None
-        
-        session.add(player)
-        session.commit()
-        
-        # Lanzar tarea de procesamiento
-        task = process_player.delay(username)
-        
-        # Notificar via websocket
-        notify_ws(username, {"status": "pending", "progress": 0})
-        
-        logger.info(f"Análisis de jugador iniciado - Username: {username}, Task ID: {task.id}")
-        
-        return {
-            "username": username,
-            "status": "pending",
-            "task_id": task.id,
-            "message": "Analysis started successfully"
-        }
-        
-    except Exception as e:
-        logger.error(f"Error iniciando análisis para {username}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+
+        # No deberíamos llegar aquí
+        raise HTTPException(500, "Estado inesperado en analyze_player")
 
 @app.post("/players/{username}/refresh")
 def refresh_player(username: str, session: Session = Depends(get_session)):
@@ -286,6 +336,15 @@ def player_metrics(username: str, session: Session = Depends(get_session)):
         "low_entropy": pm.low_entropy,
         "updated_at": pm.updated_at.isoformat()
     }
+
+@app.delete("/players/{username}", status_code=204)
+def delete_player(username: str, session: Session = Depends(get_session)):
+    player = session.get(models.Player, username)
+    if not player:
+        raise HTTPException(404, "Player not found")
+    # BORRAR análisis relacionados (foreign keys ON DELETE CASCADE)
+    session.delete(player)
+    session.commit()
 
 # ============================================================
 # STREAMING (SSE)

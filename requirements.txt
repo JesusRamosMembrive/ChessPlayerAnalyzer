@@ -17,3 +17,5 @@ requests
 pandas
 numpy
 scikit-learn
+celery_once
+redis

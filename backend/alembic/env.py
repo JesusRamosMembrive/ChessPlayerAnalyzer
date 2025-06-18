@@ -12,6 +12,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 from app.models import SQLModel
 from app import models  # This imports all model classes
 
+target_metadata = SQLModel.metadata
+
 config = context.config
 
 if config.config_file_name is not None:
