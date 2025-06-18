@@ -1,7 +1,8 @@
 # app/database.py
 """Conexión global a PostgreSQL y helper para obtener sesiones."""
 import os
-from sqlmodel import SQLModel, create_engine, Session
+
+from sqlmodel import create_engine, Session
 
 # La URL debe coincidir con docker-compose.yml
 DB_URL = os.getenv(

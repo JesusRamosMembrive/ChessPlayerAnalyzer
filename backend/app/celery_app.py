@@ -1,37 +1,83 @@
 from __future__ import annotations
 
+import io
+import logging
 import os
 from datetime import datetime, UTC
-from statistics import stdev
-import logging
-
-from app import models
-from app.database import engine
-from celery import Celery
 from pathlib import Path
-from app.utils import fetch_games, notify_ws
-from celery_once import QueueOnce
+
+import chess.engine
+import chess.pgn
 
 from app.analysis.engine import ChessAnalysisEngine
-
-from sqlmodel import Session
-from celery import states
-from celery.result import AsyncResult
-
 from app.database import engine
-from app import models
+
+
 from app.utils import fetch_games, notify_ws, update_progress
-from statistics import mean
-from collections import Counter
-from math import log2
+from celery import Celery
+from celery import chain, group, chord
+from celery.signals import task_failure
+from celery_once import QueueOnce
 from sqlmodel import Session, select
-import io, chess.pgn, chess.engine
+from sqlalchemy import func
+
+from app.models import GameAnalysisDetailed
+from app import models
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
 celery_app = Celery("chess_tasks", broker=REDIS_URL, backend=REDIS_URL)
 
 ENGINE_PATH = os.getenv("STOCKFISH_PATH", "stockfish")
 MAX_DEPTH = int(os.getenv("STOCKFISH_DEPTH", "12"))
+
+
+
+@celery_app.task(name="analyze_player_detailed")
+def analyze_player_detailed(username: str):
+    """
+    Análisis longitudinal detallado de un jugador.
+    Se ejecuta después de que todas sus partidas han sido analizadas.
+    """
+    try:
+        # Verificar que hay suficientes partidas analizadas
+        with Session(engine) as s:
+            analyzed_count = s.exec(
+                select(func.count(GameAnalysisDetailed.game_id))
+                .join(models.Game)
+                .where(
+                    (models.Game.white_username == username) |
+                    (models.Game.black_username == username)
+                )
+            ).one()
+
+            if analyzed_count < 10:
+                logging.warning(f"Insuficientes partidas analizadas para {username}: {analyzed_count}")
+                return {
+                    "username": username,
+                    "status": "insufficient_data",
+                    "games_analyzed": analyzed_count
+                }
+
+        # Ejecutar análisis del jugador
+        player_analysis = analysis_engine.analyze_player(username)
+
+        # Notificar resultado
+        notify_ws(username, {
+            "type": "player_analysis_complete",
+            "risk_score": player_analysis.risk_score,
+            "risk_factors": player_analysis.risk_factors
+        })
+
+        return {
+            "username": username,
+            "risk_score": player_analysis.risk_score,
+            "games_analyzed": player_analysis.games_analyzed,
+            "analyzed_at": player_analysis.analyzed_at.isoformat()
+        }
+
+    except Exception as e:
+        logging.error(f"Error en análisis detallado de jugador {username}: {e}")
+        raise
 
 
 @celery_app.task(name="analyze_game_task", bind=True)
@@ -158,23 +204,23 @@ def analyze_game_task(
         s.add(game_db)
         s.commit()
 
-    if player:
-        pl = s.get(models.Player, player)
-        if pl:
-            pl.done_games += 1
-            pl.progress = 50 + int(pl.done_games / pl.total_games * 50)
-            # ¿terminado?
-            if pl.done_games == pl.total_games:
-                pl.status = "ready"
-                pl.finished_at = datetime.now(UTC)
-                notify_ws(player, {"status": "ready"})
-            else:
-                notify_ws(
-                    player,
-                    {"progress": pl.progress, "status": "pending"},
-                )
-            s.add(pl)
-            s.commit()
+    # if player:
+    #     pl = s.get(models.Player, player)
+    #     if pl:
+    #         # ¿terminado?
+    #         if pl.done_games == pl.total_games:
+    #             pl.status = "ready"
+    #             pl.finished_at = datetime.now(UTC)
+    #             notify_ws(player, {"status": "ready"})
+    #         else:
+    #             notify_ws(
+    #                 player,
+    #                 {"progress": pl.progress, "status": "pending"},
+    #             )
+    #         s.add(pl)
+    #         s.commit()
+
+    update_progress(player, increment=1)
 
     return {
         "game_id": game_id,
@@ -192,7 +238,7 @@ analysis_engine = ChessAnalysisEngine(
 
 
 @celery_app.task(name="analyze_game_detailed")
-def analyze_game_detailed(game_id: int):
+def analyze_game_detailed(game_id: int, username: str):
     """
     Análisis detallado de una partida usando los nuevos módulos.
     Esta tarea complementa a analyze_game_task existente.
@@ -211,6 +257,8 @@ def analyze_game_detailed(game_id: int):
                     "suspicious": detailed_analysis.overall_suspicion_score > 50
                 })
 
+        update_progress(username, increment=1)
+
         return {
             "game_id": game_id,
             "acpl": detailed_analysis.acpl,
@@ -222,63 +270,11 @@ def analyze_game_detailed(game_id: int):
         logging.error(f"Error en análisis detallado de partida {game_id}: {e}")
         raise
 
-
-@celery_app.task(name="analyze_player_detailed")
-def analyze_player_detailed(username: str):
-    """
-    Análisis longitudinal detallado de un jugador.
-    Se ejecuta después de que todas sus partidas han sido analizadas.
-    """
-    try:
-        # Verificar que hay suficientes partidas analizadas
-        with Session(engine) as s:
-            analyzed_count = s.exec(
-                select(func.count(GameAnalysisDetailed.game_id))
-                .join(Game)
-                .where(
-                    (Game.white_username == username) |
-                    (Game.black_username == username)
-                )
-            ).one()
-
-            if analyzed_count < 10:
-                logging.warning(f"Insuficientes partidas analizadas para {username}: {analyzed_count}")
-                return {
-                    "username": username,
-                    "status": "insufficient_data",
-                    "games_analyzed": analyzed_count
-                }
-
-        # Ejecutar análisis del jugador
-        player_analysis = analysis_engine.analyze_player(username)
-
-        # Notificar resultado
-        notify_ws(username, {
-            "type": "player_analysis_complete",
-            "risk_score": player_analysis.risk_score,
-            "risk_factors": player_analysis.risk_factors
-        })
-
-        return {
-            "username": username,
-            "risk_score": player_analysis.risk_score,
-            "games_analyzed": player_analysis.games_analyzed,
-            "analyzed_at": player_analysis.analyzed_at.isoformat()
-        }
-
-    except Exception as e:
-        logging.error(f"Error en análisis detallado de jugador {username}: {e}")
-        raise
-
-
-# Modificar process_player existente para incluir el nuevo análisis
 @celery_app.task(name="process_player_enhanced")
 def process_player_enhanced(username: str, months: int = 6):
-    """
-    Versión mejorada de process_player que incluye análisis detallado.
-    """
+    # 1. DESCARGAR partidas y crear registros Game ──────────────────────────
     games = fetch_games(username, months)
-    total = len(games)
+    game_ids = []
 
     with Session(engine) as s:
         player = models.Player(
@@ -286,63 +282,43 @@ def process_player_enhanced(username: str, months: int = 6):
             status="pending",
             requested_at=datetime.now(UTC),
             progress=0,
-            total_games=total,
+            total_games=len(games),
             done_games=0,
         )
-        s.merge(player)
-        s.commit()
+        s.merge(player);  s.commit()
 
-    # Fase 1: Análisis básico (existente)
-    game_ids = []
-    for i, g in enumerate(games):
-        # Crear partida
+    chains = []          # ← aquí iremos acumulando chain por partida
+    for g in games:
         with Session(engine) as s:
             game_db = models.Game(
                 pgn=g["pgn"],
-                move_times=g.get("move_times"),
+                move_times=g.get("move_times", []),
                 white_username=g.get("white"),
                 black_username=g.get("black"),
-                white_elo=g.get("white_elo"),  # Nuevo
-                black_elo=g.get("black_elo"),  # Nuevo
+                white_elo=g.get("white_elo"),
+                black_elo=g.get("black_elo"),
             )
-            s.add(game_db)
-            s.commit()
-            s.refresh(game_db)
-            game_ids.append(game_db.id)
+            s.add(game_db);  s.commit();  s.refresh(game_db)
+            gid = game_db.id
+            game_ids.append(gid)
 
-        # Análisis básico
-        analyze_game_task.delay(
-            g["pgn"],
-            game_db.id,
-            move_times=g.get("move_times"),
-            player=username
-        )
+        # 2.  chain:  básico → detallado ───────────────────────────────────
+        basic = analyze_game_task.s(g["pgn"], gid, move_times=g.get("move_times"), player=username)
+        detailed = analyze_game_detailed.si(gid, username)
+        chains.append(chain(basic, detailed))
 
-        # Actualizar progreso (40% para análisis básico)
-        progress = int((i + 1) / total * 40)
-        update_progress(username, progress)
-
-    # Fase 2: Análisis detallado (nuevo)
-    # Esperar un poco para que termine el análisis básico
-    analyze_game_detailed.apply_async(
-        args=[game_ids],
-        countdown=60  # Esperar 1 minuto
-    )
-
-    # Fase 3: Análisis del jugador
-    analyze_player_detailed.apply_async(
-        args=[username],
-        countdown=300  # Esperar 5 minutos
-    )
+    # 3. group & chord: cuando todas las partidas acaben … ──────────────────
+    #    se lanza analyze_player_detailed(username)
+    full_workflow = chord(group(chains), analyze_player_detailed.s(username))
+    full_workflow.delay()
 
     return {
         "username": username,
-        "games_queued": total,
-        "enhanced_analysis": True
+        "games_queued": len(games),
+        "enhanced_analysis": True,
+        "task_id": full_workflow.id,
     }
 
-
-from celery.signals import task_failure
 
 @task_failure.connect
 def on_task_failure(sender=None, task_id=None, args=None, kwargs=None, **k):

@@ -342,7 +342,7 @@ def game_metrics(game_id: int, session: Session = Depends(get_session)):
 def player_metrics(username: str, session: Session = Depends(get_session)):
     """Obtiene las métricas agregadas de un jugador."""
     pm = session.exec(
-        select(models.PlayerMetrics).where(models.PlayerMetrics.username == username)
+        select(models.PlayerAnalysisDetailed).where(models.PlayerAnalysisDetailed.username == username)
     ).first()
     
     if not pm:

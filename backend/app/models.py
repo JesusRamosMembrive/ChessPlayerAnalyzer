@@ -3,11 +3,12 @@
 Modelos actualizados para soportar análisis detallado.
 Mantiene compatibilidad con el sistema actual.
 """
-from datetime import datetime, UTC, timezone
+from datetime import datetime, UTC
 from typing import Optional, List
-from sqlmodel import SQLModel, Field, Relationship
-from sqlalchemy import Column, JSON
+
 import sqlalchemy as sa
+from sqlalchemy import Column, JSON
+from sqlmodel import SQLModel, Field, Relationship
 
 
 # ============================================================

@@ -1,17 +1,19 @@
 # app/utils.py
 from __future__ import annotations
-import json, re, requests, logging
+
+import json
+import logging
+import re
+from contextlib import contextmanager
 from datetime import datetime, UTC
 from typing import List, Dict
 
-# import redis.asyncio as redis
-from sqlmodel import Session
-
-from app.database import engine
-from app import models
-
-from contextlib import contextmanager
 import redis
+import requests
+from app import models
+from app.database import engine
+from sqlmodel import Session
+from app import models, utils
 
 # ──────────────────────────────────────────────────────────────────────────────
 #  Configuración común
@@ -102,22 +104,30 @@ def notify_ws(username: str, payload: dict) -> None:
     redis_client.publish(channel, json.dumps(payload))
 
 
-def update_progress(username: str, percent: int) -> None:
-    """
-    Guarda `progress` en la tabla Player y envía mensaje a los clientes.
-    """
-    percent = max(0, min(100, percent))   # clamp
+def update_progress(username: str, *, increment: int = 1) -> None:
     with Session(engine) as s:
-        player = s.get(models.Player, username)
-        if not player:
+        pl = s.get(models.Player, username)
+        if not pl:
             return
-        if player.progress == percent:
-            return
-        player.progress = percent
-        s.add(player)
+
+        pl.done_games = (pl.done_games or 0) + increment
+        expected_units = (pl.total_games or 0) * 2
+        if expected_units:
+            pl.progress = int(pl.done_games / expected_units * 100)
+
+        if pl.done_games == expected_units:
+            pl.status = "ready"
+            pl.finished_at = datetime.now(UTC)
+
+        # ⚠️ capturamos antes de cerrar la sesión
+        progress_now = pl.progress
+        status_now   = pl.status
+
+        s.add(pl)
         s.commit()
 
-    notify_ws(username, {"progress": percent})
+    # fuera del contexto ya no tocamos `pl`
+    notify_ws(username, {"progress": progress_now, "status": status_now})
 
 @contextmanager
 def player_lock(username: str, timeout: int = 900, block: int = 5):
