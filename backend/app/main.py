@@ -14,9 +14,9 @@ from sse_starlette.sse import EventSourceResponse
 
 
 from app import models
-from app.celery_app import celery_app, analyze_game_task, process_player
+from app.celery_app import celery_app, analyze_game_task, process_player_enhanced as process_player
 from app.database import get_session
-from app.utils import redis_client, notify_ws, player_lock
+from app.utils import redis_client, notify_ws, player_lock, update_progress
 
 from datetime import datetime, UTC
 from fastapi import Depends, HTTPException, status
@@ -25,8 +25,6 @@ from celery.result import AsyncResult
 
 from app.database import get_session
 from app import models
-from app.celery_app import process_player
-from app.utils import player_lock, notify_ws
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)

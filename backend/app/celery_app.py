@@ -1,15 +1,13 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime, UTC, timezone
+from datetime import datetime, UTC
 from statistics import stdev
 import logging
 
 from app import models
 from app.database import engine
 from celery import Celery
-from sqlalchemy import or_
-from sqlmodel import Session, select
 from pathlib import Path
 from app.utils import fetch_games, notify_ws
 from celery_once import QueueOnce
@@ -22,8 +20,12 @@ from celery.result import AsyncResult
 
 from app.database import engine
 from app import models
-from app.utils import fetch_games, notify_ws            # :contentReference[oaicite:0]{index=0}
-
+from app.utils import fetch_games, notify_ws, update_progress
+from statistics import mean
+from collections import Counter
+from math import log2
+from sqlmodel import Session, select
+import io, chess.pgn, chess.engine
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
 celery_app = Celery("chess_tasks", broker=REDIS_URL, backend=REDIS_URL)
@@ -34,7 +36,6 @@ MAX_DEPTH = int(os.getenv("STOCKFISH_DEPTH", "12"))
 @celery_app.task(name="compute_game_metrics")
 def compute_game_metrics(game_id: int):
     """Calcula métricas básicas y las graba en GameMetrics."""
-    from statistics import mean
 
     with Session(engine) as session:
         game = session.get(models.Game, game_id)
@@ -109,8 +110,7 @@ def analyze_game_task(
         – cp_loss     (centipawns perdidos respecto PV1)
     • Al final dispara compute_game_metrics y actualiza claves de apertura.
     """
-    import io, chess.pgn, chess.engine
-    from sqlmodel import Session
+
 
     # ---------- 1.  Asegurar objeto Game en BD --------------------
     if game_id is None:
@@ -222,7 +222,7 @@ def analyze_game_task(
         pl = s.get(models.Player, player)
         if pl:
             pl.done_games += 1
-            pl.progress = int(pl.done_games / pl.total_games * 100)
+            pl.progress = 50 + int(pl.done_games / pl.total_games * 50)
             # ¿terminado?
             if pl.done_games == pl.total_games:
                 pl.status = "ready"
@@ -252,9 +252,7 @@ def compute_player_metrics(username: str, months: int = 12):
         • apertura más frecuente
         • flag de baja entropía
     """
-    from collections import Counter
-    from math import log2
-    from sqlmodel import Session, select
+
 
     with Session(engine) as s:
         # --- extraemos las aperturas almacenadas -------------------
@@ -489,7 +487,7 @@ def analyze_player_detailed(username: str):
             ).one()
 
             if analyzed_count < 10:
-                logger.warning(f"Insuficientes partidas analizadas para {username}: {analyzed_count}")
+                logging.warning(f"Insuficientes partidas analizadas para {username}: {analyzed_count}")
                 return {
                     "username": username,
                     "status": "insufficient_data",
@@ -514,7 +512,7 @@ def analyze_player_detailed(username: str):
         }
 
     except Exception as e:
-        logger.error(f"Error en análisis detallado de jugador {username}: {e}")
+        logging.error(f"Error en análisis detallado de jugador {username}: {e}")
         raise
 
 
@@ -565,8 +563,8 @@ def process_player_enhanced(username: str, months: int = 6):
             player=username
         )
 
-        # Actualizar progreso (50% para análisis básico)
-        progress = int((i + 1) / total * 50)
+        # Actualizar progreso (40% para análisis básico)
+        progress = int((i + 1) / total * 40)
         update_progress(username, progress)
 
     # Fase 2: Análisis detallado (nuevo)
