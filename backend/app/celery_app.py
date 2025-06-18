@@ -33,62 +33,6 @@ celery_app = Celery("chess_tasks", broker=REDIS_URL, backend=REDIS_URL)
 ENGINE_PATH = os.getenv("STOCKFISH_PATH", "stockfish")
 MAX_DEPTH = int(os.getenv("STOCKFISH_DEPTH", "12"))
 
-@celery_app.task(name="compute_game_metrics")
-def compute_game_metrics(game_id: int):
-    """Calcula métricas básicas y las graba en GameMetrics."""
-
-    with Session(engine) as session:
-        game = session.get(models.Game, game_id)
-        if not game or not game.moves:
-            raise ValueError("Game or moves not found")
-
-        ranks = [m.best_rank for m in game.moves]
-        cp_losses = [m.cp_loss for m in game.moves]
-        n = len(ranks)
-        pct_top1 = sum(1 for r in ranks if r == 0) / n * 100.0
-        pct_top3 = sum(1 for r in ranks if r <= 2) / n * 100.0
-        acl = mean(cp_losses) if cp_losses else 0.0
-
-        suspicious = (pct_top3 > 85 and acl < 20)
-
-        times = game.move_times or []
-
-        # valores por defecto para que siempre existan
-        sigma_total: float | None = None
-        constant_time = False
-        pause_spike = False
-
-        if times:
-            sigma_total = stdev(times) if len(times) > 1 else 0.0
-            constant_time = sigma_total < 1.0
-
-            # pausa + pico
-            T_PAUSE = 10
-            pause_index = next((i for i, t in enumerate(times) if t > T_PAUSE), None)
-            if pause_index is not None and pause_index + 5 < len(game.moves):
-                ranks_after = [m.best_rank for m in game.moves[pause_index + 1: pause_index + 6]]
-                pct_top3_after = sum(r <= 2 for r in ranks_after) / 5 * 100
-                pause_spike = pct_top3_after >= 80
-        else:
-            sigma_total = None
-
-        gm = models.GameMetrics(
-            game_id=game_id,
-            pct_top1=pct_top1,
-            pct_top3=pct_top3,
-            acl=acl,
-            sigma_total=sigma_total,
-            constant_time=constant_time,
-            pause_spike=pause_spike,
-            suspicious=suspicious or constant_time or pause_spike,
-        )
-        session.add(gm)
-        session.commit()
-
-        compute_player_metrics.delay(game.white_username)
-        compute_player_metrics.delay(game.black_username)
-
-    return {"game_id": game_id, "pct_top3": pct_top3, "acl": acl}
 
 @celery_app.task(name="analyze_game_task", bind=True)
 def analyze_game_task(
@@ -108,7 +52,6 @@ def analyze_game_task(
     • Para cada jugada se guarda:
         – best_rank   (0 == mejor jugada)
         – cp_loss     (centipawns perdidos respecto PV1)
-    • Al final dispara compute_game_metrics y actualiza claves de apertura.
     """
 
 
@@ -215,9 +158,6 @@ def analyze_game_task(
         s.add(game_db)
         s.commit()
 
-    # ---------- 4.  Encolar métricas ------------------------------
-    compute_game_metrics.delay(game_id)
-
     if player:
         pl = s.get(models.Player, player)
         if pl:
@@ -241,191 +181,6 @@ def analyze_game_task(
         "move_count": len(analyses),
         "analyzed_at": datetime.now(UTC).isoformat(),
     }
-
-
-@celery_app.task(name="compute_player_metrics")
-def compute_player_metrics(username: str, months: int = 12):
-    """
-    Recalcula las métricas agregadas del jugador:
-        • nº de partidas en BD
-        • entropía de aperturas
-        • apertura más frecuente
-        • flag de baja entropía
-    """
-
-
-    with Session(engine) as s:
-        # --- extraemos las aperturas almacenadas -------------------
-        rows = (
-            s.exec(
-                select(models.Game.opening_key)
-                .where(
-                    (models.Game.white_username == username)
-                    | (models.Game.black_username == username)
-                )
-                .where(models.Game.opening_key.is_not(None))
-            )
-            .all()
-        )
-        openings = [r[0] for r in rows]          # <─ cada fila es (opening_key,)
-
-        total = len(openings)
-        if total < 5:            # aún no hay muestra suficiente
-            return
-
-        # --- estadísticas ------------------------------------------
-        counts = Counter(openings)
-        probs  = [c / total for c in counts.values()]
-        entropy = -sum(p * log2(p) for p in probs)
-        most_played = counts.most_common(1)[0][0]
-        low_entropy = entropy < 1.0
-
-        # --- upsert en PlayerMetrics -------------------------------
-        pm = (
-            s.exec(select(models.PlayerMetrics)
-                   .where(models.PlayerMetrics.username == username))
-            .first()
-        )
-        if pm is None:
-            pm = models.PlayerMetrics(username=username)
-
-        pm.game_count = total
-        pm.opening_entropy = entropy
-        pm.most_played = most_played
-        pm.low_entropy = low_entropy
-        pm.updated_at = datetime.now(UTC)
-
-        s.add(pm)
-        s.commit()
-
-
-@celery_app.task(
-    name="process_player",
-    bind=True,           # para acceder a self.request
-    acks_late=True,      # la tarea sólo se ACKea cuando acaba
-    max_retries=3,       # reintentos automáticos (p.ej. si Chess.com da 5xx)
-    default_retry_delay=30
-)
-def process_player(self, username: str, months: int = 6) -> dict:
-    """
-    Descarga las partidas recientes de *username*, crea/actualiza el registro
-    Player y encola una tarea `analyze_game_task` por cada partida.
-
-    – Idempotente: si ya hay un Player.pending REAL no hace nada.
-    – Trazabilidad: guarda el `last_task_id` para poder comprobar si la tarea
-      sigue viva desde el endpoint.
-    – Robusto: cualquier excepción deja al jugador en estado 'error' con mensaje.
-    """
-    from celery.exceptions import Reject
-
-    try:
-        # ────────────────────────── 1.  Pre-chequeos ─────────────────────────
-
-        with Session(engine) as s:
-            pl = s.get(models.Player, username)
-            if pl and pl.status == "pending":
-                # ¿de verdad hay una tarea viva?
-                if pl.last_task_id:
-                    result = AsyncResult(pl.last_task_id)
-                    # PENDING puede significar que la tarea nunca existió
-                    # Verificamos si realmente está en el broker
-                    if result.state == states.STARTED:
-                        # Definitivamente está ejecutándose
-                        return {"username": username, "status": "already_processing"}
-                    elif result.state == states.PENDING:
-                        # Verificar si la tarea existe en el backend
-                        try:
-                            # Si no existe, info será None
-                            task_info = result.info
-                            if task_info is not None:
-                                return {"username": username, "status": "already_processing"}
-                        except Exception:
-                            # La tarea no existe, continuamos
-                            pass
-
-                # Verificar si el análisis está colgado (más de 30 minutos sin actualización)
-                if pl.requested_at:
-                    # Asegurar que ambos datetimes tengan timezone
-                    now = datetime.now(UTC)
-                    requested_at = pl.requested_at
-                    if requested_at.tzinfo is None:
-                        # Si requested_at es naive, asumimos UTC
-                        requested_at = requested_at.replace(tzinfo=UTC)
-
-                    time_since_start = (now - requested_at).total_seconds()
-                    if time_since_start > 1800:  # 30 minutos
-                        # Análisis colgado, lo reiniciamos
-                        logging.warning(f"Análisis colgado para {username}, reiniciando...")
-                    else:
-                        # Aún dentro del tiempo límite
-                        return {"username": username, "status": "already_processing", "time_elapsed": time_since_start}
-            # si estamos aquí relanzaremos análisis
-        # ───────────────────────── 2.  Download PGNs ─────────────────────────
-        games = fetch_games(username, months)      # puede lanzar excepción
-        total = len(games)
-
-        # ─────────────────────── 3.  Registrar Player ───────────────────────
-        with Session(engine) as s:
-            pl = s.get(models.Player, username) or models.Player(username=username)
-
-            if total == 0:
-                pl.status = "ready"
-                pl.progress = 100
-                pl.total_games = 0
-                pl.done_games = 0
-                pl.requested_at = datetime.now(UTC)
-                pl.finished_at = datetime.now(UTC)
-                pl.error = None
-                pl.last_task_id = self.request.id
-                s.add(pl)
-                s.commit()
-                notify_ws(username, {"status": "ready", "progress": 100})
-                return {"username": username, "games_queued": 0}
-
-            pl.status = "pending"
-            pl.progress = 0
-            pl.total_games = total
-            pl.done_games = 0
-            pl.requested_at = datetime.now(UTC)
-            pl.finished_at = None
-            pl.error = None
-            pl.last_task_id = self.request.id
-            s.add(pl)
-            s.commit()
-
-        notify_ws(username, {"status": "pending", "progress": 0})
-
-        # ─────────────────────── 4.  Encolar partidas ───────────────────────
-        for g in games:
-            analyze_game_task.delay(
-                g["pgn"],
-                None,                     # game_id lo crea el task
-                move_times=g["move_times"],
-                player=username
-            )
-
-        return {
-            "username": username,
-            "games_queued": total,
-            "task_id": self.request.id,
-            "status": "pending",
-        }
-
-    # ─────────────────────────── 5.  Errores ────────────────────────────────
-    except Exception as exc:
-        with Session(engine) as s:
-            pl = s.get(models.Player, username) or models.Player(username=username)
-            pl.status = "error"
-            pl.error = str(exc)
-            pl.finished_at = datetime.now(UTC)
-            pl.progress = 0
-            pl.last_task_id = self.request.id
-            s.add(pl)
-            s.commit()
-
-        notify_ws(username, {"status": "error", "error": str(exc)})
-        # rechazamos la tarea sin re-queue si se trata de un 4xx de Chess.com
-        raise Reject(exc, requeue=isinstance(exc, (ConnectionError, TimeoutError)))
 
 
 
@@ -591,7 +346,7 @@ from celery.signals import task_failure
 
 @task_failure.connect
 def on_task_failure(sender=None, task_id=None, args=None, kwargs=None, **k):
-    if sender.name == "process_player":
+    if sender.name == "process_player_enhanced":
         username = args[0]
         with Session(engine) as s:
             pl = s.get(models.Player, username)
@@ -600,3 +355,8 @@ def on_task_failure(sender=None, task_id=None, args=None, kwargs=None, **k):
                 pl.error = str(k.get("exception", "unknown"))
                 s.add(pl); s.commit()
         notify_ws(username, {"status": "error"})
+
+
+@celery_app.task(name="process_player")
+def _deprecated(*a, **kw):
+    raise RuntimeError("Deprecated. Use process_player_enhanced")

@@ -13,16 +13,17 @@ Requisitos:
 """
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Tuple
-import sys
 import json
-import requests
-import time
 import logging
+import sys
+import time
 from datetime import datetime
-from tqdm import tqdm
+from typing import List, Optional, Tuple
+
+import requests
 from colorama import init, Fore, Style
 from tabulate import tabulate
+from tqdm import tqdm
 
 # Inicializar colorama para Windows
 init()
@@ -300,17 +301,16 @@ def main():
         # Verificar estado del jugador
         status = get_player_status(username)
 
-        if status and status.get('status') == 'not_analyzed':
-            print("Primera vez analizando este jugador. Iniciando análisis...")
+        if not status or status.get('status') in {'not_analyzed', 'error'}:
+            # Primera vez (o análisis fallido) → lanzamos POST
+            print("Iniciando nuevo análisis…")
             start_result = start_player_analysis(username)
             print(f"Task ID: {start_result.get('task_id', 'N/A')}")
-
-            # Esperar a que termine
             status = wait_for_player_ready(username)
         
         elif status['status'] == 'pending':
             print("Análisis en progreso. Esperando...")
-            status = wait_for_player_ready(username)
+            status = wait_for_player_ready(username=username, timeout=3600)
         
         elif status['status'] == 'ready':
             print(f"{Fore.GREEN}✅ Jugador ya analizado{Style.RESET_ALL}")

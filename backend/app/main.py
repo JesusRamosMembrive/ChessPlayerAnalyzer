@@ -3,28 +3,23 @@
 API principal de Chess Analyzer.
 Versión simplificada que combina lo mejor del original y el refactor.
 """
+import logging
 from datetime import datetime, UTC
 from typing import List, Optional, Literal
-import logging
 
-from fastapi import FastAPI, HTTPException, Depends
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from sse_starlette.sse import EventSourceResponse
-
-
+from app import models
 from app import models
 from app.celery_app import celery_app, analyze_game_task, process_player_enhanced as process_player
 from app.database import get_session
-from app.utils import redis_client, notify_ws, player_lock, update_progress
-
-from datetime import datetime, UTC
-from fastapi import Depends, HTTPException, status
-from sqlmodel import Session, select
-from celery.result import AsyncResult
-
 from app.database import get_session
-from app import models
+from app.utils import redis_client, notify_ws, player_lock, update_progress
+from celery.result import AsyncResult
+from fastapi import Depends, HTTPException, status
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from sqlmodel import Session, select
+from sse_starlette.sse import EventSourceResponse
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -296,24 +291,51 @@ def refresh_player(username: str, session: Session = Depends(get_session)):
 
 @app.get("/metrics/game/{game_id}")
 def game_metrics(game_id: int, session: Session = Depends(get_session)):
-    """Obtiene las métricas calculadas de una partida."""
-    gm = session.exec(
-        select(models.GameMetrics).where(models.GameMetrics.game_id == game_id)
+    """
+    Devuelve el análisis detallado de una partida (‘GameAnalysisDetailed’).
+
+    Nota: mantenemos la misma ruta para no romper al cliente,
+    pero internamente ya consulta la tabla nueva.
+    """
+    ga = session.exec(                         # 1· usar el modelo nuevo
+        select(models.GameAnalysisDetailed)
+        .where(models.GameAnalysisDetailed.game_id == game_id)
     ).first()
-    
-    if not gm:
-        raise HTTPException(status_code=404, detail="Metrics not found")
-    
+
+    if not ga:
+        raise HTTPException(status_code=404, detail="Analysis not found")
+
+    # 2· construir respuesta con las métricas más relevantes
     return {
-        "game_id": gm.game_id,
-        "pct_top1": gm.pct_top1,
-        "pct_top3": gm.pct_top3,
-        "acl": gm.acl,
-        "sigma_total": gm.sigma_total,
-        "constant_time": gm.constant_time,
-        "pause_spike": gm.pause_spike,
-        "suspicious": gm.suspicious,
-        "computed_at": gm.computed_at.isoformat()
+        "game_id": ga.game_id,
+        # ── Calidad ───────────────────────────────
+        "acpl": ga.acpl,
+        "match_rate": ga.match_rate,
+        "weighted_match_rate": ga.weighted_match_rate,
+        "ipr": ga.ipr,
+        "ipr_z_score": ga.ipr_z_score,
+        # ── Tiempo ────────────────────────────────
+        "mean_move_time": ga.mean_move_time,
+        "time_variance": ga.time_variance,
+        "time_complexity_corr": ga.time_complexity_corr,
+        "lag_spike_count": ga.lag_spike_count,
+        "uniformity_score": ga.uniformity_score,
+        # ── Apertura ──────────────────────────────
+        "opening_entropy": ga.opening_entropy,
+        "novelty_depth": ga.novelty_depth,
+        "second_choice_rate": ga.second_choice_rate,
+        "opening_breadth": ga.opening_breadth,
+        # ── Final (si se calculó) ─────────────────
+        "tb_match_rate": ga.tb_match_rate,
+        "dtz_deviation": ga.dtz_deviation,
+        "conversion_efficiency": ga.conversion_efficiency,
+        # ── Flags y score ─────────────────────────
+        "suspicious_quality": ga.suspicious_quality,
+        "suspicious_timing": ga.suspicious_timing,
+        "suspicious_opening": ga.suspicious_opening,
+        "overall_suspicion_score": ga.overall_suspicion_score,
+        # ── Metadata ──────────────────────────────
+        "analyzed_at": ga.analyzed_at.isoformat(),
     }
 
 @app.get("/metrics/player/{username}")

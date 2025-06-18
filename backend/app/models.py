@@ -20,7 +20,6 @@ class Game(SQLModel, table=True):
     pgn: str
 
     moves: List["MoveAnalysis"] = Relationship(back_populates="game")
-    metrics: Optional["GameMetrics"] = Relationship(back_populates="game")
     detailed_analysis: Optional["GameAnalysisDetailed"] = Relationship(back_populates="game")
 
     move_times: Optional[List[int]] = Field(sa_column=Column(JSON))
@@ -53,34 +52,6 @@ class MoveAnalysis(SQLModel, table=True):
     time_spent: Optional[float] = None  # Tiempo usado en segundos
 
     game: Game = Relationship(back_populates="moves")
-
-
-class GameMetrics(SQLModel, table=True):
-    """Métricas básicas (compatibilidad)"""
-    id: Optional[int] = Field(default=None, primary_key=True)
-    game_id: int = Field(foreign_key="game.id", unique=True)
-
-    sigma_total: Optional[float] = None
-    constant_time: bool = False
-    pause_spike: bool = False
-
-    pct_top1: float
-    pct_top3: float
-    acl: float
-    suspicious: bool = False
-    computed_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
-
-    game: Game = Relationship(back_populates="metrics")
-
-
-class PlayerMetrics(SQLModel, table=True):
-    """Métricas básicas del jugador (compatibilidad)"""
-    username: str = Field(primary_key=True)
-    game_count: int
-    opening_entropy: float
-    most_played: Optional[str] = None
-    low_entropy: bool = False
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class Player(SQLModel, table=True):

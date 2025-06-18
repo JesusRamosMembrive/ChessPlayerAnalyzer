@@ -1,19 +1,17 @@
 # app/utils.py
 from __future__ import annotations
-import json, re, requests, pathlib, logging
+import json, re, requests, logging
 from datetime import datetime, UTC
 from typing import List, Dict
 
-import redis.asyncio as redis
-from fastapi import HTTPException
-from sqlmodel import Session, select
+# import redis.asyncio as redis
+from sqlmodel import Session
 
 from app.database import engine
 from app import models
 
 from contextlib import contextmanager
 import redis
-import os
 
 # ──────────────────────────────────────────────────────────────────────────────
 #  Configuración común
