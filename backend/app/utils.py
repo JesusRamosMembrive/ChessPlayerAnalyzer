@@ -37,40 +37,58 @@ def _sec(t: str) -> int:
         h, m, s = 0, *parts
     return int(h * 3600 + m * 60 + s)
 
+
 def fetch_games(username: str, months: int = 6) -> List[Dict]:
     """
     Devuelve una lista de dicts con **pgn** y **move_times** de los últimos
     `months` meses del jugador `username`.
     """
+    logging.info(f"fetch_games: Starting for {username}, months={months}")
+
     s = requests.Session()
     s.headers["User-Agent"] = UA
 
     arch_url = f"https://api.chess.com/pub/player/{username}/games/archives"
-    resp = s.get(arch_url, timeout=10)
-    resp.raise_for_status()
+    logging.info(f"fetch_games: Fetching archives from {arch_url}")
 
-    archives = resp.json()["archives"][-months:]       # los más recientes
+    try:
+        resp = s.get(arch_url, timeout=10)
+        resp.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        logging.error(f"fetch_games: Error fetching archives: {e}")
+        raise
+
+    archives = resp.json()["archives"][-months:]  # los más recientes
+    logging.info(f"fetch_games: Found {len(archives)} archives to process")
+
     games: list[dict] = []
 
-    for url in archives:
-        data = s.get(url, timeout=10).json()
-        for g in data["games"]:
-            pgn = g["pgn"]
-            clocks = CLK_RGX.findall(pgn)
-            move_times = [
-                _sec(clocks[i - 1]) - _sec(clocks[i])
-                for i in range(1, len(clocks))
-            ] if clocks else []
+    for idx, url in enumerate(archives):
+        logging.info(f"fetch_games: Processing archive {idx + 1}/{len(archives)}: {url}")
+        try:
+            data = s.get(url, timeout=10).json()
+            logging.info(f"fetch_games: Found {len(data.get('games', []))} games in archive")
 
-            games.append({
-                "pgn": pgn,
-                "move_times": move_times,
-                "white": g["white"]["username"],
-                "black": g["black"]["username"],
-                "end_time": datetime.fromtimestamp(g["end_time"], UTC).isoformat(),
-            })
+            for g in data["games"]:
+                pgn = g["pgn"]
+                clocks = CLK_RGX.findall(pgn)
+                move_times = [
+                    _sec(clocks[i - 1]) - _sec(clocks[i])
+                    for i in range(1, len(clocks))
+                ] if clocks else []
 
-    logging.info("fetch_games: %s → %d partidas", username, len(games))
+                games.append({
+                    "pgn": pgn,
+                    "move_times": move_times,
+                    "white": g["white"]["username"],
+                    "black": g["black"]["username"],
+                    "end_time": datetime.fromtimestamp(g["end_time"], UTC).isoformat(),
+                })
+        except Exception as e:
+            logging.error(f"fetch_games: Error processing archive {url}: {e}")
+            continue
+
+    logging.info(f"fetch_games: {username} → {len(games)} partidas")
     return games
 
 

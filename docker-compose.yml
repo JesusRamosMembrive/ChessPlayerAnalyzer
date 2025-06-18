@@ -33,14 +33,8 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
-    working_dir: /app              # ← aquí está el código copiado
-    entrypoint: >
-      sh -c "
-        echo '⏳ Waiting for Postgres…';
-        until pg_isready -h postgres -U chess -d chessdb; do sleep 1; done;
-        echo '✅ Postgres up – creating schema';
-        cd /app && python -m app.init_db      # ← cd antes de ejecutar
-      "
+    command: ["python", "-m", "app.init_db"]   # o ["alembic", "upgrade", "head"]
+    working_dir: /app
     environment:
       DATABASE_URL: postgresql+psycopg://chess:chess@postgres:5432/chessdb
     depends_on:

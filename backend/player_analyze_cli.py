@@ -299,12 +299,12 @@ def main():
     try:
         # Verificar estado del jugador
         status = get_player_status(username)
-        
-        if not status or status['status'] == 'not_analyzed':
+
+        if status and status.get('status') == 'not_analyzed':
             print("Primera vez analizando este jugador. Iniciando análisis...")
             start_result = start_player_analysis(username)
             print(f"Task ID: {start_result.get('task_id', 'N/A')}")
-            
+
             # Esperar a que termine
             status = wait_for_player_ready(username)
         

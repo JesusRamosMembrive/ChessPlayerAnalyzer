@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime, UTC
+from datetime import datetime, UTC, timezone
 from statistics import stdev
+import logging
 
 from app import models
 from app.database import engine
@@ -15,7 +16,6 @@ from celery_once import QueueOnce
 
 from app.analysis.engine import ChessAnalysisEngine
 
-from datetime import datetime, UTC
 from sqlmodel import Session
 from celery import states
 from celery.result import AsyncResult
@@ -299,6 +299,8 @@ def compute_player_metrics(username: str, months: int = 12):
 
         s.add(pm)
         s.commit()
+
+
 @celery_app.task(
     name="process_player",
     bind=True,           # para acceder a self.request
@@ -320,16 +322,45 @@ def process_player(self, username: str, months: int = 6) -> dict:
 
     try:
         # ────────────────────────── 1.  Pre-chequeos ─────────────────────────
+
         with Session(engine) as s:
             pl = s.get(models.Player, username)
             if pl and pl.status == "pending":
                 # ¿de verdad hay una tarea viva?
-                if pl.last_task_id and AsyncResult(pl.last_task_id).state in {
-                    states.PENDING, states.STARTED
-                }:
-                    # Otra instancia ya trabaja → idempotente
-                    return {"username": username, "status": "already_processing"}
+                if pl.last_task_id:
+                    result = AsyncResult(pl.last_task_id)
+                    # PENDING puede significar que la tarea nunca existió
+                    # Verificamos si realmente está en el broker
+                    if result.state == states.STARTED:
+                        # Definitivamente está ejecutándose
+                        return {"username": username, "status": "already_processing"}
+                    elif result.state == states.PENDING:
+                        # Verificar si la tarea existe en el backend
+                        try:
+                            # Si no existe, info será None
+                            task_info = result.info
+                            if task_info is not None:
+                                return {"username": username, "status": "already_processing"}
+                        except Exception:
+                            # La tarea no existe, continuamos
+                            pass
 
+                # Verificar si el análisis está colgado (más de 30 minutos sin actualización)
+                if pl.requested_at:
+                    # Asegurar que ambos datetimes tengan timezone
+                    now = datetime.now(UTC)
+                    requested_at = pl.requested_at
+                    if requested_at.tzinfo is None:
+                        # Si requested_at es naive, asumimos UTC
+                        requested_at = requested_at.replace(tzinfo=UTC)
+
+                    time_since_start = (now - requested_at).total_seconds()
+                    if time_since_start > 1800:  # 30 minutos
+                        # Análisis colgado, lo reiniciamos
+                        logging.warning(f"Análisis colgado para {username}, reiniciando...")
+                    else:
+                        # Aún dentro del tiempo límite
+                        return {"username": username, "status": "already_processing", "time_elapsed": time_since_start}
             # si estamos aquí relanzaremos análisis
         # ───────────────────────── 2.  Download PGNs ─────────────────────────
         games = fetch_games(username, months)      # puede lanzar excepción
@@ -435,7 +466,7 @@ def analyze_game_detailed(game_id: int):
         }
 
     except Exception as e:
-        logger.error(f"Error en análisis detallado de partida {game_id}: {e}")
+        logging.error(f"Error en análisis detallado de partida {game_id}: {e}")
         raise
 
 

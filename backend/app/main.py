@@ -337,6 +337,7 @@ def player_metrics(username: str, session: Session = Depends(get_session)):
         "updated_at": pm.updated_at.isoformat()
     }
 
+
 @app.delete("/players/{username}", status_code=204)
 def delete_player(username: str, session: Session = Depends(get_session)):
     player = session.get(models.Player, username)
@@ -345,6 +346,27 @@ def delete_player(username: str, session: Session = Depends(get_session)):
     # BORRAR análisis relacionados (foreign keys ON DELETE CASCADE)
     session.delete(player)
     session.commit()
+
+
+@app.post("/players/{username}/reset")
+def reset_player(username: str, session: Session = Depends(get_session)):
+    """Fuerza el reset del estado de un jugador para permitir re-análisis."""
+    player = session.get(models.Player, username)
+    if not player:
+        raise HTTPException(404, "Player not found")
+
+    # Resetear a estado inicial
+    player.status = "not_analyzed"
+    player.progress = 0
+    player.total_games = None
+    player.done_games = None
+    player.requested_at = None
+    player.finished_at = None
+    player.error = None
+    player.last_task_id = None
+    session.commit()
+
+    return {"status": "reset", "username": username}
 
 # ============================================================
 # STREAMING (SSE)
