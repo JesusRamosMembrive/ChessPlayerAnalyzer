@@ -1,14 +1,20 @@
 # app/utils.py
 from __future__ import annotations
-import json, re, requests, pathlib, logging
+
+import json
+import logging
+import re
+from contextlib import contextmanager
 from datetime import datetime, UTC
 from typing import List, Dict
 
-import redis.asyncio as redis
-from sqlmodel import Session, select
-
-from app.database import engine
+import redis
+import requests
 from app import models
+from app.database import engine
+from sqlmodel import Session
+from app import models, utils
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 #  Configuración común
@@ -32,40 +38,58 @@ def _sec(t: str) -> int:
         h, m, s = 0, *parts
     return int(h * 3600 + m * 60 + s)
 
+
 def fetch_games(username: str, months: int = 6) -> List[Dict]:
     """
     Devuelve una lista de dicts con **pgn** y **move_times** de los últimos
     `months` meses del jugador `username`.
     """
+    logging.info(f"fetch_games: Starting for {username}, months={months}")
+
     s = requests.Session()
     s.headers["User-Agent"] = UA
 
     arch_url = f"https://api.chess.com/pub/player/{username}/games/archives"
-    resp = s.get(arch_url, timeout=10)
-    resp.raise_for_status()
+    logging.info(f"fetch_games: Fetching archives from {arch_url}")
 
-    archives = resp.json()["archives"][-months:]       # los más recientes
+    try:
+        resp = s.get(arch_url, timeout=10)
+        resp.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        logging.error(f"fetch_games: Error fetching archives: {e}")
+        raise
+
+    archives = resp.json()["archives"][-months:]  # los más recientes
+    logging.info(f"fetch_games: Found {len(archives)} archives to process")
+
     games: list[dict] = []
 
-    for url in archives:
-        data = s.get(url, timeout=10).json()
-        for g in data["games"]:
-            pgn = g["pgn"]
-            clocks = CLK_RGX.findall(pgn)
-            move_times = [
-                _sec(clocks[i - 1]) - _sec(clocks[i])
-                for i in range(1, len(clocks))
-            ] if clocks else []
+    for idx, url in enumerate(archives):
+        logging.info(f"fetch_games: Processing archive {idx + 1}/{len(archives)}: {url}")
+        try:
+            data = s.get(url, timeout=10).json()
+            logging.info(f"fetch_games: Found {len(data.get('games', []))} games in archive")
 
-            games.append({
-                "pgn": pgn,
-                "move_times": move_times,
-                "white": g["white"]["username"],
-                "black": g["black"]["username"],
-                "end_time": datetime.fromtimestamp(g["end_time"], UTC).isoformat(),
-            })
+            for g in data["games"]:
+                pgn = g["pgn"]
+                clocks = CLK_RGX.findall(pgn)
+                move_times = [
+                    _sec(clocks[i - 1]) - _sec(clocks[i])
+                    for i in range(1, len(clocks))
+                ] if clocks else []
 
-    logging.info("fetch_games: %s → %d partidas", username, len(games))
+                games.append({
+                    "pgn": pgn,
+                    "move_times": move_times,
+                    "white": g["white"]["username"],
+                    "black": g["black"]["username"],
+                    "end_time": datetime.fromtimestamp(g["end_time"], UTC).isoformat(),
+                })
+        except Exception as e:
+            logging.error(f"fetch_games: Error processing archive {url}: {e}")
+            continue
+
+    logging.info(f"fetch_games: {username} → {len(games)} partidas")
     return games
 
 
@@ -81,19 +105,38 @@ def notify_ws(username: str, payload: dict) -> None:
     redis_client.publish(channel, json.dumps(payload))
 
 
-def update_progress(username: str, percent: int) -> None:
-    """
-    Guarda `progress` en la tabla Player y envía mensaje a los clientes.
-    """
-    percent = max(0, min(100, percent))   # clamp
+def update_progress(username: str, *, increment: int = 1) -> None:
     with Session(engine) as s:
-        player = s.get(models.Player, username)
-        if not player:
+        pl = s.get(models.Player, username)
+        if not pl:
             return
-        if player.progress == percent:
-            return
-        player.progress = percent
-        s.add(player)
-        s.commit()
+        pl.done_games = (pl.done_games or 0) + increment
+        expected = (pl.total_games or 0) * 2        # básico + detallado
+        pl.progress = int(pl.done_games / expected * 100) if expected else 0
+        if pl.done_games == expected:
+            pl.status = "ready"
+            pl.finished_at = datetime.now(UTC)
+        progress_now = pl.progress
+        status_now   = pl.status
+        s.add(pl); s.commit()
+    notify_ws(username, {"progress": progress_now, "status": status_now})
 
-    notify_ws(username, {"progress": percent})
+@contextmanager
+def player_lock(username: str, timeout: int = 900, block: int = 5):
+    """
+    Lock distribuido de Redis para impedir que dos pods/procesos
+    inicien el mismo análisis simultáneamente.
+
+    * `timeout` → segundos tras los cuales el lock expira automáticamente
+                  (p.ej. 15 min).
+    * `block`   → segundos que un segundo hilo espera antes de abortar con
+                  HTTP 423 (Locked).
+    """
+    lock = redis_client.lock(f"lock:player:{username}", timeout=timeout)
+    if not lock.acquire(blocking=True, blocking_timeout=block):
+        raise RuntimeError(f"player {username!r} is already locked")
+    try:
+        yield
+    finally:
+        # Si el código dentro del with explota no dejamos el lock colgado
+        lock.release()

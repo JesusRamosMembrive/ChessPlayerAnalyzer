@@ -1,128 +1,278 @@
 #!/usr/bin/env python3
-"""CLI: analiza todas las partidas públicas de un jugador con la API local.
-
-Uso:
-    python scripts/player_analyze_cli.py  # y responde al prompt
-
-Requisitos:
-    pip install requests tqdm
-
-Pasos:
-1. Pregunta usuario Chess.com.
-2. Descarga todas sus partidas vía API pública.
-3. Envía cada PGN a /analyze (API local en localhost:8000).
-4. Espera a que Celery calcule métricas por partida.
-5. Muestra resumen por partida y PlayerMetrics global.
 """
+player_analyze_cli.py
+
+CLI "sin‑IU" para Chess Player Pro.
+Se conecta al backend FastAPI (o Flask) mediante HTTP; no importa dónde
+esté desplegado mientras la API respete los endpoints que se indican abajo.
+
+Endpoints esperados (métodos HTTP):
+  GET    /players                    -> lista de jugadores almacenados
+  GET    /players/{username}         -> datos completos de un jugador
+  POST   /players/{username}         -> lanzar nuevo análisis (CORREGIDO)
+  DELETE /players/{username}         -> borrar jugador y sus datos
+
+Si tu API usa rutas distintas, basta con cambiar las constantes ENDPOINT_*.
+"""
+
 from __future__ import annotations
-
-from typing import Dict, List
-import sys
+import argparse
 import json
-import requests
+import os
+import sys
+from typing import Any, Dict, List, Optional
+
+import httpx  # pip install httpx
+from tabulate import tabulate  # pip install tabulate
+from tqdm import tqdm  # pip install tqdm
 import time
-from tqdm import tqdm
 
-API_BASE = "http://localhost:8000"
+# --------------------------- Configuración ---------------------------
 
-# Sesión global con UA
-S = requests.Session()
-S.headers["User-Agent"] = "chess-analyzer/0.1 (+https://github.com/tu-repo)"
+DEFAULT_HOST = os.getenv("CPP_BACKEND_HOST", "http://localhost:8000")
+DEFAULT_TIMEOUT = float(os.getenv("CPP_TIMEOUT", "30"))  # segundos
 
-
-# ───────────────────────── helpers ──────────────────────────
-
-# helper con reintentos
-def safe_get(url: str, tries: int = 3, backoff: float = 2.0):
-    for n in range(tries):
-        r = S.get(url, timeout=10)
-        if r.status_code in (403, 429):
-            time.sleep(backoff ** n)
-            continue
-        return r
-    r.raise_for_status()
-
-def get_archives(username: str):
-    url = f"https://api.chess.com/pub/player/{username}/games/archives"
-    r = safe_get(url)
-    if r.status_code == 404:
-        sys.exit(f"⚠️  El usuario '{username}' no existe.")
-    return r.json()["archives"]
-
-def fetch_month(url: str):
-    return safe_get(url).json()["games"]
+ENDPOINT_PLAYERS = "/players"  # lista
+ENDPOINT_PLAYER = "/players/{username}"  # show / delete / analyze (POST)
 
 
-def post_game(pgn: str) -> int:
-    r = requests.post(f"{API_BASE}/analyze", json={"pgn": pgn}, timeout=15)
-    r.raise_for_status()
-    return r.json()["game_id"]
+# --------------------------- Utilidades HTTP ------------------------
+
+def make_client(base_url: str, timeout: float) -> httpx.Client:
+    return httpx.Client(base_url=base_url, timeout=timeout)
 
 
-def wait_game_metrics(game_id: int, timeout: int = 60):
-    t0 = time.time()
-    while True:
-        r = requests.get(f"{API_BASE}/metrics/game/{game_id}", timeout=5)
-        if r.status_code == 200:
-            return r.json()
-        if time.time() - t0 > timeout:
-            raise TimeoutError(f"metrics for game {game_id} timeout")
-        time.sleep(1)
+def handle_response(resp: httpx.Response) -> Any:
+    """
+    Devuelve resp.json() si el status es 2xx.
+    Si no, imprime el mensaje de error del backend (si lo hay)
+    y finaliza con código !=0.
+    """
+    if resp.is_success:
+        if resp.text:
+            try:
+                return resp.json()
+            except ValueError:
+                return resp.text  # p. ej. DELETE devuelve texto plano
+        return None
+    # --- error ---
+    try:
+        detail = resp.json().get("detail")
+    except ValueError:
+        detail = resp.text
+    print(f"❌ Error {resp.status_code}: {detail}", file=sys.stderr)
+    sys.exit(1)
 
 
-def get_player_metrics(username: str):
-    r = requests.get(f"{API_BASE}/metrics/player/{username}", timeout=5)
-    return r.json() if r.status_code == 200 else None
+# --------------------------- Comandos -------------------------------
 
-# ───────────────────────── main ──────────────────────────
+def wait_for_analysis(client: httpx.Client, username: str, timeout: int = 600) -> Dict[str, Any]:
+    """
+    Espera a que el análisis termine, mostrando una barra de progreso.
+    Devuelve el estado final del jugador.
+    """
+    print("⏳ Esperando a que termine el análisis...")
 
-def main():
-    username = input("Jugador Chess.com a analizar: ").strip().lower()
-    print(f"Descargando partidas de {username}…")
+    with tqdm(total=100, desc="Analizando",
+              bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]') as pbar:
+        last_progress = 0
+        start_time = time.time()
 
-    archives = get_archives(username)[-6:]  # últimos 6 meses para ir rápido
-    games = []
-    for month_url in tqdm(archives, desc="meses"):
-        games.extend(fetch_month(month_url))
+        while True:
+            try:
+                resp = client.get(ENDPOINT_PLAYER.format(username=username))
+                if resp.status_code == 404:
+                    time.sleep(1)
+                    continue
 
-    if not games:
-        print("No se encontraron partidas.")
+                data = handle_response(resp)
+                current_progress = data.get('progress', 0)
+
+                # Actualizar barra de progreso
+                if current_progress > last_progress:
+                    pbar.update(current_progress - last_progress)
+                    last_progress = current_progress
+
+                # Verificar estado
+                status = data.get('status')
+                if status == 'ready':
+                    pbar.update(100 - last_progress)
+                    print("\n✅ Análisis completado exitosamente")
+                    return data
+
+                elif status == 'error':
+                    print(f"\n❌ Error durante el análisis: {data.get('error', 'Error desconocido')}")
+                    sys.exit(1)
+
+                # Verificar timeout
+                if time.time() - start_time > timeout:
+                    print("\n❌ Timeout esperando el análisis")
+                    sys.exit(1)
+
+                time.sleep(1)
+
+            except Exception as e:
+                print(f"\n❌ Error al verificar estado: {e}")
+                sys.exit(1)
+
+
+def cmd_list(args: argparse.Namespace) -> None:
+    with make_client(args.host, args.timeout) as client:
+        data = handle_response(client.get(ENDPOINT_PLAYERS))
+
+    if not data:
+        print("No hay jugadores almacenados todavía.")
         return
 
-    print(f"→ {len(games)} partidas descargadas. Enviando al backend…")
-    game_map: Dict[int, str] = {}
-    for g in tqdm(games, desc="subiendo"):
-        try:
-            game_id = post_game(g["pgn"])
-            game_map[game_id] = g["url"]
-        except Exception as e:
-            print("Error al subir partida:", e)
-
-    print("Esperando métricas…")
-    results = []
-    for gid in tqdm(game_map, desc="metrics"):
-        try:
-            m = wait_game_metrics(gid)
-            results.append((gid, m))
-        except Exception as e:
-            print("Timeout en game", gid, e)
-
-    # ── mostrar resumen ───────────────────────────────────
-    print("\nResumen por partida:")
-    for gid, m in sorted(results, key=lambda x: x[1]["pct_top3"], reverse=True):
-        flag = "⚠️" if m["suspicious"] else "  "
-        print(f"{flag} pct_top3={m['pct_top3']:.1f}%  ACL={m['acl']:.1f}  → {game_map[gid]}")
-
-    pm = get_player_metrics(username)
-    if pm:
-        print("\nPlayerMetrics:")
-        print(json.dumps(pm, indent=2))
+    if args.json:
+        print(json.dumps(data, indent=2, ensure_ascii=False))
     else:
-        print("\nPlayerMetrics aún no disponible (necesita ≥5 partidas).")
+        rows = [[p["username"], p.get("last_analysis"), p.get("country"),
+                 p.get("rapid_rating"), p.get("blitz_rating")] for p in data]
+        print(tabulate(
+            rows,
+            headers=["Usuario", "Últ. análisis", "País", "Rápido", "Blitz"],
+            tablefmt="github",
+            numalign="right"))
+
+
+def cmd_show(args: argparse.Namespace) -> None:
+    with make_client(args.host, args.timeout) as client:
+        data = handle_response(
+            client.get(ENDPOINT_PLAYER.format(username=args.username)))
+
+    print(json.dumps(data, indent=2, ensure_ascii=False)
+          if args.json else tabulate_dict(data))
+
+
+def cmd_analyze(args: argparse.Namespace) -> None:
+    with make_client(args.host, args.timeout) as client:
+        # Primero verificar si ya existe
+        resp = client.get(ENDPOINT_PLAYER.format(username=args.username))
+
+        if resp.status_code == 200:
+            existing_data = resp.json()
+            status = existing_data.get('status')
+
+            if status == 'ready':
+                print(f"ℹ️  El jugador ya está analizado.")
+                if not args.force:
+                    print("Usa --force para forzar un nuevo análisis.")
+                    print(json.dumps(existing_data, indent=2, ensure_ascii=False))
+                    return
+                print("Forzando nuevo análisis...")
+
+            elif status == 'pending':
+                print("ℹ️  Ya hay un análisis en progreso.")
+                if args.wait:
+                    final_data = wait_for_analysis(client, args.username)
+                    if args.json:
+                        print(json.dumps(final_data, indent=2, ensure_ascii=False))
+                    return
+                else:
+                    print("Usa --wait para esperar a que termine.")
+                    return
+
+        # Lanzar nuevo análisis
+        data = handle_response(
+            client.post(ENDPOINT_PLAYER.format(username=args.username)))
+
+        print("✅ Análisis lanzado correctamente.")
+        if data and args.json and not args.wait:
+            print(json.dumps(data, indent=2, ensure_ascii=False))
+
+        # Esperar si se solicita
+        if args.wait:
+            final_data = wait_for_analysis(client, args.username)
+            if args.json:
+                print(json.dumps(final_data, indent=2, ensure_ascii=False))
+            else:
+                # Mostrar resumen del análisis
+                print("\n📊 Resumen del análisis:")
+                print(f"Usuario: {final_data.get('username')}")
+                print(f"País: {final_data.get('country', 'N/A')}")
+                print(f"Rating Rápido: {final_data.get('rapid_rating', 'N/A')}")
+                print(f"Rating Blitz: {final_data.get('blitz_rating', 'N/A')}")
+                if 'game_count' in final_data:
+                    print(f"Partidas analizadas: {final_data.get('game_count')}")
+                if 'opening_entropy' in final_data:
+                    print(f"Entropía de aperturas: {final_data.get('opening_entropy', 0):.2f}")
+                if 'low_entropy' in final_data:
+                    print(f"Baja entropía: {'⚠️ Sí' if final_data.get('low_entropy') else '✓ No'}")
+
+
+def cmd_delete(args: argparse.Namespace) -> None:
+    with make_client(args.host, args.timeout) as client:
+        handle_response(
+            client.delete(ENDPOINT_PLAYER.format(username=args.username)))
+
+    print(f"🗑️ Jugador «{args.username}» eliminado.")
+
+
+# --------------------------- Helpers de formato ---------------------
+
+def tabulate_dict(d: Dict[str, Any]) -> str:
+    """Representa un dict anidado en forma de tabla clave/valor."""
+    rows: List[List[str]] = []
+
+    def rec(prefix: str, val: Any):
+        if isinstance(val, dict):
+            for k, v in val.items():
+                rec(f"{prefix}{k}.", v)
+        else:
+            rows.append([prefix.rstrip("."), val])
+
+    rec("", d)
+    return tabulate(rows, headers=["Campo", "Valor"], tablefmt="github")
+
+
+# --------------------------- CLI parser -----------------------------
+
+def build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(
+        prog="cpp",
+        description="Chess Player Pro – CLI temporal sin interfaz gráfica")
+    p.add_argument("--host", default=DEFAULT_HOST,
+                   help=f"URL base del backend (defecto: {DEFAULT_HOST})")
+    p.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT,
+                   help=f"Timeout en segundos (defecto: {DEFAULT_TIMEOUT})")
+    p.add_argument("--json", action="store_true",
+                   help="Mostrar la salida en JSON puro (sin tabular)")
+
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    # list
+    sub.add_parser("list", help="Listar todos los jugadores").set_defaults(
+        func=cmd_list)
+
+    # show
+    sp_show = sub.add_parser("show", help="Mostrar detalle de un jugador")
+    sp_show.add_argument("username", help="Nombre de usuario en chess.com")
+    sp_show.set_defaults(func=cmd_show)
+
+    # analyze
+    sp_analyze = sub.add_parser("analyze", help="Analizar nuevo jugador")
+    sp_analyze.add_argument("username", help="Nombre de usuario en chess.com")
+    sp_analyze.add_argument("--wait", "-w", action="store_true",
+                            help="Esperar a que termine el análisis")
+    sp_analyze.add_argument("--force", "-f", action="store_true",
+                            help="Forzar nuevo análisis aunque ya exista")
+    sp_analyze.set_defaults(func=cmd_analyze)
+
+    # delete
+    sp_del = sub.add_parser("delete", help="Eliminar un jugador")
+    sp_del.add_argument("username", help="Nombre de usuario en chess.com")
+    sp_del.set_defaults(func=cmd_delete)
+
+    return p
+
+
+# --------------------------- main -----------------------------------
+
+def main(argv: Optional[List[str]] = None) -> None:
+    args = build_parser().parse_args(argv)
+    args.func(args)
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        print("\nAbortado por el usuario.")
+    main()

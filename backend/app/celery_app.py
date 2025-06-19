@@ -1,14 +1,38 @@
+from __future__ import annotations
+
+import io
+import logging
 import os
 from datetime import datetime, UTC
-from statistics import stdev
+from pathlib import Path
 
-from app import models
+import chess.engine
+import chess.pgn
+
+from app.analysis.engine import ChessAnalysisEngine
 from app.database import engine
-from celery import Celery
-from sqlalchemy import or_
-from sqlmodel import Session, select
 
-from app.utils import fetch_games, notify_ws
+
+from app.utils import fetch_games, notify_ws, update_progress
+from celery import Celery
+from celery import chain, group, chord
+from celery.signals import task_failure
+from celery_once import QueueOnce
+from sqlmodel import Session, select
+from sqlalchemy import func
+
+from app.models import GameAnalysisDetailed
+from app import models
+
+from app.analysis.engine import prepare_moves_dataframe
+
+from app.analysis import (
+    aggregate_quality_features as q_feats,
+    aggregate_time_features    as t_feats,
+    aggregate_opening_features as o_feats,
+    aggregate_endgame_features as e_feats,
+)
+
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
 celery_app = Celery("chess_tasks", broker=REDIS_URL, backend=REDIS_URL)
@@ -16,63 +40,55 @@ celery_app = Celery("chess_tasks", broker=REDIS_URL, backend=REDIS_URL)
 ENGINE_PATH = os.getenv("STOCKFISH_PATH", "stockfish")
 MAX_DEPTH = int(os.getenv("STOCKFISH_DEPTH", "12"))
 
-@celery_app.task(name="compute_game_metrics")
-def compute_game_metrics(game_id: int):
-    """Calcula métricas básicas y las graba en GameMetrics."""
-    from statistics import mean
 
-    with Session(engine) as session:
-        game = session.get(models.Game, game_id)
-        if not game or not game.moves:
-            raise ValueError("Game or moves not found")
 
-        ranks = [m.best_rank for m in game.moves]
-        cp_losses = [m.cp_loss for m in game.moves]
-        n = len(ranks)
-        pct_top1 = sum(1 for r in ranks if r == 0) / n * 100.0
-        pct_top3 = sum(1 for r in ranks if r <= 2) / n * 100.0
-        acl = mean(cp_losses) if cp_losses else 0.0
+@celery_app.task(name="analyze_player_detailed")
+def analyze_player_detailed(username: str):
+    """
+    Análisis longitudinal detallado de un jugador.
+    Se ejecuta después de que todas sus partidas han sido analizadas.
+    """
+    try:
+        # Verificar que hay suficientes partidas analizadas
+        with Session(engine) as s:
+            analyzed_count = s.exec(
+                select(func.count(GameAnalysisDetailed.game_id))
+                .join(models.Game)
+                .where(
+                    (models.Game.white_username == username) |
+                    (models.Game.black_username == username)
+                )
+            ).one()
 
-        suspicious = (pct_top3 > 85 and acl < 20)
+            if analyzed_count < 10:
+                logging.warning(f"Insuficientes partidas analizadas para {username}: {analyzed_count}")
+                return {
+                    "username": username,
+                    "status": "insufficient_data",
+                    "games_analyzed": analyzed_count
+                }
 
-        times = game.move_times or []
+        # Ejecutar análisis del jugador
+        player_analysis = analysis_engine.analyze_player(username)
 
-        # valores por defecto para que siempre existan
-        sigma_total: float | None = None
-        constant_time = False
-        pause_spike = False
+        # Notificar resultado
+        notify_ws(username, {
+            "type": "player_analysis_complete",
+            "risk_score": player_analysis.risk_score,
+            "risk_factors": player_analysis.risk_factors
+        })
 
-        if times:
-            sigma_total = stdev(times) if len(times) > 1 else 0.0
-            constant_time = sigma_total < 1.0
+        return {
+            "username": username,
+            "risk_score": player_analysis.risk_score,
+            "games_analyzed": player_analysis.games_analyzed,
+            "analyzed_at": player_analysis.analyzed_at.isoformat()
+        }
 
-            # pausa + pico
-            T_PAUSE = 10
-            pause_index = next((i for i, t in enumerate(times) if t > T_PAUSE), None)
-            if pause_index is not None and pause_index + 5 < len(game.moves):
-                ranks_after = [m.best_rank for m in game.moves[pause_index + 1: pause_index + 6]]
-                pct_top3_after = sum(r <= 2 for r in ranks_after) / 5 * 100
-                pause_spike = pct_top3_after >= 80
-        else:
-            sigma_total = None
+    except Exception as e:
+        logging.error(f"Error en análisis detallado de jugador {username}: {e}")
+        raise
 
-        gm = models.GameMetrics(
-            game_id=game_id,
-            pct_top1=pct_top1,
-            pct_top3=pct_top3,
-            acl=acl,
-            sigma_total=sigma_total,
-            constant_time=constant_time,
-            pause_spike=pause_spike,
-            suspicious=suspicious or constant_time or pause_spike,
-        )
-        session.add(gm)
-        session.commit()
-
-        compute_player_metrics.delay(game.white_username)
-        compute_player_metrics.delay(game.black_username)
-
-    return {"game_id": game_id, "pct_top3": pct_top3, "acl": acl}
 
 @celery_app.task(name="analyze_game_task", bind=True)
 def analyze_game_task(
@@ -92,10 +108,8 @@ def analyze_game_task(
     • Para cada jugada se guarda:
         – best_rank   (0 == mejor jugada)
         – cp_loss     (centipawns perdidos respecto PV1)
-    • Al final dispara compute_game_metrics y actualiza claves de apertura.
     """
-    import io, chess.pgn, chess.engine
-    from sqlmodel import Session
+
 
     # ---------- 1.  Asegurar objeto Game en BD --------------------
     if game_id is None:
@@ -129,45 +143,40 @@ def analyze_game_task(
     game = chess.pgn.read_game(io.StringIO(pgn_text))
     board = game.board()
     engine_sf = chess.engine.SimpleEngine.popen_uci(ENGINE_PATH)
+    times_iter = iter(move_times or [])
 
     analyses: list[models.MoveAnalysis] = []
 
     for idx, move in enumerate(game.mainline_moves(), start=1):
-        infos = engine_sf.analyse(
-            board, chess.engine.Limit(depth=depth), multipv=multipv
-        )
+        legal_cnt = board.legal_moves.count()
 
-        # lista de los movimientos PV1..PVn
-        top_moves = [info["pv"][0] for info in infos]
-        best_eval = infos[0]
-        best_move = best_eval["pv"][0]
-        best_score = best_eval["score"].white().score(mate_score=100000)
+        # 1. Eval antes de mover (posición actual)
+        info_before = engine_sf.analyse(board, chess.engine.Limit(depth=depth), multipv=multipv)
+        eval_before = info_before[0]["score"].white().score(mate_score=100000) or 0
+        best_move = info_before[0]["pv"][0]
 
-        # rank: 0-based; multipv si está fuera del top-N
-        try:
-            rank = top_moves.index(move)
-        except ValueError:
-            rank = multipv
-
-        # evaluamos la posición *después* del movimiento real
+        # 2. Eval después de la jugada real
         board.push(move)
-        after = engine_sf.analyse(board, chess.engine.Limit(depth=depth))
-        after_score = after["score"].white().score(mate_score=100000)
+        info_after = engine_sf.analyse(board, chess.engine.Limit(depth=depth))
+        eval_after = info_after["score"].white().score(mate_score=100000) or 0
         board.pop()
 
-        cp_loss = abs((best_score or 0) - (after_score or 0))
+        rank = next((i for i, pv in enumerate(info_before) if pv["pv"][0] == move), multipv)
+        cp_loss = abs(eval_before - eval_after)
+        time_spent = next(times_iter, None)  # simplemente None si no hay clocks
 
-        analyses.append(
-            models.MoveAnalysis(
-                game_id=game_id,
-                move_number=idx,
-                played=board.san(move),
-                best=board.san(best_move),
-                best_rank=rank,
-                cp_loss=int(cp_loss),
-            )
-        )
-
+        analyses.append(models.MoveAnalysis(
+            game_id=game_id,
+            move_number=idx,
+            played=board.san(move),
+            best=board.san(best_move),
+            best_rank=rank,
+            cp_loss=cp_loss,
+            eval_before=eval_before,
+            eval_after=eval_after,
+            legal_moves_count=legal_cnt,
+            time_spent=time_spent,
+        ))
         board.push(move)
 
     engine_sf.quit()
@@ -200,26 +209,7 @@ def analyze_game_task(
         s.add(game_db)
         s.commit()
 
-    # ---------- 4.  Encolar métricas ------------------------------
-    compute_game_metrics.delay(game_id)
-
-    if player:
-        pl = s.get(models.Player, player)
-        if pl:
-            pl.done_games += 1
-            pl.progress = int(pl.done_games / pl.total_games * 100)
-            # ¿terminado?
-            if pl.done_games == pl.total_games:
-                pl.status = "ready"
-                pl.finished_at = datetime.now(UTC)
-                notify_ws(player, {"status": "ready"})
-            else:
-                notify_ws(
-                    player,
-                    {"progress": pl.progress, "status": "pending"},
-                )
-            s.add(pl)
-            s.commit()
+    update_progress(player, increment=1)
 
     return {
         "game_id": game_id,
@@ -228,90 +218,178 @@ def analyze_game_task(
     }
 
 
-@celery_app.task(name="compute_player_metrics")
-def compute_player_metrics(username: str, months: int = 12):
-    """
-    Recalcula las métricas agregadas del jugador:
-        • nº de partidas en BD
-        • entropía de aperturas
-        • apertura más frecuente
-        • flag de baja entropía
-    """
-    from collections import Counter
-    from math import log2
-    from sqlmodel import Session, select
 
+# Inicializar el motor de análisis (configurar rutas según tu sistema)
+analysis_engine = ChessAnalysisEngine(
+    reference_book_path=Path("/data/reference_book.bin") if Path("/data/reference_book.bin").exists() else None,
+    tablebase_path=Path("/data/syzygy") if Path("/data/syzygy").exists() else None,
+)
+
+
+
+@celery_app.task(name="analyze_game_detailed")
+def analyze_game_detailed(game_id: int, username: str) -> dict[str, int | str | bool]:
+    """
+    Calcula las métricas detalladas de una partida **sin** volver a usar Stockfish.
+
+    Reglas:
+    • Lee las evaluaciones ya almacenadas en MoveAnalysis (eval_before / eval_after).
+    • Persiste el resultado en GameAnalysisDetailed.
+    • Notifica progreso (+1 unidad) y devuelve un resumen ligero.
+    """
+    # ── 1. Cargar partida + movimientos ────────────────────────────────
     with Session(engine) as s:
-        # --- extraemos las aperturas almacenadas -------------------
-        rows = (
+        game = s.get(models.Game, game_id)
+        if game is None:
+            raise ValueError(f"Game {game_id} not found")
+
+        moves = (
             s.exec(
-                select(models.Game.opening_key)
-                .where(
-                    (models.Game.white_username == username)
-                    | (models.Game.black_username == username)
-                )
-                .where(models.Game.opening_key.is_not(None))
+                select(models.MoveAnalysis)
+                .where(models.MoveAnalysis.game_id == game_id)
+                .order_by(models.MoveAnalysis.move_number)
             )
             .all()
         )
-        openings = [r[0] for r in rows]          # <─ cada fila es (opening_key,)
 
-        total = len(openings)
-        if total < 5:            # aún no hay muestra suficiente
-            return
+    # ── 2. Construir DataFrame para las métricas ───────────────────────
+    game_df = prepare_moves_dataframe(game)
 
-        # --- estadísticas ------------------------------------------
-        counts = Counter(openings)
-        probs  = [c / total for c in counts.values()]
-        entropy = -sum(p * log2(p) for p in probs)
-        most_played = counts.most_common(1)[0][0]
-        low_entropy = entropy < 1.0
+    # ── 3. Calcular métricas en sus módulos respectivos ────────────────
+    q = q_feats(game_df)
+    t = t_feats(game_df)
+    o = o_feats(game, game_df)
+    e = e_feats(game_df)
 
-        # --- upsert en PlayerMetrics -------------------------------
-        pm = (
-            s.exec(select(models.PlayerMetrics)
-                   .where(models.PlayerMetrics.username == username))
-            .first()
+    overall_score = (
+            q["quality_score"] * 0.4
+            + t["timing_score"] * 0.25
+            + o["opening_score"] * 0.2
+            + e["endgame_score"] * 0.15
+    )
+    # ── 4. Persistir en BD ─────────────────────────────────────────────
+    with Session(engine) as s:
+        detailed = models.GameAnalysisDetailed(
+            game_id=game_id,
+            analyzed_at=datetime.now(UTC),
+            # ─ Calidad ─
+            acpl=q["acpl"],
+            match_rate=q["match_rate"],
+            weighted_match_rate=q["weighted_match_rate"],
+            ipr=q["ipr"],
+            ipr_z_score=q["ipr_z_score"],
+            # ─ Tiempo ─
+            mean_move_time=t["mean_move_time"],
+            time_variance=t["time_variance"],
+            time_complexity_corr=t["time_complexity_corr"],
+            lag_spike_count=t["lag_spike_count"],
+            uniformity_score=t["uniformity_score"],
+            # ─ Apertura ─
+            opening_entropy=o["opening_entropy"],
+            novelty_depth=o["novelty_depth"],
+            second_choice_rate=o["second_choice_rate"],
+            opening_breadth=o["opening_breadth"],
+            # ─ Final ─
+            tb_match_rate=e["tb_match_rate"],
+            dtz_deviation=e["dtz_deviation"],
+            conversion_efficiency=e["conversion_efficiency"],
+            # ─ Flags & score ─
+            suspicious_quality=q["quality_score"] > 50,
+            suspicious_timing=t["timing_score"] > 50,
+            suspicious_opening=o["opening_score"] > 50,
+            overall_suspicion_score=overall_score,
         )
-        if pm is None:
-            pm = models.PlayerMetrics(username=username)
-
-        pm.game_count = total
-        pm.opening_entropy = entropy
-        pm.most_played = most_played
-        pm.low_entropy = low_entropy
-        pm.updated_at = datetime.now(UTC)
-
-        s.add(pm)
+        s.merge(detailed)     # create-or-update
         s.commit()
 
-@celery_app.task(name="process_player")
-def process_player(username: str, months: int = 6):
-    from app.database import engine
-    from sqlmodel import Session
-    from datetime import datetime, UTC
+        # ⚠️  capturamos los valores **antes** de cerrar la sesión
+        suspicion_flag = overall_score > 50
+        analyzed_at    = detailed.analyzed_at.isoformat()
 
-    games = fetch_games(username, months)          # puede lanzar excepción
-    total = len(games)
+    # ── 5. Actualizar progreso del jugador ─────────────────────────────
+    update_progress(username, increment=1)
+
+    # ── 6. Notificar por WebSocket (opcional) ──────────────────────────
+    notify_ws(
+        username,
+        {
+            "game_id": game_id,
+            "suspicious": suspicion_flag,
+            "analyzed_at": analyzed_at,
+        },
+    )
+
+    # ── 7. Respuesta liviana para el `chord` / caller ──────────────────
+    return {
+        "game_id": game_id,
+        "suspicious": suspicion_flag,
+        "score": round(overall_score, 1),
+        "analyzed_at": analyzed_at,
+    }
+
+@celery_app.task(name="process_player_enhanced")
+def process_player_enhanced(username: str, months: int = 6):
+    # 1. DESCARGAR partidas y crear registros Game ──────────────────────────
+    games = fetch_games(username, months)
+    game_ids = []
 
     with Session(engine) as s:
-        # crea/limpia registro
         player = models.Player(
             username=username,
             status="pending",
             requested_at=datetime.now(UTC),
             progress=0,
-            total_games=total,
+            total_games=len(games),
             done_games=0,
         )
-        s.merge(player)          # INSERT o UPDATE
-        s.commit()
+        s.merge(player);  s.commit()
 
-    # encola las partidas
+    chains = []          # ← aquí iremos acumulando chain por partida
     for g in games:
-        analyze_game_task.delay(
-            g["pgn"],
-            None,                        # game_id lo crea el task
-            move_times=g["move_times"],
-            player=username              # <-- parámetro extra
-        )
+        with Session(engine) as s:
+            game_db = models.Game(
+                pgn=g["pgn"],
+                move_times=g.get("move_times", []),
+                white_username=g.get("white"),
+                black_username=g.get("black"),
+                white_elo=g.get("white_elo"),
+                black_elo=g.get("black_elo"),
+            )
+            s.add(game_db);  s.commit();  s.refresh(game_db)
+            gid = game_db.id
+            game_ids.append(gid)
+
+        # 2.  chain:  básico → detallado ───────────────────────────────────
+        basic = analyze_game_task.s(g["pgn"], gid, move_times=g.get("move_times"), player=username)
+        detailed = analyze_game_detailed.si(gid, username)
+        chains.append(chain(basic, detailed))
+
+    # 3. group & chord: cuando todas las partidas acaben … ──────────────────
+    #    se lanza analyze_player_detailed(username)
+    full_workflow = chord(group(chains), analyze_player_detailed.s(username))
+    full_workflow.delay()
+
+    return {
+        "username": username,
+        "games_queued": len(games),
+        "enhanced_analysis": True,
+        "task_id": full_workflow.id,
+    }
+
+
+@task_failure.connect
+def on_task_failure(sender=None, task_id=None, args=None, kwargs=None, **k):
+    if sender.name == "process_player_enhanced":
+        username = args[0]
+        with Session(engine) as s:
+            pl = s.get(models.Player, username)
+            if pl:
+                pl.status = "error"
+                pl.error = str(k.get("exception", "unknown"))
+                s.add(pl); s.commit()
+        notify_ws(username, {"status": "error"})
+
+
+@celery_app.task(name="process_player")
+def _deprecated(*a, **kw):
+    raise RuntimeError("Deprecated. Use process_player_enhanced")

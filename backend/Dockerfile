@@ -1,20 +1,11 @@
 FROM python:3.12-slim
 
-WORKDIR /code
+# Copiamos sólo lo necesario
+WORKDIR /app
+COPY backend/app /app/app
+COPY requirements.txt /tmp/
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
+RUN apt-get update && apt-get install -y stockfish
 
-# 1) Sistema: Stockfish
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        stockfish postgresql-client && \
-    ln -s /usr/games/stockfish /usr/local/bin/stockfish && \
-    rm -rf /var/lib/apt/lists/*
-
-# 2) Dependencias Python
-COPY requirements.txt /code/
-RUN pip install --no-cache-dir -r requirements.txt
-
-# 3) Copiamos el resto del proyecto (incluye entrypoint.sh)
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh \
-    && sed -i 's/\r$//' /usr/local/bin/entrypoint.sh
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+# Opcional pero útil: evita problemas de rutas en RUN/ENTRYPOINT
+ENV PYTHONPATH=/app
