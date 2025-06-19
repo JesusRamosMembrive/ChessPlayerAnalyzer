@@ -20,8 +20,30 @@ from . import timing
 from . import openings
 from . import endgame
 from . import longitudinal
+from app import models
+from app.database import engine
+
+import numpy as np
 
 logger = logging.getLogger(__name__)
+
+def prepare_moves_dataframe(game: Game) -> pd.DataFrame:
+    """Versión libre de 'self' para reutilizar desde Celery u otros sitios."""
+    moves_data = []
+    for m in game.moves:
+        moves_data.append({
+            "move_number": m.move_number,
+            "played": m.played,
+            "best": m.best,
+            "best_rank": m.best_rank,
+            "cp_loss": m.cp_loss,
+            "eval_cp_before": m.eval_before,
+            "eval_cp_after":  m.eval_after,
+            "move_time": game.move_times[m.move_number - 1] if game.move_times else None,
+            "legal_moves": m.legal_moves_count,
+        })
+    return pd.DataFrame(moves_data)
+
 
 
 class ChessAnalysisEngine:
@@ -66,7 +88,7 @@ class ChessAnalysisEngine:
                 raise ValueError(f"Game {game_id} not found")
 
             # Preparar DataFrames para análisis
-            moves_df = self._prepare_moves_dataframe(game)
+            moves_df = self.prepare_moves_dataframe(game)
 
             # Parsear PGN para análisis que lo requieren
             pgn_game = chess.pgn.read_game(io.StringIO(game.pgn))
@@ -187,27 +209,10 @@ class ChessAnalysisEngine:
             logger.info(f"Análisis detallado completado para jugador {username}")
             return analysis
 
-    def _prepare_moves_dataframe(self, game: Game) -> pd.DataFrame:
+    def prepare_moves_dataframe(self, game: Game) -> pd.DataFrame:
         """Convierte los movimientos de la BD a DataFrame para análisis."""
-        moves_data = []
+        return prepare_moves_dataframe(game)  # Llamada libre para reutilizar
 
-        for move in game.moves:
-            moves_data.append({
-                'move_number': move.move_number,
-                'played': move.played,
-                'best': move.best,
-                'best_rank': move.best_rank,
-                'cp_loss': move.cp_loss,
-                'is_engine_best': move.best_rank == 0,
-                # Calcular evaluaciones antes/después
-                'eval_cp_before': 0,  # TODO: Necesitamos almacenar esto
-                'eval_cp_after': move.cp_loss,
-                # Tiempos
-                'move_time': game.move_times[move.move_number - 1] if game.move_times else 5,
-                'legal_moves': 20,  # TODO: Calcular movimientos legales reales
-            })
-
-        return pd.DataFrame(moves_data)
 
     def _analyze_quality(self, moves_df: pd.DataFrame, game: Game) -> Dict:
         """Ejecuta análisis de calidad."""
@@ -305,19 +310,99 @@ class ChessAnalysisEngine:
             'opening_key': g.opening_key
         } for g in games])
 
+    # --------------------------------------------------------------------------- #
+    # 1.  Partidas + análisis detallado                                           #
+    # --------------------------------------------------------------------------- #
     def _get_player_games_with_analysis(self, username: str,
                                         session: Session) -> pd.DataFrame:
-        """Obtiene partidas con análisis detallado."""
-        # TODO: Implementar query JOIN con GameAnalysisDetailed
-        return pd.DataFrame()  # Placeholder
+        """
+        Devuelve un DataFrame que une Game ←→ GameAnalysisDetailed
+        para todas las partidas en las que `username` jugó con blancas o negras.
 
+        Columnas devueltas:
+            game_id, created_at, white_username, black_username,
+            result, acpl, match_rate, overall_suspicion_score, analyzed_at
+        """
+        stmt = (
+            select(models.Game, models.GameAnalysisDetailed)
+            .join(models.GameAnalysisDetailed,
+                  models.Game.id == models.GameAnalysisDetailed.game_id)
+            .where(
+                (models.Game.white_username == username) |
+                (models.Game.black_username == username)
+            )
+        )
+        rows = session.exec(stmt).all()
+
+        # -- a DataFrame --------------------------------------------------------
+        data = []
+        for game, detail in rows:
+            data.append({
+                "game_id": game.id,
+                "created_at": game.created_at,
+                "white": game.white_username,
+                "black": game.black_username,
+                "result": game.result,  # asumiendo columna `result`
+                # métricas de GameAnalysisDetailed
+                "acpl": detail.acpl,
+                "match_rate": detail.match_rate,
+                "suspicion": detail.overall_suspicion_score,
+                "analyzed_at": detail.analyzed_at,
+            })
+        return pd.DataFrame(data)
+
+    # --------------------------------------------------------------------------- #
+    # 2.  Estimación de ELO por media robusta                                     #
+    # --------------------------------------------------------------------------- #
     def _estimate_player_elo(self, username: str) -> int:
-        """Estima ELO del jugador basado en sus partidas."""
-        # TODO: Implementar estimación real
-        return 1800  # Default
+        """
+        Estima el ELO del jugador como la mediana de sus ratings
+        (blanca + negra) en las partidas guardadas.
 
+        - Usa la BD directamente → no hace peticiones externas.
+        - Si no hay datos, devuelve 1800 por defecto.
+        """
+        with Session(engine) as s:
+            stmt = select(models.Game.white_elo, models.Game.black_elo).where(
+                (models.Game.white_username == username) |
+                (models.Game.black_username == username)
+            )
+            elos = []
+            for white_elo, black_elo in s.exec(stmt):
+                if white_elo and white_elo > 0:
+                    elos.append(white_elo)
+                if black_elo and black_elo > 0:
+                    elos.append(black_elo)
+
+        if not elos:
+            return 1800  # sin datos ⇒ default
+
+        # mediana robusta contra outliers
+        return int(np.median(elos))
+
+    # --------------------------------------------------------------------------- #
+    # 3.  Detección de final real                                                #
+    # --------------------------------------------------------------------------- #
     def _has_endgame(self, moves_df: pd.DataFrame) -> bool:
-        """Detecta si la partida llegó a un final."""
-        # Simplificado: asume final si hay menos de 7 piezas
-        # TODO: Implementar detección real
-        return len(moves_df) > 30
+        """
+        Considera que hay final si:
+            • Se alcanzó una posición con ≤ 7 piezas   *o*
+            • Hay tabla Syzygy disponible (ECO = 'E*') *o*
+            • La partida superó 60 jugadas y no quedan damas
+
+        Necesita las SAN de cada jugada en `moves_df.played`.
+        """
+        board = chess.Board()
+        for san in moves_df.played:
+            move = board.parse_san(san)
+            board.push(move)
+
+            # condición 1: pocas piezas (reloj Syzygy)
+            if len(board.piece_map()) <= 7:
+                return True
+
+        # condición 2: jugadas largas sin damas
+        if board.fullmove_number > 60 and not board.pieces(chess.QUEEN, chess.WHITE | chess.BLACK):
+            return True
+
+        return False

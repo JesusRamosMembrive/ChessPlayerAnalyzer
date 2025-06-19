@@ -24,6 +24,16 @@ from sqlalchemy import func
 from app.models import GameAnalysisDetailed
 from app import models
 
+from app.analysis.engine import prepare_moves_dataframe
+
+from app.analysis import (
+    aggregate_quality_features as q_feats,
+    aggregate_time_features    as t_feats,
+    aggregate_opening_features as o_feats,
+    aggregate_endgame_features as e_feats,
+)
+
+
 REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
 celery_app = Celery("chess_tasks", broker=REDIS_URL, backend=REDIS_URL)
 
@@ -133,45 +143,40 @@ def analyze_game_task(
     game = chess.pgn.read_game(io.StringIO(pgn_text))
     board = game.board()
     engine_sf = chess.engine.SimpleEngine.popen_uci(ENGINE_PATH)
+    times_iter = iter(move_times or [])
 
     analyses: list[models.MoveAnalysis] = []
 
     for idx, move in enumerate(game.mainline_moves(), start=1):
-        infos = engine_sf.analyse(
-            board, chess.engine.Limit(depth=depth), multipv=multipv
-        )
+        legal_cnt = board.legal_moves.count()
 
-        # lista de los movimientos PV1..PVn
-        top_moves = [info["pv"][0] for info in infos]
-        best_eval = infos[0]
-        best_move = best_eval["pv"][0]
-        best_score = best_eval["score"].white().score(mate_score=100000)
+        # 1. Eval antes de mover (posición actual)
+        info_before = engine_sf.analyse(board, chess.engine.Limit(depth=depth), multipv=multipv)
+        eval_before = info_before[0]["score"].white().score(mate_score=100000) or 0
+        best_move = info_before[0]["pv"][0]
 
-        # rank: 0-based; multipv si está fuera del top-N
-        try:
-            rank = top_moves.index(move)
-        except ValueError:
-            rank = multipv
-
-        # evaluamos la posición *después* del movimiento real
+        # 2. Eval después de la jugada real
         board.push(move)
-        after = engine_sf.analyse(board, chess.engine.Limit(depth=depth))
-        after_score = after["score"].white().score(mate_score=100000)
+        info_after = engine_sf.analyse(board, chess.engine.Limit(depth=depth))
+        eval_after = info_after["score"].white().score(mate_score=100000) or 0
         board.pop()
 
-        cp_loss = abs((best_score or 0) - (after_score or 0))
+        rank = next((i for i, pv in enumerate(info_before) if pv["pv"][0] == move), multipv)
+        cp_loss = abs(eval_before - eval_after)
+        time_spent = next(times_iter, None)  # simplemente None si no hay clocks
 
-        analyses.append(
-            models.MoveAnalysis(
-                game_id=game_id,
-                move_number=idx,
-                played=board.san(move),
-                best=board.san(best_move),
-                best_rank=rank,
-                cp_loss=int(cp_loss),
-            )
-        )
-
+        analyses.append(models.MoveAnalysis(
+            game_id=game_id,
+            move_number=idx,
+            played=board.san(move),
+            best=board.san(best_move),
+            best_rank=rank,
+            cp_loss=cp_loss,
+            eval_before=eval_before,
+            eval_after=eval_after,
+            legal_moves_count=legal_cnt,
+            time_spent=time_spent,
+        ))
         board.push(move)
 
     engine_sf.quit()
@@ -204,22 +209,6 @@ def analyze_game_task(
         s.add(game_db)
         s.commit()
 
-    # if player:
-    #     pl = s.get(models.Player, player)
-    #     if pl:
-    #         # ¿terminado?
-    #         if pl.done_games == pl.total_games:
-    #             pl.status = "ready"
-    #             pl.finished_at = datetime.now(UTC)
-    #             notify_ws(player, {"status": "ready"})
-    #         else:
-    #             notify_ws(
-    #                 player,
-    #                 {"progress": pl.progress, "status": "pending"},
-    #             )
-    #         s.add(pl)
-    #         s.commit()
-
     update_progress(player, increment=1)
 
     return {
@@ -237,38 +226,106 @@ analysis_engine = ChessAnalysisEngine(
 )
 
 
+
 @celery_app.task(name="analyze_game_detailed")
-def analyze_game_detailed(game_id: int, username: str):
+def analyze_game_detailed(game_id: int, username: str) -> dict[str, int | str | bool]:
     """
-    Análisis detallado de una partida usando los nuevos módulos.
-    Esta tarea complementa a analyze_game_task existente.
+    Calcula las métricas detalladas de una partida **sin** volver a usar Stockfish.
+
+    Reglas:
+    • Lee las evaluaciones ya almacenadas en MoveAnalysis (eval_before / eval_after).
+    • Persiste el resultado en GameAnalysisDetailed.
+    • Notifica progreso (+1 unidad) y devuelve un resumen ligero.
     """
-    try:
-        # Ejecutar análisis detallado
-        detailed_analysis = analysis_engine.analyze_game(game_id)
+    # ── 1. Cargar partida + movimientos ────────────────────────────────
+    with Session(engine) as s:
+        game = s.get(models.Game, game_id)
+        if game is None:
+            raise ValueError(f"Game {game_id} not found")
 
-        # Notificar progreso
-        with Session(engine) as s:
-            game = s.get(models.Game, game_id)
-            if game and game.white_username:
-                notify_ws(game.white_username, {
-                    "type": "game_analysis_complete",
-                    "game_id": game_id,
-                    "suspicious": detailed_analysis.overall_suspicion_score > 50
-                })
+        moves = (
+            s.exec(
+                select(models.MoveAnalysis)
+                .where(models.MoveAnalysis.game_id == game_id)
+                .order_by(models.MoveAnalysis.move_number)
+            )
+            .all()
+        )
 
-        update_progress(username, increment=1)
+    # ── 2. Construir DataFrame para las métricas ───────────────────────
+    game_df = prepare_moves_dataframe(game, moves)
 
-        return {
+    # ── 3. Calcular métricas en sus módulos respectivos ────────────────
+    q = q_feats(game_df)
+    t = t_feats(game_df)
+    o = o_feats(game, game_df)
+    e = e_feats(game_df)
+
+    overall_score = (
+            q["quality_score"] * 0.4
+            + t["timing_score"] * 0.25
+            + o["opening_score"] * 0.2
+            + e["endgame_score"] * 0.15
+    )
+    # ── 4. Persistir en BD ─────────────────────────────────────────────
+    with Session(engine) as s:
+        detailed = models.GameAnalysisDetailed(
+            game_id=game_id,
+            analyzed_at=datetime.now(UTC),
+            # ─ Calidad ─
+            acpl=q["acpl"],
+            match_rate=q["match_rate"],
+            weighted_match_rate=q["weighted_match_rate"],
+            ipr=q["ipr"],
+            ipr_z_score=q["ipr_z_score"],
+            # ─ Tiempo ─
+            mean_move_time=t["mean_move_time"],
+            time_variance=t["time_variance"],
+            time_complexity_corr=t["time_complexity_corr"],
+            lag_spike_count=t["lag_spike_count"],
+            uniformity_score=t["uniformity_score"],
+            # ─ Apertura ─
+            opening_entropy=o["opening_entropy"],
+            novelty_depth=o["novelty_depth"],
+            second_choice_rate=o["second_choice_rate"],
+            opening_breadth=o["opening_breadth"],
+            # ─ Final ─
+            tb_match_rate=e["tb_match_rate"],
+            dtz_deviation=e["dtz_deviation"],
+            conversion_efficiency=e["conversion_efficiency"],
+            # ─ Flags & score ─
+            suspicious_quality=q["quality_score"] > 50,
+            suspicious_timing=t["timing_score"] > 50,
+            suspicious_opening=o["opening_score"] > 50,
+            overall_suspicion_score=overall_score,
+        )
+        s.merge(detailed)     # create-or-update
+        s.commit()
+
+        # ⚠️  capturamos los valores **antes** de cerrar la sesión
+        suspicion_flag = overall_score > 50
+        analyzed_at    = detailed.analyzed_at.isoformat()
+
+    # ── 5. Actualizar progreso del jugador ─────────────────────────────
+    update_progress(username, increment=1)
+
+    # ── 6. Notificar por WebSocket (opcional) ──────────────────────────
+    notify_ws(
+        username,
+        {
             "game_id": game_id,
-            "acpl": detailed_analysis.acpl,
-            "suspicious_score": detailed_analysis.overall_suspicion_score,
-            "analyzed_at": detailed_analysis.analyzed_at.isoformat()
-        }
+            "suspicious": suspicion_flag,
+            "analyzed_at": analyzed_at,
+        },
+    )
 
-    except Exception as e:
-        logging.error(f"Error en análisis detallado de partida {game_id}: {e}")
-        raise
+    # ── 7. Respuesta liviana para el `chord` / caller ──────────────────
+    return {
+        "game_id": game_id,
+        "suspicious": suspicion_flag,
+        "score": round(overall_score, 1),
+        "analyzed_at": analyzed_at,
+    }
 
 @celery_app.task(name="process_player_enhanced")
 def process_player_enhanced(username: str, months: int = 6):

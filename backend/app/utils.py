@@ -109,24 +109,15 @@ def update_progress(username: str, *, increment: int = 1) -> None:
         pl = s.get(models.Player, username)
         if not pl:
             return
-
         pl.done_games = (pl.done_games or 0) + increment
-        expected_units = (pl.total_games or 0) * 2
-        if expected_units:
-            pl.progress = int(pl.done_games / expected_units * 100)
-
-        if pl.done_games == expected_units:
+        expected = (pl.total_games or 0) * 2        # básico + detallado
+        pl.progress = int(pl.done_games / expected * 100) if expected else 0
+        if pl.done_games == expected:
             pl.status = "ready"
             pl.finished_at = datetime.now(UTC)
-
-        # ⚠️ capturamos antes de cerrar la sesión
         progress_now = pl.progress
         status_now   = pl.status
-
-        s.add(pl)
-        s.commit()
-
-    # fuera del contexto ya no tocamos `pl`
+        s.add(pl); s.commit()
     notify_ws(username, {"progress": progress_now, "status": status_now})
 
 @contextmanager

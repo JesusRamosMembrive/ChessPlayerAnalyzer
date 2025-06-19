@@ -2,7 +2,7 @@
 from __future__ import annotations
 import pandas as pd
 import numpy as np
-from typing import List, Tuple
+from typing import List, Tuple, Any
 from scipy.stats import spearmanr, lognorm, kstest, skew
 
 ###############################################################################
@@ -39,17 +39,22 @@ def low_variance_flag(game_df: pd.DataFrame, threshold_std: float = 1.5) -> bool
 
 
 # --------------------------------------------------------------------------- #
-# 2.  Correlación tiempo‑complejidad                                          #
+# 2.  Correlación tiempo-complejidad                                          #
 # --------------------------------------------------------------------------- #
-def time_complexity_correlation(game_df: pd.DataFrame, method: str = "spearman") -> float:
+def time_complexity_correlation(game_df: pd.DataFrame,
+                                method: str = "spearman") -> float | None | Any:
     """
     Correlación entre tiempo invertido y complejidad (# legal_moves).
-    Esperamos un coeficiente **positivo** en jugo humano; ≈ 0 o negativo es sospechoso.
+    Esperamos un coeficiente **positivo** en juego humano; ≈ 0 o negativo es sospechoso.
+    Si alguna de las dos series es constante, devolvemos 0 para evitar el
+    ConstantInputWarning de SciPy.
     """
     if method == "spearman":
+        if np.std(game_df.move_time) == 0 or np.std(game_df.legal_moves) == 0:
+            return 0.0  # evita ConstantInputWarning
         corr, _ = spearmanr(game_df.move_time, game_df.legal_moves)
         return corr
-    return game_df.move_time.corr(game_df.legal_moves, method=method)
+    return None
 
 
 # --------------------------------------------------------------------------- #
@@ -168,6 +173,10 @@ if __name__ == "__main__":
 
     print("‑" * 60)
     print("Time‑feature snapshot:\n", aggregate_time_features(demo))
+
+
+# ─────────────────────────────────────────────────────────────────────────
+
 
 
 # How to implement

@@ -49,6 +49,7 @@ services:
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
       - ./backend:/app
+      - ./backend/alembic/versions:/app/backend/alembic/versions
     environment:
       DATABASE_URL: postgresql+psycopg://chess:chess@postgres:5432/chessdb
       REDIS_URL: redis://redis:6379/0
