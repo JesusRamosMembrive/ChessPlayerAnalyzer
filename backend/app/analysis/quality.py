@@ -20,8 +20,12 @@ def acpl(game_df: pd.DataFrame) -> float:
 
     ACPL = mean(|eval_cp_after - eval_cp_before|)  (solo lances del jugador)
     """
-    diffs = np.abs(game_df.eval_cp_after - game_df.eval_cp_before)
-    return diffs.mean()
+    required_cols = {"eval_cp_before", "eval_cp_after"}
+    if not required_cols.issubset(game_df.columns):
+        return np.nan  # o 0.0 según prefieras
+
+    diffs = np.abs(game_df["eval_cp_after"] - game_df["eval_cp_before"])
+    return diffs.mean() if len(diffs) else np.nan
 
 
 ###############################################################################
@@ -142,33 +146,31 @@ if __name__ == "__main__":
 #  🔗  AGGREGATOR
 # ------------------------------------------------------------------------
 def aggregate_quality_features(game_df, elo: int | None = None) -> dict:
-    """
-    Devuelve todas las métricas de calidad en un único dict.
-    Usa solo funciones que realmente existen en este módulo.
-    """
-    match_rate = game_df.is_engine_best.mean()
-    acpl_val   = acpl(game_df)
+    match_rate = (
+        game_df["is_engine_best"].mean() if "is_engine_best" in game_df else 0.0
+    )
+    acpl_val = acpl(game_df)
 
     feats = {
         "acpl"               : acpl_val,
         "match_rate"         : match_rate,
         "weighted_match_rate": complexity_weighted_match(game_df),
         "ipr"                : intrinsic_performance_rating(match_rate, acpl_val),
+        # ipr_z_score estará siempre presente
+        "ipr_z_score"        : np.nan,
     }
 
-    # Z-score del IPR solo si nos pasan elo
     if elo is not None:
         feats["ipr_z_score"] = ipr_z_score(feats["ipr"], elo)
 
-    # Score sintético (0-100) muy simple — ajusta pesos a tu gusto
+    # Nuevo score sintético: 40 % ACPL, 30 % match_rate, 30 % weighted_match_rate
     feats["quality_score"] = (
-        50 * (1 - acpl_val / 100) +          # menos ACPL ⇒ mejor
-        50 * match_rate                      # más match ⇒ mejor
+            40 * (1 - acpl_val / 100) +  # menos ACPL ⇒ mejor
+            30 * match_rate +  # jugadas exactas
+            30 * complexity_weighted_match(game_df)  # precisión ponderada por complejidad
     )
 
-    # Rachas de precisión
     feats["precision_burst_count"] = len(precision_bursts(game_df))
-
     return feats
 
 # How to implement

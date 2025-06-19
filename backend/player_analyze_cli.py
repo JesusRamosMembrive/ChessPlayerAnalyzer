@@ -21,6 +21,7 @@ import json
 import os
 import sys
 from typing import Any, Dict, List, Optional
+from datetime import datetime, timezone
 
 import httpx  # pip install httpx
 from tabulate import tabulate  # pip install tabulate
@@ -88,9 +89,11 @@ def wait_for_analysis(client: httpx.Client, username: str,
               bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]') as pbar:
         last_progress = 0
         start_time = time.time()
+        poll_count = 0
 
         while True:
             try:
+                poll_count += 1
                 resp = client.get(ENDPOINT_PLAYER.format(username=username))
                 if resp.status_code == 404:
                     time.sleep(1)
@@ -98,6 +101,10 @@ def wait_for_analysis(client: httpx.Client, username: str,
 
                 data = handle_response(resp)
                 current_progress = data.get('progress', 0)
+
+                # Debug: mostrar estado cada 10 polls
+                if poll_count % 10 == 0:
+                    pbar.set_postfix_str(f"Estado: {data.get('status', 'unknown')}")
 
                 # Actualizar barra de progreso
                 if current_progress > last_progress:
@@ -115,14 +122,27 @@ def wait_for_analysis(client: httpx.Client, username: str,
                     print(f"\n❌ Error durante el análisis: {data.get('error', 'Error desconocido')}")
                     sys.exit(1)
 
+                elif status not in ['pending', 'processing']:
+                    # Estado inesperado - salir del bucle
+                    print(f"\n⚠️ Estado inesperado: '{status}' - finalizando espera")
+                    return data
+
                 # Verificar timeout
                 elapsed = time.time() - start_time
                 if elapsed > analysis_timeout:
                     print(f"\n❌ Timeout esperando el análisis después de {elapsed / 3600:.1f} horas")
                     sys.exit(1)
 
-                time.sleep(1)
+                # Esperar antes del siguiente poll
+                # Aumentar el intervalo si llevamos mucho tiempo esperando
+                if elapsed > 300:  # Más de 5 minutos
+                    time.sleep(2)  # Poll cada 2 segundos
+                else:
+                    time.sleep(1)  # Poll cada 1 segundo
 
+            except KeyboardInterrupt:
+                print("\n⚠️ Interrumpido por el usuario")
+                raise
             except Exception as e:
                 print(f"\n❌ Error al verificar estado: {e}")
                 sys.exit(1)
@@ -215,6 +235,95 @@ def cmd_analyze(args: argparse.Namespace) -> None:
                     print(f"Baja entropía: {'⚠️ Sí' if final_data.get('low_entropy') else '✓ No'}")
 
 
+def cmd_cancel(args: argparse.Namespace) -> None:
+    """Cancela el análisis en curso de un jugador."""
+    with make_client(args.host, args.timeout) as client:
+        # Primero verificar el estado actual
+        resp = client.get(ENDPOINT_PLAYER.format(username=args.username))
+        if resp.status_code == 404:
+            print(f"❌ Jugador '{args.username}' no encontrado")
+            return
+
+        player_data = resp.json()
+        if player_data.get('status') != 'pending':
+            print(f"⚠️  No hay análisis en curso. Estado actual: {player_data.get('status')}")
+            return
+
+        # Intentar cancelar
+        print(f"🛑 Cancelando análisis de {args.username}...")
+        cancel_resp = client.post(f"{ENDPOINT_PLAYER.format(username=args.username)}/cancel")
+
+        if cancel_resp.status_code == 200:
+            data = cancel_resp.json()
+            if data.get('status') == 'cancelled':
+                print(f"✅ Análisis cancelado exitosamente")
+                print(f"   Task ID: {data.get('task_id')}")
+            else:
+                print(f"⚠️  {data.get('message')}")
+        else:
+            try:
+                error_detail = cancel_resp.json().get('detail', 'Error desconocido')
+            except:
+                error_detail = cancel_resp.text
+            print(f"❌ Error al cancelar: {error_detail}")
+
+
+def cmd_active(args: argparse.Namespace) -> None:
+    """Lista todos los análisis activos."""
+    with make_client(args.host, args.timeout) as client:
+        resp = client.get("/players/active")
+        if resp.status_code != 200:
+            print(f"❌ Error al obtener análisis activos: {resp.text}")
+            return
+
+        data = resp.json()
+
+        if data['active_count'] == 0:
+            print("No hay análisis activos en este momento.")
+            return
+
+        print(f"\n📊 Análisis activos: {data['active_count']}")
+
+        if args.json:
+            print(json.dumps(data, indent=2, ensure_ascii=False))
+        else:
+            rows = []
+            for analysis in data['analyses']:
+                progress = analysis.get('progress', 0)
+                done = analysis.get('done_games', 0)
+                total = analysis.get('total_games', '?')
+
+                # Calcular tiempo transcurrido
+                elapsed = ""
+                if analysis.get('started_at'):
+                    try:
+                        start_time = datetime.fromisoformat(analysis['started_at'].replace('Z', '+00:00'))
+                        delta = datetime.now(timezone.utc) - start_time
+                        hours = delta.total_seconds() / 3600
+                        if hours < 1:
+                            elapsed = f"{int(delta.total_seconds() / 60)}m"
+                        else:
+                            elapsed = f"{hours:.1f}h"
+                    except:
+                        pass
+
+                rows.append([
+                    analysis['username'],
+                    f"{progress}%",
+                    f"{done}/{total}",
+                    analysis.get('task_state', 'UNKNOWN'),
+                    elapsed,
+                    analysis.get('task_id', 'N/A')[:8] + "..." if analysis.get('task_id') else 'N/A'
+                ])
+
+            print(tabulate(
+                rows,
+                headers=["Usuario", "Progreso", "Partidas", "Estado", "Tiempo", "Task ID"],
+                tablefmt="github",
+                numalign="right"
+            ))
+
+
 def cmd_delete(args: argparse.Namespace) -> None:
     with make_client(args.host, args.timeout) as client:
         handle_response(
@@ -279,6 +388,15 @@ def build_parser() -> argparse.ArgumentParser:
     sp_del = sub.add_parser("delete", help="Eliminar un jugador")
     sp_del.add_argument("username", help="Nombre de usuario en chess.com")
     sp_del.set_defaults(func=cmd_delete)
+
+    # cancel
+    sp_cancel = sub.add_parser("cancel", help="Cancelar análisis en curso")
+    sp_cancel.add_argument("username", help="Nombre de usuario en chess.com")
+    sp_cancel.set_defaults(func=cmd_cancel)
+
+    # active
+    sp_active = sub.add_parser("active", help="Listar análisis activos")
+    sp_active.set_defaults(func=cmd_active)
 
     return p
 
