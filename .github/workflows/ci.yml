@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: ["*"]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: testdb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres" --health-interval=10s --health-timeout=5s --health-retries=5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y stockfish
+          pip install -r requirements.txt
+          pip install -r backend/requirements-dev.txt
+      - name: Run tests
+        env:
+          DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost/testdb
+          STOCKFISH_PATH: /usr/games/stockfish
+          STOCKFISH_DEPTH: 1
+        run: pytest -vv
