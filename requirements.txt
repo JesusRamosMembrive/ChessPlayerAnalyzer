@@ -6,10 +6,6 @@ python-chess
 celery[redis]~=5.5.1
 psycopg[binary]
 pydantic~=2.11.3
-python-chess
-celery
-sqlmodel
-psycopg[binary]
 alembic~=1.16.1
 sse-starlette~=2.3.6
 sseclient-py
