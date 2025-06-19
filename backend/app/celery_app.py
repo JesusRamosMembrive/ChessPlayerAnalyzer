@@ -253,7 +253,7 @@ def analyze_game_detailed(game_id: int, username: str) -> dict[str, int | str | 
         )
 
     # ── 2. Construir DataFrame para las métricas ───────────────────────
-    game_df = prepare_moves_dataframe(game, moves)
+    game_df = prepare_moves_dataframe(game)
 
     # ── 3. Calcular métricas en sus módulos respectivos ────────────────
     q = q_feats(game_df)

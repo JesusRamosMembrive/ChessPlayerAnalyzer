@@ -1,366 +1,278 @@
 #!/usr/bin/env python3
 """
-CLI mejorado: analiza jugador con métricas detalladas.
+player_analyze_cli.py
 
-Muestra:
-- Análisis básico (existente)
-- Análisis detallado por partida (nuevo)
-- Análisis longitudinal del jugador (nuevo)
-- Visualización mejorada con colores
+CLI "sin‑IU" para Chess Player Pro.
+Se conecta al backend FastAPI (o Flask) mediante HTTP; no importa dónde
+esté desplegado mientras la API respete los endpoints que se indican abajo.
 
-Requisitos:
-    pip install requests tqdm colorama tabulate
+Endpoints esperados (métodos HTTP):
+  GET    /players                    -> lista de jugadores almacenados
+  GET    /players/{username}         -> datos completos de un jugador
+  POST   /players/{username}         -> lanzar nuevo análisis (CORREGIDO)
+  DELETE /players/{username}         -> borrar jugador y sus datos
+
+Si tu API usa rutas distintas, basta con cambiar las constantes ENDPOINT_*.
 """
+
 from __future__ import annotations
-
+import argparse
 import json
-import logging
+import os
 import sys
+from typing import Any, Dict, List, Optional
+
+import httpx  # pip install httpx
+from tabulate import tabulate  # pip install tabulate
+from tqdm import tqdm  # pip install tqdm
 import time
-from datetime import datetime
-from typing import List, Optional, Tuple
 
-import requests
-from colorama import init, Fore, Style
-from tabulate import tabulate
-from tqdm import tqdm
+# --------------------------- Configuración ---------------------------
 
-# Inicializar colorama para Windows
-init()
+DEFAULT_HOST = os.getenv("CPP_BACKEND_HOST", "http://localhost:8000")
+DEFAULT_TIMEOUT = float(os.getenv("CPP_TIMEOUT", "30"))  # segundos
 
-# Configuración
-API_BASE = "http://localhost:8000"
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+ENDPOINT_PLAYERS = "/players"  # lista
+ENDPOINT_PLAYER = "/players/{username}"  # show / delete / analyze (POST)
 
-# Sesión global
-S = requests.Session()
-S.headers["User-Agent"] = "chess-analyzer-cli/0.2"
 
-# ============================================================
-# HELPERS
-# ============================================================
+# --------------------------- Utilidades HTTP ------------------------
 
-def safe_get(url: str, tries: int = 3, backoff: float = 2.0):
-    """GET con reintentos."""
-    for n in range(tries):
-        try:
-            r = S.get(url, timeout=10)
-            if r.status_code in (403, 429):
-                time.sleep(backoff ** n)
-                continue
-            return r
-        except requests.exceptions.RequestException as e:
-            if n == tries - 1:
-                raise
-            time.sleep(backoff ** n)
-    
-def print_header(text: str, color=Fore.CYAN):
-    """Imprime header con estilo."""
-    print(f"\n{color}{'='*60}")
-    print(f"{text.center(60)}")
-    print(f"{'='*60}{Style.RESET_ALL}")
+def make_client(base_url: str, timeout: float) -> httpx.Client:
+    return httpx.Client(base_url=base_url, timeout=timeout)
 
-def print_section(title: str, color=Fore.YELLOW):
-    """Imprime título de sección."""
-    print(f"\n{color}▶ {title}{Style.RESET_ALL}")
 
-def format_suspicious(value: bool) -> str:
-    """Formatea indicador de sospecha."""
-    if value:
-        return f"{Fore.RED}⚠️ SOSPECHOSO{Style.RESET_ALL}"
-    return f"{Fore.GREEN}✓ Normal{Style.RESET_ALL}"
-
-def format_score(score: float, thresholds: List[float] = [30, 50, 70]) -> str:
-    """Colorea score según umbrales."""
-    if score < thresholds[0]:
-        return f"{Fore.GREEN}{score:.1f}{Style.RESET_ALL}"
-    elif score < thresholds[1]:
-        return f"{Fore.YELLOW}{score:.1f}{Style.RESET_ALL}"
-    elif score < thresholds[2]:
-        return f"{Fore.MAGENTA}{score:.1f}{Style.RESET_ALL}"
-    else:
-        return f"{Fore.RED}{score:.1f}{Style.RESET_ALL}"
-
-# ============================================================
-# API CALLS
-# ============================================================
-
-def get_player_status(username: str) -> dict:
-    """Obtiene estado del jugador."""
-    r = S.get(f"{API_BASE}/players/{username}")
-    if r.status_code == 404:
+def handle_response(resp: httpx.Response) -> Any:
+    """
+    Devuelve resp.json() si el status es 2xx.
+    Si no, imprime el mensaje de error del backend (si lo hay)
+    y finaliza con código !=0.
+    """
+    if resp.is_success:
+        if resp.text:
+            try:
+                return resp.json()
+            except ValueError:
+                return resp.text  # p. ej. DELETE devuelve texto plano
         return None
-    r.raise_for_status()
-    return r.json()
+    # --- error ---
+    try:
+        detail = resp.json().get("detail")
+    except ValueError:
+        detail = resp.text
+    print(f"❌ Error {resp.status_code}: {detail}", file=sys.stderr)
+    sys.exit(1)
 
-def start_player_analysis(username: str) -> dict:
-    """Inicia análisis del jugador."""
-    r = S.post(f"{API_BASE}/players/{username}")
-    r.raise_for_status()
-    return r.json()
 
-def wait_for_player_ready(username: str, timeout: int = 3600):
-    """Espera hasta que el jugador esté analizado."""
-    print_section("Progreso del análisis")
-    
-    with tqdm(total=100, desc="Analizando", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]') as pbar:
+# --------------------------- Comandos -------------------------------
+
+def wait_for_analysis(client: httpx.Client, username: str, timeout: int = 600) -> Dict[str, Any]:
+    """
+    Espera a que el análisis termine, mostrando una barra de progreso.
+    Devuelve el estado final del jugador.
+    """
+    print("⏳ Esperando a que termine el análisis...")
+
+    with tqdm(total=100, desc="Analizando",
+              bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]') as pbar:
         last_progress = 0
         start_time = time.time()
-        
+
         while True:
-            status = get_player_status(username)
-            if not status:
+            try:
+                resp = client.get(ENDPOINT_PLAYER.format(username=username))
+                if resp.status_code == 404:
+                    time.sleep(1)
+                    continue
+
+                data = handle_response(resp)
+                current_progress = data.get('progress', 0)
+
+                # Actualizar barra de progreso
+                if current_progress > last_progress:
+                    pbar.update(current_progress - last_progress)
+                    last_progress = current_progress
+
+                # Verificar estado
+                status = data.get('status')
+                if status == 'ready':
+                    pbar.update(100 - last_progress)
+                    print("\n✅ Análisis completado exitosamente")
+                    return data
+
+                elif status == 'error':
+                    print(f"\n❌ Error durante el análisis: {data.get('error', 'Error desconocido')}")
+                    sys.exit(1)
+
+                # Verificar timeout
+                if time.time() - start_time > timeout:
+                    print("\n❌ Timeout esperando el análisis")
+                    sys.exit(1)
+
                 time.sleep(1)
-                continue
-                
-            current_progress = status.get('progress', 0)
-            if current_progress > last_progress:
-                pbar.update(current_progress - last_progress)
-                last_progress = current_progress
-            
-            if status['status'] == 'ready':
-                pbar.update(100 - last_progress)
-                print(f"\n{Fore.GREEN}✅ Análisis completado{Style.RESET_ALL}")
-                return status
-                
-            if status['status'] == 'error':
-                print(f"\n{Fore.RED}❌ Error: {status.get('error', 'Unknown error')}{Style.RESET_ALL}")
+
+            except Exception as e:
+                print(f"\n❌ Error al verificar estado: {e}")
                 sys.exit(1)
-                
-            if time.time() - start_time > timeout:
-                print(f"\n{Fore.RED}❌ Timeout esperando análisis{Style.RESET_ALL}")
-                sys.exit(1)
-                
-            time.sleep(1)
 
-def get_player_games(username: str) -> List[dict]:
-    """Obtiene partidas analizadas del jugador."""
-    # TODO: Implementar endpoint para obtener lista de partidas
-    # Por ahora usamos el método existente
-    r = S.get(f"{API_BASE}/games", params={"player": username, "limit": 100})
-    if r.status_code == 200:
-        return r.json()
-    return []
 
-def get_game_detailed_analysis(game_id: int) -> Optional[dict]:
-    """Obtiene análisis detallado de una partida."""
-    # TODO: Implementar endpoint GET /games/{game_id}/analysis
-    r = S.get(f"{API_BASE}/games/{game_id}/analysis")
-    if r.status_code == 200:
-        return r.json()
-    return None
+def cmd_list(args: argparse.Namespace) -> None:
+    with make_client(args.host, args.timeout) as client:
+        data = handle_response(client.get(ENDPOINT_PLAYERS))
 
-def get_player_detailed_analysis(username: str) -> Optional[dict]:
-    """Obtiene análisis detallado del jugador."""
-    # TODO: Implementar endpoint GET /players/{username}/analysis
-    r = S.get(f"{API_BASE}/players/{username}/analysis")
-    if r.status_code == 200:
-        return r.json()
-    return None
-
-def get_player_metrics(username: str) -> Optional[dict]:
-    """Obtiene métricas básicas del jugador."""
-    r = S.get(f"{API_BASE}/metrics/player/{username}")
-    if r.status_code == 200:
-        return r.json()
-    return None
-
-# ============================================================
-# DISPLAY FUNCTIONS
-# ============================================================
-
-def display_game_analysis(game_id: int, analysis: dict, url: str = ""):
-    """Muestra análisis de una partida."""
-    # Métricas básicas
-    basic = {
-        "ACPL": analysis.get('acl', 0),
-        "Top-1 %": analysis.get('pct_top1', 0),
-        "Top-3 %": analysis.get('pct_top3', 0),
-        "Sospechoso": analysis.get('suspicious', False)
-    }
-    
-    # Si hay análisis detallado
-    detailed = get_game_detailed_analysis(game_id)
-    if detailed:
-        basic.update({
-            "IPR": detailed.get('ipr', 0),
-            "IPR Z-Score": detailed.get('ipr_z_score', 0),
-            "Tiempo promedio": f"{detailed.get('mean_move_time', 0):.1f}s",
-            "Correlación T-C": detailed.get('time_complexity_corr', 0),
-            "Lag spikes": detailed.get('lag_spike_count', 0)
-        })
-    
-    # Formatear para tabla
-    row = [game_id]
-    row.append(format_score(basic['ACPL'], [20, 40, 60]))
-    row.append(format_score(basic['Top-3 %'], [80, 70, 60]))  # Invertido
-    row.append(format_suspicious(basic['Sospechoso']))
-    
-    if detailed:
-        row.extend([
-            f"{basic['IPR']:.0f}",
-            format_score(basic['IPR Z-Score'], [1, 2, 3]),
-            basic['Tiempo promedio'],
-            f"{basic['Correlación T-C']:.2f}"
-        ])
-    
-    if url:
-        row.append(f"{Fore.BLUE}{url[-20:]}{Style.RESET_ALL}")  # Últimos 20 chars
-    
-    return row
-
-def display_player_summary(username: str, metrics: dict, detailed: Optional[dict] = None):
-    """Muestra resumen del jugador."""
-    print_header(f"ANÁLISIS DE {username.upper()}")
-    
-    # Métricas básicas
-    print_section("Métricas Básicas", Fore.CYAN)
-    basic_data = [
-        ["Partidas analizadas", metrics.get('game_count', 0)],
-        ["Entropía de aperturas", f"{metrics.get('opening_entropy', 0):.2f} bits"],
-        ["Apertura más jugada", metrics.get('most_played', 'N/A')],
-        ["Baja entropía", format_suspicious(metrics.get('low_entropy', False))]
-    ]
-    print(tabulate(basic_data, tablefmt="simple"))
-    
-    # Análisis detallado si está disponible
-    if detailed:
-        print_section("Análisis Detallado", Fore.MAGENTA)
-        
-        # Métricas de calidad
-        quality_data = [
-            ["ACPL promedio", format_score(detailed.get('avg_acpl', 0), [25, 40, 60])],
-            ["Match rate promedio", f"{detailed.get('avg_match_rate', 0)*100:.1f}%"],
-            ["IPR promedio", f"{detailed.get('avg_ipr', 0):.0f}"]
-        ]
-        print("\n📊 Calidad de juego:")
-        print(tabulate(quality_data, tablefmt="simple"))
-        
-        # Métricas longitudinales
-        long_data = [
-            ["ROI medio", format_score(detailed.get('roi_mean', 0), [1, 2, 3])],
-            ["ROI máximo", format_score(detailed.get('roi_max', 0), [2, 3, 4])],
-            ["Racha más larga", f"{detailed.get('longest_streak', 0)} partidas"],
-            ["Step function", format_suspicious(detailed.get('step_function_detected', False))],
-            ["Delta vs peers (ACPL)", f"{detailed.get('peer_delta_acpl', 0):.1f} cp"]
-        ]
-        print("\n📈 Análisis longitudinal:")
-        print(tabulate(long_data, tablefmt="simple"))
-        
-        # Score de riesgo
-        risk_score = detailed.get('risk_score', 0)
-        risk_factors = detailed.get('risk_factors', {})
-        
-        print_section("Evaluación de Riesgo", Fore.RED if risk_score > 50 else Fore.YELLOW)
-        print(f"Score de riesgo: {format_score(risk_score, [30, 50, 70])}/100")
-        
-        if risk_factors:
-            print("\nFactores de riesgo detectados:")
-            for factor, present in risk_factors.items():
-                if present:
-                    print(f"  • {Fore.RED}{factor.replace('_', ' ').title()}{Style.RESET_ALL}")
-
-def display_top_suspicious_games(games_analysis: List[Tuple[int, dict]], limit: int = 10):
-    """Muestra las partidas más sospechosas."""
-    print_section(f"Top {limit} Partidas Más Sospechosas", Fore.RED)
-    
-    # Ordenar por sospecha
-    suspicious_games = [(gid, analysis) for gid, analysis in games_analysis if analysis.get('suspicious', False)]
-    suspicious_games.sort(key=lambda x: (x[1].get('pct_top3', 0), -x[1].get('acl', 100)), reverse=True)
-    
-    if not suspicious_games:
-        print("No se encontraron partidas sospechosas ✨")
+    if not data:
+        print("No hay jugadores almacenados todavía.")
         return
-    
-    headers = ["ID", "ACPL", "Top-3%", "Estado", "IPR", "Z-Score", "Tiempo", "T-C Corr", "URL"]
-    rows = []
-    
-    for gid, analysis in suspicious_games[:limit]:
-        url = f"game/{gid}"  # URL placeholder
-        rows.append(display_game_analysis(gid, analysis, url))
-    
-    print(tabulate(rows, headers=headers, tablefmt="grid"))
 
-# ============================================================
-# MAIN
-# ============================================================
+    if args.json:
+        print(json.dumps(data, indent=2, ensure_ascii=False))
+    else:
+        rows = [[p["username"], p.get("last_analysis"), p.get("country"),
+                 p.get("rapid_rating"), p.get("blitz_rating")] for p in data]
+        print(tabulate(
+            rows,
+            headers=["Usuario", "Últ. análisis", "País", "Rápido", "Blitz"],
+            tablefmt="github",
+            numalign="right"))
 
-def main():
-    print_header("CHESS ANALYZER CLI v0.2", Fore.CYAN)
-    
-    # Obtener username
-    username = input(f"\n{Fore.YELLOW}Jugador Chess.com a analizar: {Style.RESET_ALL}").strip().lower()
-    if not username:
-        print(f"{Fore.RED}❌ Username vacío{Style.RESET_ALL}")
-        return
-    
-    print(f"\n🔍 Analizando a {Fore.CYAN}{username}{Style.RESET_ALL}...")
-    
-    try:
-        # Verificar estado del jugador
-        status = get_player_status(username)
 
-        if not status or status.get('status') in {'not_analyzed', 'error'}:
-            # Primera vez (o análisis fallido) → lanzamos POST
-            print("Iniciando nuevo análisis…")
-            start_result = start_player_analysis(username)
-            print(f"Task ID: {start_result.get('task_id', 'N/A')}")
-            status = wait_for_player_ready(username)
-        
-        elif status['status'] == 'pending':
-            print("Análisis en progreso. Esperando...")
-            status = wait_for_player_ready(username=username, timeout=3600)
-        
-        elif status['status'] == 'ready':
-            print(f"{Fore.GREEN}✅ Jugador ya analizado{Style.RESET_ALL}")
-            
-            # Preguntar si re-analizar
-            refresh = input(f"\n¿Deseas refrescar el análisis? (s/N): ").lower()
-            if refresh == 's':
-                r = S.post(f"{API_BASE}/players/{username}/refresh")
-                if r.status_code == 200:
-                    print("Análisis reiniciado. Esperando...")
-                    status = wait_for_player_ready(username)
-        
-        # Obtener métricas
-        print_section("Obteniendo métricas...")
-        metrics = get_player_metrics(username)
-        detailed_analysis = get_player_detailed_analysis(username)
-        
-        if not metrics:
-            print(f"{Fore.YELLOW}⚠️ No se pudieron obtener métricas{Style.RESET_ALL}")
-            return
-        
-        # Mostrar resumen del jugador
-        display_player_summary(username, metrics, detailed_analysis)
-        
-        # Obtener y mostrar partidas
-        # TODO: Cuando esté el endpoint, obtener partidas analizadas
-        # games = get_player_games(username)
-        # if games:
-        #     display_top_suspicious_games(games)
-        
-        # Guardar reporte si se desea
-        save = input(f"\n¿Guardar reporte completo? (s/N): ").lower()
-        if save == 's':
-            filename = f"{username}_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-            report = {
-                "username": username,
-                "timestamp": datetime.now().isoformat(),
-                "basic_metrics": metrics,
-                "detailed_analysis": detailed_analysis,
-                "status": status
-            }
-            with open(filename, 'w', encoding='utf-8') as f:
-                json.dump(report, f, indent=2, ensure_ascii=False)
-            print(f"{Fore.GREEN}✅ Reporte guardado en: {filename}{Style.RESET_ALL}")
-        
-    except KeyboardInterrupt:
-        print(f"\n{Fore.YELLOW}⚠️ Abortado por el usuario{Style.RESET_ALL}")
-    except Exception as e:
-        logger.error(f"Error: {e}")
-        print(f"{Fore.RED}❌ Error: {e}{Style.RESET_ALL}")
+def cmd_show(args: argparse.Namespace) -> None:
+    with make_client(args.host, args.timeout) as client:
+        data = handle_response(
+            client.get(ENDPOINT_PLAYER.format(username=args.username)))
+
+    print(json.dumps(data, indent=2, ensure_ascii=False)
+          if args.json else tabulate_dict(data))
+
+
+def cmd_analyze(args: argparse.Namespace) -> None:
+    with make_client(args.host, args.timeout) as client:
+        # Primero verificar si ya existe
+        resp = client.get(ENDPOINT_PLAYER.format(username=args.username))
+
+        if resp.status_code == 200:
+            existing_data = resp.json()
+            status = existing_data.get('status')
+
+            if status == 'ready':
+                print(f"ℹ️  El jugador ya está analizado.")
+                if not args.force:
+                    print("Usa --force para forzar un nuevo análisis.")
+                    print(json.dumps(existing_data, indent=2, ensure_ascii=False))
+                    return
+                print("Forzando nuevo análisis...")
+
+            elif status == 'pending':
+                print("ℹ️  Ya hay un análisis en progreso.")
+                if args.wait:
+                    final_data = wait_for_analysis(client, args.username)
+                    if args.json:
+                        print(json.dumps(final_data, indent=2, ensure_ascii=False))
+                    return
+                else:
+                    print("Usa --wait para esperar a que termine.")
+                    return
+
+        # Lanzar nuevo análisis
+        data = handle_response(
+            client.post(ENDPOINT_PLAYER.format(username=args.username)))
+
+        print("✅ Análisis lanzado correctamente.")
+        if data and args.json and not args.wait:
+            print(json.dumps(data, indent=2, ensure_ascii=False))
+
+        # Esperar si se solicita
+        if args.wait:
+            final_data = wait_for_analysis(client, args.username)
+            if args.json:
+                print(json.dumps(final_data, indent=2, ensure_ascii=False))
+            else:
+                # Mostrar resumen del análisis
+                print("\n📊 Resumen del análisis:")
+                print(f"Usuario: {final_data.get('username')}")
+                print(f"País: {final_data.get('country', 'N/A')}")
+                print(f"Rating Rápido: {final_data.get('rapid_rating', 'N/A')}")
+                print(f"Rating Blitz: {final_data.get('blitz_rating', 'N/A')}")
+                if 'game_count' in final_data:
+                    print(f"Partidas analizadas: {final_data.get('game_count')}")
+                if 'opening_entropy' in final_data:
+                    print(f"Entropía de aperturas: {final_data.get('opening_entropy', 0):.2f}")
+                if 'low_entropy' in final_data:
+                    print(f"Baja entropía: {'⚠️ Sí' if final_data.get('low_entropy') else '✓ No'}")
+
+
+def cmd_delete(args: argparse.Namespace) -> None:
+    with make_client(args.host, args.timeout) as client:
+        handle_response(
+            client.delete(ENDPOINT_PLAYER.format(username=args.username)))
+
+    print(f"🗑️ Jugador «{args.username}» eliminado.")
+
+
+# --------------------------- Helpers de formato ---------------------
+
+def tabulate_dict(d: Dict[str, Any]) -> str:
+    """Representa un dict anidado en forma de tabla clave/valor."""
+    rows: List[List[str]] = []
+
+    def rec(prefix: str, val: Any):
+        if isinstance(val, dict):
+            for k, v in val.items():
+                rec(f"{prefix}{k}.", v)
+        else:
+            rows.append([prefix.rstrip("."), val])
+
+    rec("", d)
+    return tabulate(rows, headers=["Campo", "Valor"], tablefmt="github")
+
+
+# --------------------------- CLI parser -----------------------------
+
+def build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(
+        prog="cpp",
+        description="Chess Player Pro – CLI temporal sin interfaz gráfica")
+    p.add_argument("--host", default=DEFAULT_HOST,
+                   help=f"URL base del backend (defecto: {DEFAULT_HOST})")
+    p.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT,
+                   help=f"Timeout en segundos (defecto: {DEFAULT_TIMEOUT})")
+    p.add_argument("--json", action="store_true",
+                   help="Mostrar la salida en JSON puro (sin tabular)")
+
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    # list
+    sub.add_parser("list", help="Listar todos los jugadores").set_defaults(
+        func=cmd_list)
+
+    # show
+    sp_show = sub.add_parser("show", help="Mostrar detalle de un jugador")
+    sp_show.add_argument("username", help="Nombre de usuario en chess.com")
+    sp_show.set_defaults(func=cmd_show)
+
+    # analyze
+    sp_analyze = sub.add_parser("analyze", help="Analizar nuevo jugador")
+    sp_analyze.add_argument("username", help="Nombre de usuario en chess.com")
+    sp_analyze.add_argument("--wait", "-w", action="store_true",
+                            help="Esperar a que termine el análisis")
+    sp_analyze.add_argument("--force", "-f", action="store_true",
+                            help="Forzar nuevo análisis aunque ya exista")
+    sp_analyze.set_defaults(func=cmd_analyze)
+
+    # delete
+    sp_del = sub.add_parser("delete", help="Eliminar un jugador")
+    sp_del.add_argument("username", help="Nombre de usuario en chess.com")
+    sp_del.set_defaults(func=cmd_delete)
+
+    return p
+
+
+# --------------------------- main -----------------------------------
+
+def main(argv: Optional[List[str]] = None) -> None:
+    args = build_parser().parse_args(argv)
+    args.func(args)
+
 
 if __name__ == "__main__":
     main()

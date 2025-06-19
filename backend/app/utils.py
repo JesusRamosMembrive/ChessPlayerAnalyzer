@@ -15,6 +15,7 @@ from app.database import engine
 from sqlmodel import Session
 from app import models, utils
 
+
 # ──────────────────────────────────────────────────────────────────────────────
 #  Configuración común
 # ──────────────────────────────────────────────────────────────────────────────
