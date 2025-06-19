@@ -30,7 +30,8 @@ import time
 # --------------------------- Configuración ---------------------------
 
 DEFAULT_HOST = os.getenv("CPP_BACKEND_HOST", "http://localhost:8000")
-DEFAULT_TIMEOUT = float(os.getenv("CPP_TIMEOUT", "30"))  # segundos
+DEFAULT_TIMEOUT = float(os.getenv("CPP_TIMEOUT", "30"))  # segundos para HTTP
+DEFAULT_ANALYSIS_TIMEOUT = float(os.getenv("CPP_ANALYSIS_TIMEOUT", "10800"))  # 3 horas para análisis
 
 ENDPOINT_PLAYERS = "/players"  # lista
 ENDPOINT_PLAYER = "/players/{username}"  # show / delete / analyze (POST)
@@ -66,12 +67,22 @@ def handle_response(resp: httpx.Response) -> Any:
 
 # --------------------------- Comandos -------------------------------
 
-def wait_for_analysis(client: httpx.Client, username: str, timeout: int = 600) -> Dict[str, Any]:
+def wait_for_analysis(client: httpx.Client, username: str,
+                      timeout: int = None, analysis_timeout: int = None) -> Dict[str, Any]:
     """
     Espera a que el análisis termine, mostrando una barra de progreso.
     Devuelve el estado final del jugador.
+
+    Args:
+        client: Cliente HTTP
+        username: Nombre de usuario a analizar
+        timeout: Timeout para peticiones HTTP (heredado del cliente)
+        analysis_timeout: Timeout total para esperar el análisis (default: 3 horas)
     """
-    print("⏳ Esperando a que termine el análisis...")
+    if analysis_timeout is None:
+        analysis_timeout = DEFAULT_ANALYSIS_TIMEOUT
+
+    print(f"⏳ Esperando a que termine el análisis (timeout: {analysis_timeout / 3600:.1f} horas)...")
 
     with tqdm(total=100, desc="Analizando",
               bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]') as pbar:
@@ -105,8 +116,9 @@ def wait_for_analysis(client: httpx.Client, username: str, timeout: int = 600) -
                     sys.exit(1)
 
                 # Verificar timeout
-                if time.time() - start_time > timeout:
-                    print("\n❌ Timeout esperando el análisis")
+                elapsed = time.time() - start_time
+                if elapsed > analysis_timeout:
+                    print(f"\n❌ Timeout esperando el análisis después de {elapsed / 3600:.1f} horas")
                     sys.exit(1)
 
                 time.sleep(1)
@@ -165,7 +177,8 @@ def cmd_analyze(args: argparse.Namespace) -> None:
             elif status == 'pending':
                 print("ℹ️  Ya hay un análisis en progreso.")
                 if args.wait:
-                    final_data = wait_for_analysis(client, args.username)
+                    final_data = wait_for_analysis(client, args.username,
+                                                   analysis_timeout=args.analysis_timeout)
                     if args.json:
                         print(json.dumps(final_data, indent=2, ensure_ascii=False))
                     return
@@ -183,7 +196,8 @@ def cmd_analyze(args: argparse.Namespace) -> None:
 
         # Esperar si se solicita
         if args.wait:
-            final_data = wait_for_analysis(client, args.username)
+            final_data = wait_for_analysis(client, args.username,
+                                           analysis_timeout=args.analysis_timeout)
             if args.json:
                 print(json.dumps(final_data, indent=2, ensure_ascii=False))
             else:
@@ -235,7 +249,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--host", default=DEFAULT_HOST,
                    help=f"URL base del backend (defecto: {DEFAULT_HOST})")
     p.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT,
-                   help=f"Timeout en segundos (defecto: {DEFAULT_TIMEOUT})")
+                   help=f"Timeout en segundos para peticiones HTTP (defecto: {DEFAULT_TIMEOUT})")
+    p.add_argument("--analysis-timeout", type=float, default=DEFAULT_ANALYSIS_TIMEOUT,
+                   help=f"Timeout en segundos para esperar análisis completo (defecto: {DEFAULT_ANALYSIS_TIMEOUT / 3600:.1f} horas)")
     p.add_argument("--json", action="store_true",
                    help="Mostrar la salida en JSON puro (sin tabular)")
 
