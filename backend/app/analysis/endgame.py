@@ -193,6 +193,9 @@ if __name__ == "__main__":
         print(">> Ruta de tablebases no encontrada; ejecuta la demo cuando las tengas.")
 
 
+
+
+
 # how to implement:
 # pip install python-chess[syzygy]
 # mkdir -p /tb/syzygy

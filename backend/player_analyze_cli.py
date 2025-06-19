@@ -100,7 +100,7 @@ def start_player_analysis(username: str) -> dict:
     r.raise_for_status()
     return r.json()
 
-def wait_for_player_ready(username: str, timeout: int = 600):
+def wait_for_player_ready(username: str, timeout: int = 3600):
     """Espera hasta que el jugador esté analizado."""
     print_section("Progreso del análisis")
     

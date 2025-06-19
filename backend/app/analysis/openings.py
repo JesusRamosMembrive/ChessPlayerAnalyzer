@@ -209,6 +209,8 @@ if __name__ == "__main__":
     )
     print("Opening‑feature snapshot:\n", feats)
 
+
+
 # How to implement
 # Fusión de featuresfeats_q = quality_metrics.aggregate_quality_features(moves_df)
 # feats_t = timing_metrics.aggregate_time_features(moves_df)

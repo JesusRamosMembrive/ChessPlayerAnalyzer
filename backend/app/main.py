@@ -11,7 +11,6 @@ from app import models
 from app import models
 from app.celery_app import celery_app, analyze_game_task, process_player_enhanced as process_player
 from app.database import get_session
-from app.database import get_session
 from app.utils import redis_client, notify_ws, player_lock, update_progress
 from celery.result import AsyncResult
 from fastapi import Depends, HTTPException, status

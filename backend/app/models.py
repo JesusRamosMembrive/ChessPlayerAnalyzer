@@ -26,9 +26,9 @@ class Game(SQLModel, table=True):
     move_times: Optional[List[int]] = Field(sa_column=Column(JSON))
     eco_code: Optional[str] = None
     opening_key: Optional[str] = None
-    white_username: Optional[str] = None
-    black_username: Optional[str] = None
 
+    white_username: Optional[str] = Field(default=None, index=True)
+    black_username: Optional[str] = Field(default=None, index=True)
     # Nuevos campos para análisis mejorado
     white_elo: Optional[int] = None
     black_elo: Optional[int] = None
@@ -36,9 +36,10 @@ class Game(SQLModel, table=True):
     termination: Optional[str] = None
 
 
+
 class MoveAnalysis(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    game_id: int = Field(foreign_key="game.id")
+    game_id: int = Field(foreign_key="game.id", index=True)
 
     move_number: int
     played: str

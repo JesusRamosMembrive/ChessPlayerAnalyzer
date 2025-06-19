@@ -138,6 +138,39 @@ if __name__ == "__main__":
     print("Bursts:", precision_bursts(df_moves))
 
 
+# ─────────────────────────────────────────────────────────────────────────
+#  🔗  AGGREGATOR
+# ------------------------------------------------------------------------
+def aggregate_quality_features(game_df, elo: int | None = None) -> dict:
+    """
+    Devuelve todas las métricas de calidad en un único dict.
+    Usa solo funciones que realmente existen en este módulo.
+    """
+    match_rate = game_df.is_engine_best.mean()
+    acpl_val   = acpl(game_df)
+
+    feats = {
+        "acpl"               : acpl_val,
+        "match_rate"         : match_rate,
+        "weighted_match_rate": complexity_weighted_match(game_df),
+        "ipr"                : intrinsic_performance_rating(match_rate, acpl_val),
+    }
+
+    # Z-score del IPR solo si nos pasan elo
+    if elo is not None:
+        feats["ipr_z_score"] = ipr_z_score(feats["ipr"], elo)
+
+    # Score sintético (0-100) muy simple — ajusta pesos a tu gusto
+    feats["quality_score"] = (
+        50 * (1 - acpl_val / 100) +          # menos ACPL ⇒ mejor
+        50 * match_rate                      # más match ⇒ mejor
+    )
+
+    # Rachas de precisión
+    feats["precision_burst_count"] = len(precision_bursts(game_df))
+
+    return feats
+
 # How to implement
 # Group by player and calculate
 # player_stats = df_moves.groupby('player').apply(
