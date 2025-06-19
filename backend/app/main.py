@@ -284,6 +284,31 @@ def refresh_player(username: str, session: Session = Depends(get_session)):
         logger.error(f"Error en refresh para {username}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/players/{username}/stop")
+def stop_player(username: str, session: Session = Depends(get_session)):
+    """Detiene un análisis en curso para el jugador indicado."""
+    player = session.get(models.Player, username)
+    if not player:
+        raise HTTPException(status_code=404, detail="Player not found")
+
+    if player.status != "pending":
+        return {"status": "not_running", "username": username}
+
+    if player.last_task_id:
+        try:
+            celery_app.control.revoke(player.last_task_id, terminate=True, signal="SIGTERM")
+        except Exception as e:  # pragma: no cover - revoke may fail silently
+            logger.error(f"Error revoking task {player.last_task_id}: {e}")
+
+    player.status = "error"
+    player.error = "Stopped by user"
+    session.add(player)
+    session.commit()
+
+    notify_ws(username, {"status": "stopped"})
+
+    return {"status": "stopped", "username": username}
+
 # ============================================================
 # MÉTRICAS
 # ============================================================

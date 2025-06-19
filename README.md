@@ -59,6 +59,7 @@ Este flujo garantiza que varias peticiones simultáneas al mismo jugador no gene
 | `GET`  | `/players/{username}`              | Estado de análisis de un jugador.             |
 | `POST` | `/players/{username}`              | Lanza el análisis completo del jugador.       |
 | `POST` | `/players/{username}/refresh`      | Fuerza un nuevo análisis del jugador.         |
+| `POST` | `/players/{username}/stop`         | Detiene un análisis en curso.                 |
 | `DELETE` | `/players/{username}`            | Elimina al jugador y sus análisis asociados.  |
 | `GET`  | `/metrics/player/{username}`       | Métricas agregadas del jugador.               |
 | `GET`  | `/stream/{username}`               | Stream SSE de progreso.                       |
