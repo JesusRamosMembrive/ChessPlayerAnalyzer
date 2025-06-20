@@ -12,6 +12,8 @@ import chess.pgn
 from app.analysis.engine import ChessAnalysisEngine
 from app.database import engine
 
+logger = logging.getLogger(__name__)
+
 
 from app.utils import fetch_games, notify_ws, update_progress
 from celery import Celery
@@ -76,6 +78,7 @@ def analyze_player_detailed(username: str):
 
         # Ejecutar análisis del jugador
         player_analysis = analysis_engine.analyze_player(username)
+        logger.info("PlayerAnalysisDetailed result: %s", player_analysis)
 
         # Notificar resultado
         notify_ws(username, {
@@ -84,12 +87,14 @@ def analyze_player_detailed(username: str):
             "risk_factors": player_analysis.risk_factors
         })
 
-        return {
+        result = {
             "username": username,
             "risk_score": player_analysis.risk_score,
             "games_analyzed": player_analysis.games_analyzed,
             "analyzed_at": player_analysis.analyzed_at.isoformat()
         }
+        logger.info("Analyze player detailed result: %s", result)
+        return result
 
     except Exception as e:
         logging.error(f"Error en análisis detallado de jugador {username}: {e}")
@@ -217,11 +222,13 @@ def analyze_game_task(
 
     update_progress(player, increment=1)
 
-    return {
+    result = {
         "game_id": game_id,
         "move_count": len(analyses),
         "analyzed_at": datetime.now(UTC).isoformat(),
     }
+    logger.info("analyze_game_task result: %s", result)
+    return result
 
 
 
@@ -335,6 +342,7 @@ def analyze_game_detailed(game_id: int, username: str) -> dict[str, int | str | 
         )
         s.merge(detailed)     # create-or-update
         s.commit()
+        logger.info("GameAnalysisDetailed saved: %s", detailed)
 
         # ⚠️  capturamos los valores **antes** de cerrar la sesión
         suspicion_flag = overall_score > 50
@@ -354,12 +362,14 @@ def analyze_game_detailed(game_id: int, username: str) -> dict[str, int | str | 
     )
 
     # ── 7. Respuesta liviana para el `chord` / caller ──────────────────
-    return {
+    result = {
         "game_id": game_id,
         "suspicious": suspicion_flag,
         "score": round(overall_score, 1),
         "analyzed_at": analyzed_at,
     }
+    logger.info("analyze_game_detailed result: %s", result)
+    return result
 
 @celery_app.task(name="process_player_enhanced")
 def process_player_enhanced(username: str, months: int = 6):
@@ -403,12 +413,14 @@ def process_player_enhanced(username: str, months: int = 6):
     full_workflow = chord(group(chains), analyze_player_detailed.s(username))
     full_workflow.delay()
 
-    return {
+    result = {
         "username": username,
         "games_queued": len(games),
         "enhanced_analysis": True,
         "task_id": full_workflow.id,
     }
+    logger.info("process_player_enhanced result: %s", result)
+    return result
 
 
 @task_failure.connect

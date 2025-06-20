@@ -4,6 +4,9 @@ import pandas as pd
 import numpy as np
 from typing import Dict, List, Tuple
 from scipy.stats import zscore
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 ###############################################################################
@@ -196,7 +199,7 @@ if __name__ == "__main__":
     })
 
     feats_long = aggregate_longitudinal_features(df_games, reference)
-    print("Longitudinal‑feature snapshot:\n", feats_long)
+    logger.info("Longitudinal‑feature snapshot:\n%s", feats_long)
 
 
 # how to implement:

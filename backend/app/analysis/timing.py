@@ -4,6 +4,9 @@ import pandas as pd
 import numpy as np
 from typing import List, Tuple, Any
 from scipy.stats import spearmanr, lognorm, kstest, skew
+import logging
+
+logger = logging.getLogger(__name__)
 
 ###############################################################################
 # EXPECTED COLUMNS PER MOVE
@@ -189,8 +192,8 @@ if __name__ == "__main__":
         'eval_cp_after'       : np.random.randint(-200, 200, n_moves),
     })
 
-    print("‑" * 60)
-    print("Time‑feature snapshot:\n", aggregate_time_features(demo))
+    logger.info("-" * 60)
+    logger.info("Time‑feature snapshot:\n%s", aggregate_time_features(demo))
 
 
 # ─────────────────────────────────────────────────────────────────────────
