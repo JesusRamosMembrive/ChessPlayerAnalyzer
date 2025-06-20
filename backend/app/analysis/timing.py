@@ -49,13 +49,16 @@ def time_complexity_correlation(game_df: pd.DataFrame,
     Si alguna de las dos series es constante, devolvemos 0 para evitar el
     ConstantInputWarning de SciPy.
     """
+    if "move_time" not in game_df or "legal_moves" not in game_df:
+        return 0.0
+
     if method == "spearman":
         if np.std(game_df.move_time) == 0 or np.std(game_df.legal_moves) == 0:
-            return 0.0  # evita ConstantInputWarning
+            return 0.0
         corr, _ = spearmanr(game_df.move_time, game_df.legal_moves)
         return corr
-    return None
 
+    return game_df.move_time.corr(game_df.legal_moves, method=method)
 
 # --------------------------------------------------------------------------- #
 # 3.  ‘Lag spikes’ (pausa + ráfaga perfecta)                                  #
@@ -139,23 +142,38 @@ def uniformity_score(game_df: pd.DataFrame) -> float:
 # 6.  Agregador cómodo para ML / scoring                                      #
 # --------------------------------------------------------------------------- #
 def aggregate_time_features(game_df: pd.DataFrame) -> dict:
-    """
-    Devuelve un diccionario con todas las métricas temporales relevantes
-    para poder unirlo con las features de `quality_metrics.py`.
-    """
-    mean_t, std_t, cv_t = time_stats(game_df)
+    if game_df.empty or "move_time" not in game_df:
+        return {
+            "mean_move_time"      : np.nan,
+            "time_variance"       : np.nan,
+            "time_complexity_corr": np.nan,
+            "lag_spike_count"     : 0,
+            "uniformity_score"    : np.nan,
+            "timing_score"        : 0,
+        }
+
+    # Garantizar columnas requeridas
+    if "move_time" not in game_df:
+        game_df = game_df.assign(move_time=0)
+    if "legal_moves" not in game_df:            #  ⇦  salvaguarda final
+        game_df = game_df.assign(legal_moves=0)
+
+    mean_t = game_df["move_time"].mean()
+    var_t  = game_df["move_time"].var()
+    corr   = time_complexity_correlation(game_df)
+
+    # ejemplo simple de uniformidad y score
+    uniform = 1 - (var_t / (mean_t**2 + 1e-6))
+    score   = 50 * uniform + 50 * max(corr, 0)
 
     return {
-        'mean_time'             : mean_t,
-        'std_time'              : std_t,
-        'cv_time'               : cv_t,
-        'low_variance_flag'     : low_variance_flag(game_df),
-        'time_complexity_corr'  : time_complexity_correlation(game_df),
-        'lag_spike_count'       : len(detect_lag_spikes(game_df)),
-        'clutch_accuracy_diff'  : clutch_accuracy(game_df),
-        'uniformity_score'      : uniformity_score(game_df),
+        "mean_move_time"      : mean_t,
+        "time_variance"       : var_t,
+        "time_complexity_corr": corr,
+        "lag_spike_count"     : (game_df["move_time"] > 20).sum(),
+        "uniformity_score"    : uniform,
+        "timing_score"        : score,
     }
-
 
 # --------------------------------------------------------------------------- #
 # 7.  Ejemplo mínimo (ejecución directa)                                      #

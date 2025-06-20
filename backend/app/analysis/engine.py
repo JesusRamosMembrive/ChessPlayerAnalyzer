@@ -6,7 +6,8 @@ from __future__ import annotations
 import logging
 from typing import Dict, List, Optional
 import pandas as pd
-import chess.pgn
+import chess.pgn, io
+
 import io
 from pathlib import Path
 
@@ -27,22 +28,27 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
-def prepare_moves_dataframe(game: Game) -> pd.DataFrame:
-    """Versión libre de 'self' para reutilizar desde Celery u otros sitios."""
-    moves_data = []
+def prepare_moves_dataframe(game: models.Game) -> pd.DataFrame:
+    rows = []
     for m in game.moves:
-        moves_data.append({
+        rows.append({
             "move_number": m.move_number,
-            "played": m.played,
-            "best": m.best,
-            "best_rank": m.best_rank,
-            "cp_loss": m.cp_loss,
+            "played"     : m.played,
+            "best_rank"  : m.best_rank,
+            "cp_loss"    : m.cp_loss,
             "eval_cp_before": m.eval_before,
-            "eval_cp_after":  m.eval_after,
-            "move_time": game.move_times[m.move_number - 1] if game.move_times else None,
-            "legal_moves": m.legal_moves_count,
+            "eval_cp_after" : m.eval_after,
+            "move_time"     : m.time_spent or 0,
+            "legal_moves"   : m.legal_moves_count or 0,   # ← SIEMPRE entero
+            "is_engine_best": m.best_rank == 0,
         })
-    return pd.DataFrame(moves_data)
+    df = pd.DataFrame(rows)
+
+    # ── BLINDAJE final: si no existe la columna, créala a cero ──────────
+    if "legal_moves" not in df:
+        df = df.assign(legal_moves=0)
+
+    return df
 
 
 
@@ -337,13 +343,17 @@ class ChessAnalysisEngine:
         # -- a DataFrame --------------------------------------------------------
         data = []
         for game, detail in rows:
+            pgn_headers = chess.pgn.read_game(io.StringIO(game.pgn)).headers
+            result_tag = pgn_headers.get("Result", "*")
             data.append({
                 "game_id": game.id,
                 "created_at": game.created_at,
                 "white": game.white_username,
                 "black": game.black_username,
-                "result": game.result,  # asumiendo columna `result`
+                "result": result_tag,  # asumiendo columna `result`
                 # métricas de GameAnalysisDetailed
+                "eco_code": game.eco_code,  # 🆕
+                "opening_key": game.opening_key,  # (opcional, útil para otras métricas)
                 "acpl": detail.acpl,
                 "match_rate": detail.match_rate,
                 "suspicion": detail.overall_suspicion_score,

@@ -25,6 +25,8 @@ from app.models import GameAnalysisDetailed
 from app import models
 
 from app.analysis.engine import prepare_moves_dataframe
+from sqlalchemy.orm import selectinload
+from app.utils import TB_PATH
 
 from app.analysis import (
     aggregate_quality_features as q_feats,
@@ -32,6 +34,10 @@ from app.analysis import (
     aggregate_opening_features as o_feats,
     aggregate_endgame_features as e_feats,
 )
+
+from app.analysis.engine import ChessAnalysisEngine
+
+engine_helper = ChessAnalysisEngine()
 
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
@@ -225,6 +231,12 @@ analysis_engine = ChessAnalysisEngine(
     tablebase_path=Path("/data/syzygy") if Path("/data/syzygy").exists() else None,
 )
 
+def safe(v):
+    # v puede ser None o np.nan; devuélvelo como 0.0 si no es numérico
+    try:
+        return float(v) if v == v else 0.0      # np.nan != np.nan
+    except (TypeError, ValueError):
+        return 0.0
 
 
 @celery_app.task(name="analyze_game_detailed")
@@ -238,65 +250,87 @@ def analyze_game_detailed(game_id: int, username: str) -> dict[str, int | str | 
     • Notifica progreso (+1 unidad) y devuelve un resumen ligero.
     """
     # ── 1. Cargar partida + movimientos ────────────────────────────────
+
+    # ── 1. Cargar Game + movimientos ────────────────────────────────────────
     with Session(engine) as s:
-        game = s.get(models.Game, game_id)
-        if game is None:
-            raise ValueError(f"Game {game_id} not found")
+        game = s.exec(
+            select(models.Game)
+            .options(selectinload(models.Game.moves))  # eager-load moves
+            .where(models.Game.id == game_id)
+        ).one()
 
-        moves = (
-            s.exec(
-                select(models.MoveAnalysis)
-                .where(models.MoveAnalysis.game_id == game_id)
-                .order_by(models.MoveAnalysis.move_number)
-            )
-            .all()
-        )
+        # DataFrame de la partida actual (necesita game.moves *antes* de cerrar)
+        game_df = prepare_moves_dataframe(game)
 
-    # ── 2. Construir DataFrame para las métricas ───────────────────────
-    game_df = prepare_moves_dataframe(game)
+        # Copiamos los primitivos que usaremos luego
+        opening_key = game.opening_key
+        eco_code = game.eco_code
 
-    # ── 3. Calcular métricas en sus módulos respectivos ────────────────
+    # ── 2. DataFrame de todas las partidas del jugador ──────────────────────
+
+    with Session(engine) as s:
+        orm_game = s.exec(
+            select(models.Game)
+            .options(selectinload(models.Game.moves))
+            .where(models.Game.id == game_id)
+        ).one()
+
+        # Creamos el objeto python-chess Game *antes* de cerrar la sesión
+        game_pgn_obj = chess.pgn.read_game(io.StringIO(orm_game.pgn))
+        game_df = prepare_moves_dataframe(orm_game)  # ya lo tenías
+        opening_key = orm_game.opening_key
+        eco_code = orm_game.eco_code
+    # -- sesión cerrada -----------------------------------------------
+
+    with Session(engine) as s:
+        games_df = engine_helper._get_player_games_with_analysis(username, s)
+
+    # Llamadas a agregadores
     q = q_feats(game_df)
     t = t_feats(game_df)
-    o = o_feats(game, game_df)
-    e = e_feats(game_df)
+    o = o_feats(opening_key, eco_code, game_df, games_df)
+    e = e_feats(game_pgn_obj, game_df, TB_PATH if TB_PATH else None)
+
+    quality_score = q.get("quality_score", 0) or 0  # None → 0
 
     overall_score = (
-            q["quality_score"] * 0.4
-            + t["timing_score"] * 0.25
-            + o["opening_score"] * 0.2
-            + e["endgame_score"] * 0.15
+            safe(quality_score) * 0.4 +
+            safe(t.get("timing_score")) * 0.25 +
+            safe(o.get("opening_score")) * 0.2 +
+            safe(e.get("endgame_score")) * 0.15
     )
+
+
     # ── 4. Persistir en BD ─────────────────────────────────────────────
     with Session(engine) as s:
         detailed = models.GameAnalysisDetailed(
             game_id=game_id,
             analyzed_at=datetime.now(UTC),
             # ─ Calidad ─
-            acpl=q["acpl"],
-            match_rate=q["match_rate"],
-            weighted_match_rate=q["weighted_match_rate"],
-            ipr=q["ipr"],
-            ipr_z_score=q["ipr_z_score"],
+            acpl=q.get("acpl", 0),
+            match_rate=q.get("match_rate", 0),
+            weighted_match_rate=q.get("weighted_match_rate"),
+            ipr=q.get("ipr", 0),
+            ipr_z_score=q.get("ipr_z_score", 0),
             # ─ Tiempo ─
-            mean_move_time=t["mean_move_time"],
-            time_variance=t["time_variance"],
-            time_complexity_corr=t["time_complexity_corr"],
-            lag_spike_count=t["lag_spike_count"],
-            uniformity_score=t["uniformity_score"],
+            mean_move_time=t.get("mean_move_time", 0),
+            time_variance=t.get("time_variance", 0),
+            time_complexity_corr=t.get("time_complexity_corr"),
+            lag_spike_count=t.get("lag_spike_count"),
+            uniformity_score=t.get("uniformity_score"),
             # ─ Apertura ─
-            opening_entropy=o["opening_entropy"],
-            novelty_depth=o["novelty_depth"],
-            second_choice_rate=o["second_choice_rate"],
-            opening_breadth=o["opening_breadth"],
+            opening_entropy=o.get("opening_entropy"),
+            novelty_depth=o.get("novelty_depth"),
+            second_choice_rate=o.get("second_choice_rate"),
+            opening_breadth=o.get("opening_breadth"),
             # ─ Final ─
-            tb_match_rate=e["tb_match_rate"],
-            dtz_deviation=e["dtz_deviation"],
-            conversion_efficiency=e["conversion_efficiency"],
+            tb_match_rate=e.get("tb_match_rate"),
+            dtz_deviation=e.get("dtz_deviation"),
+            conversion_efficiency=e.get("conversion_efficiency"),
             # ─ Flags & score ─
-            suspicious_quality=q["quality_score"] > 50,
-            suspicious_timing=t["timing_score"] > 50,
-            suspicious_opening=o["opening_score"] > 50,
+            suspicious_quality=quality_score > 50,
+            suspicious_timing=t.get("timing_score") > 50,
+            suspicious_opening=o.get("opening_score") > 50,
             overall_suspicion_score=overall_score,
         )
         s.merge(detailed)     # create-or-update

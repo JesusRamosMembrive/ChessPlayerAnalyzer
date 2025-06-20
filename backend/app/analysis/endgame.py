@@ -125,32 +125,37 @@ def conversion_efficiency(game_df: pd.DataFrame,
 # 4.  AGREGADOR DE FEATURES ENDGAME ###########################################
 ###############################################################################
 
+
 def aggregate_endgame_features(
         game: chess.pgn.Game,
         moves_df: pd.DataFrame,
-        tb_path: str | Path,
+        tb_path: str | Path | None,
         eval_col: str = "eval_cp_after"
-    ) -> Dict[str, float | int]:
+) -> Dict[str, float | int]:
+    """
+    Calcula métricas de final; si `tb_path` es None o no existe, todas las
+    métricas Syzygy devuelven NaN para no romper el pipeline.
+    """
+    tb_positions = match_pct = dtz_mean = np.nan
 
-    with Tablebase(str(tb_path)) as tb:
-        n_tb_pos, n_match, mrate = tablebase_match_rate(game, tb)
-
-        # Si no hay posiciones TB, evita dividir por 0.
-        mrate_pct = mrate * 100 if mrate is not np.nan else np.nan
-
-        dtz_dev_list = dtz_deviation(game, tb)
-        dtz_mean = np.mean(dtz_dev_list) if dtz_dev_list else np.nan
+    if tb_path and Path(tb_path).exists():
+        from chess.syzygy import Tablebase
+        with Tablebase(str(tb_path)) as tb:
+            n_tb_pos, n_match, mrate = tablebase_match_rate(game, tb)
+            tb_positions = n_tb_pos
+            match_pct    = mrate * 100 if mrate is not np.nan else np.nan
+            dtz_dev_list = dtz_deviation(game, tb)
+            dtz_mean     = np.mean(dtz_dev_list) if dtz_dev_list else np.nan
 
     conv_eff = conversion_efficiency(moves_df, eval_col)
 
     return {
-        'tb_positions'         : n_tb_pos,
-        'tb_match_pct'         : mrate_pct,
-        'dtz_mean_deviation'   : dtz_mean,
-        'conversion_moves'     : conv_eff,
-        # Flags
-        'perfect_tb_flag'      : mrate_pct is not np.nan and mrate_pct >= 95,
-        'fast_conversion_flag' : conv_eff is not None and conv_eff <= 10
+        "tb_positions"        : tb_positions,
+        "tb_match_pct"        : match_pct,
+        "dtz_mean_deviation"  : dtz_mean,
+        "conversion_moves"    : conv_eff,
+        "perfect_tb_flag"     : match_pct is not np.nan and match_pct >= 95,
+        "fast_conversion_flag": conv_eff is not None and conv_eff <= 10
     }
 
 

@@ -15,7 +15,8 @@ from app.database import engine
 from sqlmodel import Session
 from app import models, utils
 
-
+import os
+from pathlib import Path
 # ──────────────────────────────────────────────────────────────────────────────
 #  Configuración común
 # ──────────────────────────────────────────────────────────────────────────────
@@ -24,6 +25,7 @@ redis_client = redis.Redis.from_url(REDIS_URL, decode_responses=True)
 
 CLK_RGX = re.compile(r"\[%clk\s+([\d:.]+)]")
 UA = "chess-analyzer/0.2 (+https://github.com/tu_usuario)"
+TB_PATH = Path(os.getenv("SYZYGY_PATH", "/data/syzygy"))  # default, cámbialo
 
 # ──────────────────────────────────────────────────────────────────────────────
 #  1. Descarga de partidas

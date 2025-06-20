@@ -149,33 +149,32 @@ def repertoire_breadth_focus(games_df: pd.DataFrame,
 # 5.  AGREGADOR GENERAL #######################################################
 ###############################################################################
 
-def aggregate_opening_features(games_df: pd.DataFrame,
+def aggregate_opening_features(opening_key: str,
+                               eco_code: str | None,
                                moves_df: pd.DataFrame,
-                               games_pgn: List[chess.pgn.Game],
-                               elo: int | None = None,
-                               reference_entropy_by_elo: pd.Series | None = None,
-                               book_path: str | Path | None = None
-                              ) -> dict:
+                               games_df: pd.DataFrame) -> dict:
     """
     Empaqueta todas las métricas de repertorio en un único diccionario.
     * games_df : 1 fila / partida, eco, etc.
     * moves_df : 1 fila / jugada (bestmove_rank, delta_eval, …)
     * games_pgn: listado de objetos chess.pgn.Game (para calcular TN‑depth)
     """
-    features = {}
-    # --- Entropía ----------
-    features.update(opening_entropy(games_df,
-                                    elo=elo,
-                                    reference_entropy_by_elo=reference_entropy_by_elo))
-    # --- Breadth / focus ---
-    features.update(repertoire_breadth_focus(games_df))
-    # --- 2nd‑choice rate ---
-    features.update(second_choice_rate(moves_df))
-    # --- TN‑depth ----------
-    if book_path is not None:
-        with load_reference_book(book_path) as book:
-            features.update(novelty_depth_stats(games_pgn, book))
-    return features
+    if "eco_code" not in games_df:
+        games_df = games_df.assign(eco_code=None)
+    entropy = shannon_entropy(games_df["eco_code"])
+    novelty_depth = (
+        next((i for i, mv in enumerate(moves_df.played, 1)
+              if mv not in opening_key.split()), len(moves_df))
+    )
+
+    return {
+        "opening_entropy": entropy,
+        "novelty_depth": novelty_depth,
+        "second_choice_rate": (moves_df.best_rank == 1).mean(),
+        "opening_breadth": moves_df.played[:8].nunique(),
+        # peso simple en 0-100
+        "opening_score": 100 * (1 - novelty_depth / 50),
+    }
 
 
 ###############################################################################
