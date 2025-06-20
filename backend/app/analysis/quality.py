@@ -4,6 +4,9 @@ import pandas as pd
 import numpy as np
 from sklearn.linear_model import HuberRegressor
 from typing import Tuple, List
+import logging
+
+logger = logging.getLogger(__name__)
 
 ###############################################################################
 # 1.  Average Centipawn Loss (ACPL)   #########################################
@@ -137,9 +140,9 @@ if __name__ == "__main__":
         'is_engine_best': np.random.rand(40) < 0.35,
     })
 
-    print("ACPL partida:", acpl(df_moves))
-    print("Match ponderado:", complexity_weighted_match(df_moves))
-    print("Bursts:", precision_bursts(df_moves))
+    logger.info("ACPL partida: %s", acpl(df_moves))
+    logger.info("Match ponderado: %s", complexity_weighted_match(df_moves))
+    logger.info("Bursts: %s", precision_bursts(df_moves))
 
 
 # ─────────────────────────────────────────────────────────────────────────

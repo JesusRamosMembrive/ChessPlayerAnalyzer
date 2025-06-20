@@ -22,11 +22,15 @@ import os
 import sys
 from typing import Any, Dict, List, Optional
 from datetime import datetime, timezone
+import logging
 
 import httpx  # pip install httpx
 from tabulate import tabulate  # pip install tabulate
 from tqdm import tqdm  # pip install tqdm
 import time
+
+# Logger
+logger = logging.getLogger(__name__)
 
 # --------------------------- Configuración ---------------------------
 
@@ -62,7 +66,7 @@ def handle_response(resp: httpx.Response) -> Any:
         detail = resp.json().get("detail")
     except ValueError:
         detail = resp.text
-    print(f"❌ Error {resp.status_code}: {detail}", file=sys.stderr)
+    logger.error(f"❌ Error {resp.status_code}: {detail}")
     sys.exit(1)
 
 
@@ -83,7 +87,7 @@ def wait_for_analysis(client: httpx.Client, username: str,
     if analysis_timeout is None:
         analysis_timeout = DEFAULT_ANALYSIS_TIMEOUT
 
-    print(f"⏳ Esperando a que termine el análisis (timeout: {analysis_timeout / 3600:.1f} horas)...")
+    logger.info(f"⏳ Esperando a que termine el análisis (timeout: {analysis_timeout / 3600:.1f} horas)...")
 
     with tqdm(total=100, desc="Analizando",
               bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]') as pbar:
@@ -115,22 +119,22 @@ def wait_for_analysis(client: httpx.Client, username: str,
                 status = data.get('status')
                 if status == 'ready':
                     pbar.update(100 - last_progress)
-                    print("\n✅ Análisis completado exitosamente")
+                    logger.info("\n✅ Análisis completado exitosamente")
                     return data
 
                 elif status == 'error':
-                    print(f"\n❌ Error durante el análisis: {data.get('error', 'Error desconocido')}")
+                    logger.error(f"\n❌ Error durante el análisis: {data.get('error', 'Error desconocido')}")
                     sys.exit(1)
 
                 elif status not in ['pending', 'processing']:
                     # Estado inesperado - salir del bucle
-                    print(f"\n⚠️ Estado inesperado: '{status}' - finalizando espera")
+                    logger.warning(f"\n⚠️ Estado inesperado: '{status}' - finalizando espera")
                     return data
 
                 # Verificar timeout
                 elapsed = time.time() - start_time
                 if elapsed > analysis_timeout:
-                    print(f"\n❌ Timeout esperando el análisis después de {elapsed / 3600:.1f} horas")
+                    logger.error(f"\n❌ Timeout esperando el análisis después de {elapsed / 3600:.1f} horas")
                     sys.exit(1)
 
                 # Esperar antes del siguiente poll
@@ -141,10 +145,10 @@ def wait_for_analysis(client: httpx.Client, username: str,
                     time.sleep(1)  # Poll cada 1 segundo
 
             except KeyboardInterrupt:
-                print("\n⚠️ Interrumpido por el usuario")
+                logger.warning("\n⚠️ Interrumpido por el usuario")
                 raise
             except Exception as e:
-                print(f"\n❌ Error al verificar estado: {e}")
+                logger.error(f"\n❌ Error al verificar estado: {e}")
                 sys.exit(1)
 
 
@@ -153,15 +157,15 @@ def cmd_list(args: argparse.Namespace) -> None:
         data = handle_response(client.get(ENDPOINT_PLAYERS))
 
     if not data:
-        print("No hay jugadores almacenados todavía.")
+        logger.info("No hay jugadores almacenados todavía.")
         return
 
     if args.json:
-        print(json.dumps(data, indent=2, ensure_ascii=False))
+        logger.info(json.dumps(data, indent=2, ensure_ascii=False))
     else:
         rows = [[p["username"], p.get("last_analysis"), p.get("country"),
                  p.get("rapid_rating"), p.get("blitz_rating")] for p in data]
-        print(tabulate(
+        logger.info(tabulate(
             rows,
             headers=["Usuario", "Últ. análisis", "País", "Rápido", "Blitz"],
             tablefmt="github",
@@ -173,7 +177,7 @@ def cmd_show(args: argparse.Namespace) -> None:
         data = handle_response(
             client.get(ENDPOINT_PLAYER.format(username=args.username)))
 
-    print(json.dumps(data, indent=2, ensure_ascii=False)
+    logger.info(json.dumps(data, indent=2, ensure_ascii=False)
           if args.json else tabulate_dict(data))
 
 
@@ -187,52 +191,52 @@ def cmd_analyze(args: argparse.Namespace) -> None:
             status = existing_data.get('status')
 
             if status == 'ready':
-                print(f"ℹ️  El jugador ya está analizado.")
+                logger.info(f"ℹ️  El jugador ya está analizado.")
                 if not args.force:
-                    print("Usa --force para forzar un nuevo análisis.")
-                    print(json.dumps(existing_data, indent=2, ensure_ascii=False))
+                    logger.info("Usa --force para forzar un nuevo análisis.")
+                    logger.info(json.dumps(existing_data, indent=2, ensure_ascii=False))
                     return
-                print("Forzando nuevo análisis...")
+                logger.info("Forzando nuevo análisis...")
 
             elif status == 'pending':
-                print("ℹ️  Ya hay un análisis en progreso.")
+                logger.info("ℹ️  Ya hay un análisis en progreso.")
                 if args.wait:
                     final_data = wait_for_analysis(client, args.username,
                                                    analysis_timeout=args.analysis_timeout)
                     if args.json:
-                        print(json.dumps(final_data, indent=2, ensure_ascii=False))
+                        logger.info(json.dumps(final_data, indent=2, ensure_ascii=False))
                     return
                 else:
-                    print("Usa --wait para esperar a que termine.")
+                    logger.info("Usa --wait para esperar a que termine.")
                     return
 
         # Lanzar nuevo análisis
         data = handle_response(
             client.post(ENDPOINT_PLAYER.format(username=args.username)))
 
-        print("✅ Análisis lanzado correctamente.")
+        logger.info("✅ Análisis lanzado correctamente.")
         if data and args.json and not args.wait:
-            print(json.dumps(data, indent=2, ensure_ascii=False))
+            logger.info(json.dumps(data, indent=2, ensure_ascii=False))
 
         # Esperar si se solicita
         if args.wait:
             final_data = wait_for_analysis(client, args.username,
                                            analysis_timeout=args.analysis_timeout)
             if args.json:
-                print(json.dumps(final_data, indent=2, ensure_ascii=False))
+                logger.info(json.dumps(final_data, indent=2, ensure_ascii=False))
             else:
                 # Mostrar resumen del análisis
-                print("\n📊 Resumen del análisis:")
-                print(f"Usuario: {final_data.get('username')}")
-                print(f"País: {final_data.get('country', 'N/A')}")
-                print(f"Rating Rápido: {final_data.get('rapid_rating', 'N/A')}")
-                print(f"Rating Blitz: {final_data.get('blitz_rating', 'N/A')}")
+                logger.info("\n📊 Resumen del análisis:")
+                logger.info(f"Usuario: {final_data.get('username')}")
+                logger.info(f"País: {final_data.get('country', 'N/A')}")
+                logger.info(f"Rating Rápido: {final_data.get('rapid_rating', 'N/A')}")
+                logger.info(f"Rating Blitz: {final_data.get('blitz_rating', 'N/A')}")
                 if 'game_count' in final_data:
-                    print(f"Partidas analizadas: {final_data.get('game_count')}")
+                    logger.info(f"Partidas analizadas: {final_data.get('game_count')}")
                 if 'opening_entropy' in final_data:
-                    print(f"Entropía de aperturas: {final_data.get('opening_entropy', 0):.2f}")
+                    logger.info(f"Entropía de aperturas: {final_data.get('opening_entropy', 0):.2f}")
                 if 'low_entropy' in final_data:
-                    print(f"Baja entropía: {'⚠️ Sí' if final_data.get('low_entropy') else '✓ No'}")
+                    logger.info(f"Baja entropía: {'⚠️ Sí' if final_data.get('low_entropy') else '✓ No'}")
 
 
 def cmd_cancel(args: argparse.Namespace) -> None:
@@ -241,31 +245,31 @@ def cmd_cancel(args: argparse.Namespace) -> None:
         # Primero verificar el estado actual
         resp = client.get(ENDPOINT_PLAYER.format(username=args.username))
         if resp.status_code == 404:
-            print(f"❌ Jugador '{args.username}' no encontrado")
+            logger.error(f"❌ Jugador '{args.username}' no encontrado")
             return
 
         player_data = resp.json()
         if player_data.get('status') != 'pending':
-            print(f"⚠️  No hay análisis en curso. Estado actual: {player_data.get('status')}")
+            logger.warning(f"⚠️  No hay análisis en curso. Estado actual: {player_data.get('status')}")
             return
 
         # Intentar cancelar
-        print(f"🛑 Cancelando análisis de {args.username}...")
+        logger.info(f"🛑 Cancelando análisis de {args.username}...")
         cancel_resp = client.post(f"{ENDPOINT_PLAYER.format(username=args.username)}/cancel")
 
         if cancel_resp.status_code == 200:
             data = cancel_resp.json()
             if data.get('status') == 'cancelled':
-                print(f"✅ Análisis cancelado exitosamente")
-                print(f"   Task ID: {data.get('task_id')}")
+                logger.info("✅ Análisis cancelado exitosamente")
+                logger.info(f"   Task ID: {data.get('task_id')}")
             else:
-                print(f"⚠️  {data.get('message')}")
+                logger.warning(f"⚠️  {data.get('message')}")
         else:
             try:
                 error_detail = cancel_resp.json().get('detail', 'Error desconocido')
             except:
                 error_detail = cancel_resp.text
-            print(f"❌ Error al cancelar: {error_detail}")
+            logger.error(f"❌ Error al cancelar: {error_detail}")
 
 
 def cmd_active(args: argparse.Namespace) -> None:
@@ -273,19 +277,19 @@ def cmd_active(args: argparse.Namespace) -> None:
     with make_client(args.host, args.timeout) as client:
         resp = client.get("/players/active")
         if resp.status_code != 200:
-            print(f"❌ Error al obtener análisis activos: {resp.text}")
+            logger.error(f"❌ Error al obtener análisis activos: {resp.text}")
             return
 
         data = resp.json()
 
         if data['active_count'] == 0:
-            print("No hay análisis activos en este momento.")
+            logger.info("No hay análisis activos en este momento.")
             return
 
-        print(f"\n📊 Análisis activos: {data['active_count']}")
+        logger.info(f"\n📊 Análisis activos: {data['active_count']}")
 
         if args.json:
-            print(json.dumps(data, indent=2, ensure_ascii=False))
+            logger.info(json.dumps(data, indent=2, ensure_ascii=False))
         else:
             rows = []
             for analysis in data['analyses']:
@@ -316,7 +320,7 @@ def cmd_active(args: argparse.Namespace) -> None:
                     analysis.get('task_id', 'N/A')[:8] + "..." if analysis.get('task_id') else 'N/A'
                 ])
 
-            print(tabulate(
+            logger.info(tabulate(
                 rows,
                 headers=["Usuario", "Progreso", "Partidas", "Estado", "Tiempo", "Task ID"],
                 tablefmt="github",
@@ -329,7 +333,7 @@ def cmd_delete(args: argparse.Namespace) -> None:
         handle_response(
             client.delete(ENDPOINT_PLAYER.format(username=args.username)))
 
-    print(f"🗑️ Jugador «{args.username}» eliminado.")
+    logger.info(f"🗑️ Jugador «{args.username}» eliminado.")
 
 
 # --------------------------- Helpers de formato ---------------------

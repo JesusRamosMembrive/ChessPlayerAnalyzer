@@ -7,6 +7,9 @@ import chess.pgn
 from chess.syzygy import Tablebase
 from pathlib import Path
 from typing import List, Tuple, Dict
+import logging
+
+logger = logging.getLogger(__name__)
 
 ###############################################################################
 # 0.  UTILIDADES GENERALES ####################################################
@@ -193,9 +196,9 @@ if __name__ == "__main__":
 
     if TB_PATH.exists():
         feats_end = aggregate_endgame_features(game, dummy_moves_df, TB_PATH)
-        print("Endgame‑feature snapshot:\n", feats_end)
+        logger.info("Endgame‑feature snapshot:\n%s", feats_end)
     else:
-        print(">> Ruta de tablebases no encontrada; ejecuta la demo cuando las tengas.")
+        logger.info(">> Ruta de tablebases no encontrada; ejecuta la demo cuando las tengas.")
 
 
 
