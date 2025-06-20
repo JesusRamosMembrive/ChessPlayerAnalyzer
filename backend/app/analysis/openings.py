@@ -8,6 +8,9 @@ from typing import List, Tuple
 from pathlib import Path
 from math import log2
 from scipy.stats import zscore
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 ###############################################################################
@@ -206,7 +209,7 @@ if __name__ == "__main__":
         reference_entropy_by_elo=pd.Series({1400:1.5, 1800:2.2, 2200:2.8}),
         book_path=None      # pon aquí 'reference_book.bin' cuando lo tengas
     )
-    print("Opening‑feature snapshot:\n", feats)
+    logger.info("Opening‑feature snapshot:\n%s", feats)
 
 
 

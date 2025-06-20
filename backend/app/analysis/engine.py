@@ -164,6 +164,7 @@ class ChessAnalysisEngine:
             session.commit()
 
             logger.info(f"Análisis detallado completado para partida {game_id}")
+            logger.info("GameAnalysisDetailed result: %s", analysis)
             return analysis
 
     def analyze_player(self, username: str) -> PlayerAnalysisDetailed:
@@ -213,6 +214,7 @@ class ChessAnalysisEngine:
             session.commit()
 
             logger.info(f"Análisis detallado completado para jugador {username}")
+            logger.info("PlayerAnalysisDetailed result: %s", analysis)
             return analysis
 
     def prepare_moves_dataframe(self, game: Game) -> pd.DataFrame:

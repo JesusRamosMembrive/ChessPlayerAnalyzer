@@ -2,10 +2,13 @@ from sqlmodel import SQLModel, Session
 from app.database import engine
 from app import models
 from sqlalchemy import text, inspect
+import logging
 
-print("Creando tablas...")
+logger = logging.getLogger(__name__)
+
+logger.info("Creando tablas...")
 SQLModel.metadata.create_all(engine)
-print("✅ Tablas creadas exitosamente")
+logger.info("✅ Tablas creadas exitosamente")
 
 
 
