@@ -80,18 +80,21 @@ def analyze_player_detailed(_, username: str):
         player_analysis = analysis_engine.analyze_player(username)
         logger.info("PlayerAnalysisDetailed result: %s", player_analysis)
 
+        with Session(engine) as s:
+           pa = s.get(models.PlayerAnalysisDetailed, username)
+
         # Notificar resultado
         notify_ws(username, {
             "type": "player_analysis_complete",
-            "risk_score": player_analysis.risk_score,
-            "risk_factors": player_analysis.risk_factors
+            "risk_score": pa.risk_score,
+            "risk_factors": pa.risk_factors
         })
 
         result = {
             "username": username,
-            "risk_score": player_analysis.risk_score,
-            "games_analyzed": player_analysis.games_analyzed,
-            "analyzed_at": player_analysis.analyzed_at.isoformat()
+            "risk_score": pa.risk_score,
+            "games_analyzed": pa.games_analyzed,
+            "analyzed_at": pa.analyzed_at.isoformat()
         }
         logger.info("Analyze player detailed result: %s", result)
         return result

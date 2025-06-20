@@ -4,6 +4,7 @@ Motor principal de análisis que orquesta todos los módulos.
 """
 from __future__ import annotations
 import logging
+from datetime import datetime, UTC
 from typing import Dict, List, Optional
 import pandas as pd
 import chess.pgn, io
@@ -90,7 +91,12 @@ def prepare_moves_dataframe(game: models.Game) -> pd.DataFrame:
 
     return df
 
-
+def _safe_mean(df: pd.DataFrame, col: str, default: float = 0.0) -> float:
+    """Media que nunca devuelve None (NaN→default, col ausente→default)."""
+    if col not in df.columns:
+        return default
+    val = df[col].mean()
+    return float(val) if pd.notna(val) else default
 
 class ChessAnalysisEngine:
     """Motor principal que coordina todos los análisis."""
@@ -236,18 +242,35 @@ class ChessAnalysisEngine:
                 games_df, long_features
             )
 
-            # Crear registro
-            analysis = PlayerAnalysisDetailed(
+            games_analyzed = int(len(games_df))  # partidas analizadas
+
+            analysis = models.PlayerAnalysisDetailed(
                 username=username,
-                avg_acpl=games_df['acpl'].mean(),
-                avg_match_rate=games_df['match_rate'].mean(),
-                roi_mean=long_features.get('roi_mean', 0),
-                roi_max=long_features.get('roi_max', 0),
-                step_function_detected=long_features.get('step_acpl_flag', False),
-                peer_delta_acpl=long_features.get('peer_acpl_delta', 0),
-                longest_streak=long_features.get('longest_roi_streak', 0),
+                games_analyzed=games_analyzed,
+                # ── Calidad ────────────────────────────────────────────────
+                avg_acpl=_safe_mean(games_df, "acpl"),
+                avg_match_rate=_safe_mean(games_df, "match_rate"),
+                avg_ipr=_safe_mean(games_df, "ipr"),  # ← ya no es None
+                std_acpl=games_df["acpl"].std(ddof=1) or 0.0,
+                std_match_rate=games_df["match_rate"].std(ddof=1) or 0.0,
+                # ── Longitudinal ───────────────────────────────────────────
+                roi_mean=long_features.get("roi_mean", 0.0),
+                roi_max=long_features.get("roi_max", 0.0),
+                roi_std=long_features.get("roi_std", 0.0),
+                step_function_detected=long_features.get("step_acpl_flag", False),
+                step_function_magnitude=long_features.get("step_acpl_delta", 0.0),
+                peer_delta_acpl=long_features.get("peer_delta_acpl", 0.0),
+                peer_delta_match=long_features.get("peer_delta_match", 0.0),
+                longest_streak=long_features.get("longest_streak", 0),
+                selectivity_score=long_features.get("selectivity_pct", 0.0),
+                # ── Resto ─────────────────────────────────────────────────
+                time_patterns=long_features.get("time_patterns", {}),
+                opening_patterns=long_features.get("opening_patterns", {}),
+                suspicious_games_ids=[],  # calcula si lo necesitas
                 risk_score=risk_score,
-                risk_factors=risk_factors
+                risk_factors=risk_factors,
+                confidence_level=0,
+                analyzed_at=datetime.now(UTC),
             )
 
             session.add(analysis)
@@ -314,6 +337,18 @@ class ChessAnalysisEngine:
         """
         Calcula un score de riesgo 0-100 basado en múltiples factores.
         """
+
+        # ── Normalizar columnas faltantes ────────────────────────────
+        REQUIRED = {
+            "time_complexity_corr": np.nan,
+            "uniformity_score": np.nan,
+            "weighted_match_rate": np.nan,  # alias posible
+            "acpl": np.nan,
+        }
+        for col, default in REQUIRED.items():
+            if col not in games_df.columns:
+                games_df[col] = default
+
         risk_factors = {}
         risk_score = 0
 
