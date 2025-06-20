@@ -50,6 +50,7 @@ services:
     volumes:
       - ./backend:/app
       - ./backend/alembic/versions:/app/backend/alembic/versions
+      - ./archives:/app/archives
     environment:
       DATABASE_URL: postgresql+psycopg://chess:chess@postgres:5432/chessdb
       REDIS_URL: redis://redis:6379/0
