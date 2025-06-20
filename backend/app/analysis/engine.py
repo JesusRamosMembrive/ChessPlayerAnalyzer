@@ -44,6 +44,46 @@ def prepare_moves_dataframe(game: models.Game) -> pd.DataFrame:
         })
     df = pd.DataFrame(rows)
 
+    # ─────────────────────────────────────────────────────────────────
+    # Garantizar la presencia de las columnas clave
+    # ─────────────────────────────────────────────────────────────────
+    # ──────────────────────────────────────────────────────────────
+    # Normalizar esquema: asegurar columnas requeridas
+    # ──────────────────────────────────────────────────────────────
+    REQUIRED_COLS = {
+        # nombre      → valor por defecto
+        "played": "",
+        "best": "",
+        "best_rank": np.nan,
+        "cp_loss": np.nan,
+        "eval_cp_before": np.nan,
+        "eval_cp_after": np.nan,
+        "is_engine_best": False,
+        "legal_moves": np.nan,
+        "move_time": np.nan,
+    }
+
+    # alias/compat: eval_before/eval_after vienen de versiones viejas
+    if "eval_before" in df.columns and "eval_cp_before" not in df.columns:
+        df["eval_cp_before"] = df["eval_before"]
+    if "eval_after" in df.columns and "eval_cp_after" not in df.columns:
+        df["eval_cp_after"] = df["eval_after"]
+
+    # derivar eval_cp_after con cp_loss si aún falta
+    if "eval_cp_after" not in df.columns and {
+        "eval_cp_before", "cp_loss"
+    }.issubset(df.columns):
+        df["eval_cp_after"] = df.eval_cp_before - df.cp_loss
+
+    # derivar is_engine_best si falta
+    if "is_engine_best" not in df.columns and "best_rank" in df.columns:
+        df["is_engine_best"] = df.best_rank.eq(0)
+
+    # finalmente, crea los que sigan faltando con su valor por defecto
+    for col, default in REQUIRED_COLS.items():
+        if col not in df.columns:
+            df[col] = default
+
     # ── BLINDAJE final: si no existe la columna, créala a cero ──────────
     if "legal_moves" not in df:
         df = df.assign(legal_moves=0)

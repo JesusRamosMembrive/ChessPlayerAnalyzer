@@ -51,7 +51,7 @@ MAX_DEPTH = int(os.getenv("STOCKFISH_DEPTH", "12"))
 
 
 @celery_app.task(name="analyze_player_detailed")
-def analyze_player_detailed(username: str):
+def analyze_player_detailed(_, username: str):
     """
     Análisis longitudinal detallado de un jugador.
     Se ejecuta después de que todas sus partidas han sido analizadas.
