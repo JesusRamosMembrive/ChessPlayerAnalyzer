@@ -1,0 +1,76 @@
+{
+  "username": "Affan_khan123",
+  "games_analyzed": 65,
+  "avg_acpl": 5102.016972554453,
+  "avg_match_rate": 0.30081035996358474,
+  "avg_ipr": -310.36019830635865,
+  "std_acpl": 5857.794899144594,
+  "std_match_rate": 0.10160711771736487,
+  "roi_mean": -310.36019830635865,
+  "roi_max": 2527.833333333333,
+  "roi_std": 2938.7625219690544,
+  "step_function_detected": true,
+  "step_function_magnitude": 1389.3354576659049,
+  "peer_delta_acpl": 0.0,
+  "peer_delta_match": 0.0,
+  "longest_streak": 5,
+  "selectivity_score": 47.69230769230769,
+  "time_patterns": null,
+  "opening_patterns": {
+    "mean_entropy": -0.0,
+    "novelty_depth": 10.6,
+    "opening_breadth": 1,
+    "second_choice_rate": 0.8818947820096815
+  },
+  "suspicious_games_ids": [],
+  "performance": {},
+  "phase_quality": {
+    "opening_acpl": 6250.764200298953,
+    "middlegame_acpl": 6343.161028571429,
+    "endgame_acpl": 6480.007677843936,
+    "blunder_rate": 0.19204011281729866
+  },
+  "benchmark": {
+    "percentile_acpl": 90,
+    "percentile_entropy": 5
+  },
+  "risk_score": 20,
+  "risk_factors": {
+    "step_function": true
+  },
+  "confidence_level": 0,
+  "first_game_date": "2025-06-26 20:24:52.551598",
+  "last_game_date": "2025-06-26 20:24:52.823769",
+  "analyzed_at": "2025-06-27 11:07:12.174019",
+  "time_management": {
+    "mean_move_time": 17.223284236916328,
+    "time_variance": 5924.436041987213,
+    "uniformity_score": -3.469,
+    "lag_spike_count": 4975
+  },
+  "clutch_accuracy": {
+    "avg_clutch_diff": 5077.5,
+    "clutch_games_pct": 0.2
+  },
+  "tactical": {},
+  "endgame": {
+    "conversion_efficiency": 544,
+    "tb_match_rate": null,
+    "dtz_deviation": null
+  },
+  "time_complexity": {
+    "time_complexity_corr": null
+  },
+  "player": {
+    "username": "Affan_khan123",
+    "status": "ready",
+    "requested_at": "2025-06-27 11:05:48.653899",
+    "finished_at": "2025-06-27 11:07:07.649078",
+    "progress": 100,
+    "total_games": 65,
+    "done_games": 130,
+    "error": null,
+    "last_task_id": null,
+    "analysis": null
+  }
+}

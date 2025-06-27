@@ -50,6 +50,8 @@ services:
     volumes:
       - ./backend:/app
       - ./backend/alembic/versions:/app/backend/alembic/versions
+      - ./archives:/app/archives
+      - ./debug_results:/app/debug_results
     environment:
       DATABASE_URL: postgresql+psycopg://chess:chess@postgres:5432/chessdb
       REDIS_URL: redis://redis:6379/0
@@ -71,6 +73,7 @@ services:
     command: celery -A app.celery_app worker --loglevel=info
     volumes:
       - ./backend:/app
+      - ./debug_results:/app/debug_results
     environment:
       DATABASE_URL: postgresql+psycopg://chess:chess@postgres:5432/chessdb
       REDIS_URL: redis://redis:6379/0

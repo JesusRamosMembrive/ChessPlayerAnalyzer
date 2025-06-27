@@ -3,8 +3,10 @@
 Modelos actualizados para soportar análisis detallado.
 Mantiene compatibilidad con el sistema actual.
 """
-from datetime import datetime, UTC
-from typing import Optional, List
+import enum
+from datetime import timezone
+from datetime import datetime
+from typing import Dict, List, Optional
 
 import sqlalchemy as sa
 from sqlalchemy import Column, JSON
@@ -17,7 +19,7 @@ from sqlmodel import SQLModel, Field, Relationship
 
 class Game(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     pgn: str
 
     moves: List["MoveAnalysis"] = Relationship(back_populates="game")
@@ -122,7 +124,7 @@ class GameAnalysisDetailed(SQLModel, table=True):
     suspicious_opening: bool = Field(default=False)
     overall_suspicion_score: float = Field(default=0, description="Score agregado 0-100")
 
-    analyzed_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    analyzed_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     # Relaciones
     game: Game = Relationship(back_populates="detailed_analysis")
@@ -158,18 +160,28 @@ class PlayerAnalysisDetailed(SQLModel, table=True):
     opening_patterns: dict = Field(default_factory=dict, sa_column=Column(JSON))
     suspicious_games_ids: List[int] = Field(default_factory=list, sa_column=Column(JSON))
 
-    # === RISK ASSESSMENT ===
-    risk_score: float = Field(default=0, description="Score de riesgo 0-100")
-    risk_factors: dict = Field(default_factory=dict, sa_column=Column(JSON))
-    confidence_level: float = Field(default=0, description="Confianza en el análisis 0-1")
+    performance: Dict | None = Field(sa_column=Column(JSON, default=dict))
+    phase_quality: Dict | None = Field(sa_column=Column(JSON, default=dict))
+    benchmark: Dict | None = Field(sa_column=Column(JSON, default=dict))
+
+    # ── Evaluación final ──────────────────────────────────────────────
+    risk_score: int = Field(default=0)
+    risk_factors: Dict = Field(sa_column=Column(JSON, default=dict))
+    confidence_level: int = Field(default=0)
 
     # === TIMESTAMPS ===
     first_game_date: Optional[datetime] = None
     last_game_date: Optional[datetime] = None
     analyzed_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
-    # Relaciones
-    player: Player = Relationship(back_populates="detailed_analysis")
+    time_management: Dict | None = Field(sa_column=Column(JSON, default=dict))
+    clutch_accuracy: Dict | None = Field(sa_column=Column(JSON, default=dict))
+    tactical: Dict | None = Field(sa_column=Column(JSON, default=dict))
+    endgame: Dict | None = Field(sa_column=Column(JSON, default=dict))
+
+    time_complexity: Dict | None = Field(sa_column=Column(JSON, default=dict))
+    # back-ref al jugador
+    player: Optional[Player] = Relationship(back_populates="analysis")
 
 
 # ============================================================
@@ -198,4 +210,4 @@ class ReferenceStats(SQLModel, table=True):
 
     # Metadatos
     sample_size: int
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

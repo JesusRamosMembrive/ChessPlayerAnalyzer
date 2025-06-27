@@ -118,7 +118,7 @@ def conversion_efficiency(game_df: pd.DataFrame,
     """
     idx_start = find_first_significant_advantage(game_df[eval_col], threshold_cp)
     if idx_start is None:
-        return None                      # No hubo ventaja “ganadora”
+        return None                      # No hubo ventaja "ganadora"
     # buscar el mate (última fila)
     idx_end = game_df.index[-1]
     return idx_end - idx_start
@@ -139,35 +139,79 @@ def aggregate_endgame_features(
     Calcula métricas de final; si `tb_path` es None o no existe, todas las
     métricas Syzygy devuelven NaN para no romper el pipeline.
     """
+    logger.info("DEBUG ENDGAME: Starting endgame features calculation")
+    logger.info(f"DEBUG ENDGAME: Tablebase path: {tb_path}")
+    logger.info(f"DEBUG ENDGAME: Moves DataFrame shape: {moves_df.shape}")
+    logger.info(f"DEBUG ENDGAME: Eval column: {eval_col}")
+    
     tb_positions = match_pct = dtz_mean = np.nan
 
     if tb_path and Path(tb_path).exists():
-        from chess.syzygy import Tablebase
-        with Tablebase(str(tb_path)) as tb:
-            n_tb_pos, n_match, mrate = tablebase_match_rate(game, tb)
-            tb_positions = n_tb_pos
-            match_pct    = mrate * 100 if mrate is not np.nan else np.nan
-            dtz_dev_list = dtz_deviation(game, tb)
-            dtz_mean     = np.mean(dtz_dev_list) if dtz_dev_list else np.nan
+        logger.info("DEBUG ENDGAME: Tablebase path exists, analyzing with Syzygy")
+        try:
+            from chess.syzygy import Tablebase
+            with Tablebase(str(tb_path)) as tb:
+                n_tb_pos, n_match, mrate = tablebase_match_rate(game, tb)
+                tb_positions = n_tb_pos
+                match_pct    = mrate * 100 if mrate is not np.nan else np.nan
+                dtz_dev_list = dtz_deviation(game, tb)
+                dtz_mean     = np.mean(dtz_dev_list) if dtz_dev_list else np.nan
+                logger.info(f"DEBUG ENDGAME: Tablebase analysis - positions: {tb_positions}, match %: {match_pct}, DTZ mean: {dtz_mean}")
+        except Exception as e:
+            logger.warning(f"DEBUG ENDGAME: Tablebase analysis failed: {e}")
+            logger.info("DEBUG ENDGAME: tb_match_rate and dtz_deviation will be null due to tablebase error")
+    else:
+        if tb_path is None:
+            logger.info("DEBUG ENDGAME: No tablebase path provided (TB_PATH is None)")
+        else:
+            logger.info(f"DEBUG ENDGAME: Tablebase path does not exist: {tb_path}")
+        logger.info("DEBUG ENDGAME: tb_match_rate and dtz_deviation will be null - tablebases not available")
+        logger.info("DEBUG ENDGAME: To enable tablebase analysis, install Syzygy tablebases and set SYZYGY_PATH environment variable")
 
     conv_eff = conversion_efficiency(moves_df, eval_col)
+    logger.info(f"DEBUG ENDGAME: Conversion efficiency: {conv_eff}")
+    
+    perfect_tb = match_pct is not np.nan and match_pct >= 95
+    fast_conversion = conv_eff is not None and conv_eff <= 10
+    logger.info(f"DEBUG ENDGAME: Perfect TB flag: {perfect_tb}, Fast conversion flag: {fast_conversion}")
+
+    result = {
+        "tb_positions"        : tb_positions,
+        "tb_match_rate"       : match_pct,
+        "dtz_deviation"       : dtz_mean,
+        "conversion_efficiency": conv_eff,
+        "perfect_tb_flag"     : perfect_tb,
+        "fast_conversion_flag": fast_conversion
+    }
+    
+    logger.info(f"DEBUG ENDGAME: Final endgame features: {result}")
+    return result
+
+
+def aggregate_endgame_efficiency(games_df: pd.DataFrame) -> dict:
+    required = {"conversion_efficiency", "tb_match_rate", "dtz_deviation"}
+    if required.isdisjoint(games_df.columns):
+        return {}  # ➊ nada que agregar → no rompe flujo
+
+    conv = (games_df["conversion_efficiency"].mean(skipna=True)
+            if "conversion_efficiency" in games_df else np.nan)
+    tb = (games_df["tb_match_rate"].mean(skipna=True)
+          if "tb_match_rate" in games_df else np.nan)
+    dtz = (games_df["dtz_deviation"].mean(skipna=True)
+           if "dtz_deviation" in games_df else np.nan)
 
     return {
-        "tb_positions"        : tb_positions,
-        "tb_match_pct"        : match_pct,
-        "dtz_mean_deviation"  : dtz_mean,
-        "conversion_moves"    : conv_eff,
-        "perfect_tb_flag"     : match_pct is not np.nan and match_pct >= 95,
-        "fast_conversion_flag": conv_eff is not None and conv_eff <= 10
+        "conversion_efficiency": int(round(conv)) if not np.isnan(conv) else None,
+        "tb_match_rate": float(tb) if not np.isnan(tb) else None,
+        "dtz_deviation": float(dtz) if not np.isnan(dtz) else None,
     }
-
 
 ###############################################################################
 # 5.  DEMO (requiere TB locales) ##############################################
 ###############################################################################
 
 if __name__ == "__main__":
-    import os, io
+    import io
 
     # Carga un PGN corto de ejemplo
     pgn_text = """

@@ -13,7 +13,6 @@ os.environ.setdefault("STOCKFISH_PATH", "/usr/games/stockfish")
 os.environ.setdefault("STOCKFISH_DEPTH", "1")
 
 from app.database import engine
-from app import models
 
 from app.celery_app import celery_app
 celery_app.conf.update(task_always_eager=True, task_eager_propagates=True)

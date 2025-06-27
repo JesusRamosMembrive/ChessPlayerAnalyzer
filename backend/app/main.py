@@ -8,10 +8,9 @@ from datetime import datetime, UTC
 from typing import List, Optional, Literal
 
 from app import models
-from app import models
 from app.celery_app import celery_app, analyze_game_task, process_player_enhanced as process_player
 from app.database import get_session
-from app.utils import redis_client, notify_ws, player_lock, update_progress
+from app.utils import redis_client, notify_ws, player_lock
 from celery.result import AsyncResult
 from fastapi import Depends, HTTPException, status
 from fastapi import FastAPI
@@ -19,6 +18,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlmodel import Session, select
 from sse_starlette.sse import EventSourceResponse
+from app.schemas import PlayerMetricsOut
+
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -284,6 +285,46 @@ def refresh_player(username: str, session: Session = Depends(get_session)):
         logger.error(f"Error en refresh para {username}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@app.get("/players")
+def list_players(
+    status: Optional[models.PlayerStatus] = None,        # ?status=pending|ready|error
+    session: Session = Depends(get_session),
+):
+    """
+    Devuelve la **lista de jugadores** que existen en BD con su estado
+    actual.
+
+    • Si se pasa el query-param `status`, filtra por ese estado
+      (`pending`, `ready`, `error`).
+    • Ordena por `requested_at` descendente para que los más recientes
+      aparezcan primero.
+    """
+    q = select(models.Player)
+    if status:
+        q = q.where(models.Player.status == status)
+
+    players = session.exec(q.order_by(models.Player.requested_at.desc())).all()
+    return [
+        {
+            "username": p.username,
+            "status": p.status,
+            "progress": p.progress,
+            "total_games": p.total_games,
+            "done_games": p.done_games,
+            "requested_at": p.requested_at.isoformat() if p.requested_at else None,
+            "finished_at": p.finished_at.isoformat() if p.finished_at else None,
+        }
+        for p in players
+    ]
+
+@app.get("/players/active")
+def list_active_players(session: Session = Depends(get_session)):
+    return {"active_count": session.exec(
+                select(models.Player).where(models.Player.status == models.PlayerStatus.pending)
+            ).count(),
+            "analyses": list_players(status=models.PlayerStatus.pending, session=session)}
+
 # ============================================================
 # MÉTRICAS
 # ============================================================
@@ -337,25 +378,67 @@ def game_metrics(game_id: int, session: Session = Depends(get_session)):
         "analyzed_at": ga.analyzed_at.isoformat(),
     }
 
-@app.get("/metrics/player/{username}")
+@app.get("/metrics/player/{username}", response_model=PlayerMetricsOut)
 def player_metrics(username: str, session: Session = Depends(get_session)):
-    """Obtiene las métricas agregadas de un jugador."""
-    pm = session.exec(
-        select(models.PlayerAnalysisDetailed).where(models.PlayerAnalysisDetailed.username == username)
-    ).first()
+    obj = session.get(models.PlayerAnalysisDetailed, username)
+    if not obj:
+        raise HTTPException(status_code=404, detail="No metrics yet")
     
-    if not pm:
-        raise HTTPException(status_code=404, detail="No metrics yet for this player")
+    from app.analysis.engine import ChessAnalysisEngine
+    engine = ChessAnalysisEngine()
+    games_df = engine._get_player_games_with_analysis(username, session)
+    from app.analysis import longitudinal
+    long_features = longitudinal.aggregate_longitudinal_features(games_df, None)
     
-    return {
-        "username": pm.username,
-        "game_count": pm.game_count,
-        "opening_entropy": pm.opening_entropy,
-        "most_played": pm.most_played,
-        "low_entropy": pm.low_entropy,
-        "updated_at": pm.updated_at.isoformat()
-    }
-
+    def clean_nan_values(value):
+        """Recursively convert NaN, inf, -inf to None for JSON serialization."""
+        import math
+        import numpy as np
+        if isinstance(value, (float, np.floating)):
+            if math.isnan(value) or math.isinf(value):
+                return None
+        elif isinstance(value, (int, np.integer)):
+            try:
+                if np.isnan(value) or np.isinf(value):
+                    return None
+            except (TypeError, ValueError):
+                pass
+        elif isinstance(value, np.ndarray):
+            return [clean_nan_values(item) for item in value.tolist()]
+        elif isinstance(value, list):
+            return [clean_nan_values(item) for item in value]
+        elif isinstance(value, dict):
+            return {k: clean_nan_values(v) for k, v in value.items()}
+        return value
+    
+    risk_data = None
+    if obj.risk_score > 0 or obj.risk_factors:
+        risk_data = {
+            "risk_score": obj.risk_score,
+            "risk_factors": obj.risk_factors,
+            "confidence_level": obj.confidence_level,
+            "suspicious_games_count": len(obj.suspicious_games_ids) if obj.suspicious_games_ids else 0
+        }
+    
+    response_data = obj.dict()
+    response_data["risk"] = risk_data
+    
+    cleaned_long_features = clean_nan_values(long_features)
+    
+    performance_data = obj.performance or {}
+    response_data.update({
+        "trend_acpl": performance_data.get("trend_acpl"),
+        "trend_match_rate": performance_data.get("trend_match_rate"),
+        "roi_curve": performance_data.get("roi_curve"),
+        "consistency_score": cleaned_long_features.get("consistency_score"),
+    })
+    
+    if not response_data.get("favorite_openings") and obj.opening_patterns:
+        response_data["favorite_openings"] = []
+    
+    response_data = clean_nan_values(response_data)
+    
+    return response_data
 
 @app.delete("/players/{username}", status_code=204)
 def delete_player(username: str, session: Session = Depends(get_session)):

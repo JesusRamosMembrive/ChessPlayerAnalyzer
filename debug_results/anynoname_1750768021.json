@@ -1,0 +1,42 @@
+{
+  "username": "anynoname",
+  "games_analyzed": 1774,
+  "avg_acpl": 1448.9072128956254,
+  "avg_match_rate": 0.36750580991200366,
+  "avg_ipr": 0.0,
+  "std_acpl": 2425.0799885448473,
+  "std_match_rate": 0.08728100496490952,
+  "roi_mean": 1569.5510414817902,
+  "roi_max": 2794.75,
+  "roi_std": 0.0,
+  "step_function_detected": false,
+  "step_function_magnitude": 0.0,
+  "peer_delta_acpl": 0.0,
+  "peer_delta_match": 0.0,
+  "longest_streak": 0,
+  "selectivity_score": 48.81623449830891,
+  "time_patterns": {},
+  "opening_patterns": {},
+  "suspicious_games_ids": [],
+  "risk_score": 40,
+  "risk_factors": {
+    "high_roi": true,
+    "long_streak": true
+  },
+  "confidence_level": 0,
+  "first_game_date": null,
+  "last_game_date": null,
+  "analyzed_at": "2025-06-24 12:27:01.741580",
+  "player": {
+    "username": "anynoname",
+    "status": "ready",
+    "requested_at": "2025-06-24 11:23:04.262589",
+    "finished_at": "2025-06-24 12:26:56.665229",
+    "progress": 100,
+    "total_games": 1774,
+    "done_games": 3548,
+    "error": null,
+    "last_task_id": null,
+    "analysis": null
+  }
+}

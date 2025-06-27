@@ -21,6 +21,17 @@ El archivo `docker-compose.yml` define estos servicios y las variables de entorn
    ```
 3. La API quedará disponible en `http://localhost:8000` y el worker Celery se pondrá a procesar tareas.
 
+## Tablebases Syzygy (Opcional)
+
+Para obtener métricas completas de endgame (`tb_match_rate` y `dtz_deviation`), necesitas instalar las tablebases Syzygy. Sin ellas, estas métricas aparecerán como `null` pero el resto del análisis funcionará normalmente.
+
+**Para instalar las tablebases:**
+1. Descarga las tablebases desde https://tablebase.sesse.net/syzygy/
+2. Configura la variable de entorno `SYZYGY_PATH` apuntando al directorio de las tablebases
+3. Consulta `SYZYGY_SETUP.md` para instrucciones detalladas
+
+**Nota:** Las tablebases completas requieren ~150 GB de espacio (versión 3-4-5-6 piezas) o ~18 TB (versión completa 3-4-5-6-7 piezas).
+
 ## Flujo de análisis (workflow)
 
 1. **Inicio del análisis**

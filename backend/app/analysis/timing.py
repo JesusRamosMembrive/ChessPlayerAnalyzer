@@ -3,7 +3,7 @@ from __future__ import annotations
 import pandas as pd
 import numpy as np
 from typing import List, Tuple, Any
-from scipy.stats import spearmanr, lognorm, kstest, skew
+from scipy.stats import spearmanr, lognorm, kstest
 import logging
 
 logger = logging.getLogger(__name__)
@@ -67,10 +67,10 @@ def time_complexity_correlation(game_df: pd.DataFrame,
 # 3.  ‘Lag spikes’ (pausa + ráfaga perfecta)                                  #
 # --------------------------------------------------------------------------- #
 def detect_lag_spikes(game_df: pd.DataFrame,
-                      pause_sec: Tuple[float, float] = (8.0, 15.0),
-                      rapid_thresh: float      = 1.0,
-                      rapid_window: int        = 3,
-                      accuracy_required: bool  = True
+                      pause_sec: Tuple[float, float] = (5.0, 12.0),
+                      rapid_thresh: float      = 2.0,
+                      rapid_window: int        = 2,
+                      accuracy_required: bool  = False
                      ) -> List[int]:
     """
     Devuelve los índices de movimiento donde:
@@ -145,7 +145,12 @@ def uniformity_score(game_df: pd.DataFrame) -> float:
 # 6.  Agregador cómodo para ML / scoring                                      #
 # --------------------------------------------------------------------------- #
 def aggregate_time_features(game_df: pd.DataFrame) -> dict:
+    logger.info("DEBUG TIMING: Starting timing features calculation")
+    logger.info(f"DEBUG TIMING: Input DataFrame shape: {game_df.shape}")
+    logger.info(f"DEBUG TIMING: Input DataFrame columns: {list(game_df.columns)}")
+    
     if game_df.empty or "move_time" not in game_df:
+        logger.info("DEBUG TIMING: No timing data available, returning default values")
         return {
             "mean_move_time"      : np.nan,
             "time_variance"       : np.nan,
@@ -158,26 +163,64 @@ def aggregate_time_features(game_df: pd.DataFrame) -> dict:
     # Garantizar columnas requeridas
     if "move_time" not in game_df:
         game_df = game_df.assign(move_time=0)
+        logger.info("DEBUG TIMING: Added default move_time column")
     if "legal_moves" not in game_df:            #  ⇦  salvaguarda final
         game_df = game_df.assign(legal_moves=0)
+        logger.info("DEBUG TIMING: Added default legal_moves column")
 
     mean_t = game_df["move_time"].mean()
     var_t  = game_df["move_time"].var()
-    corr   = time_complexity_correlation(game_df)
+    logger.info(f"DEBUG TIMING: Mean move time: {mean_t}, Variance: {var_t}")
+    
+    corr = time_complexity_correlation(game_df)
+    logger.info(f"DEBUG TIMING: Time-complexity correlation: {corr}")
 
-    # ejemplo simple de uniformidad y score
-    uniform = 1 - (var_t / (mean_t**2 + 1e-6))
+    lag_spikes = len(detect_lag_spikes(game_df))
+    logger.info(f"DEBUG TIMING: Lag spikes detected: {lag_spikes}")
+
+    uniform = uniformity_score(game_df) if len(game_df) >= 5 else 0.0
+    uniform = max(0.0, min(1.0, uniform)) if not np.isnan(uniform) else 0.0
     score   = 50 * uniform + 50 * max(corr, 0)
 
-    return {
+    clutch_acc = clutch_accuracy(game_df) if 'player_clock_before' in game_df.columns else None
+    logger.info(f"DEBUG TIMING: Clutch accuracy: {clutch_acc}")
+
+    result = {
         "mean_move_time"      : mean_t,
         "time_variance"       : var_t,
         "time_complexity_corr": corr,
-        "lag_spike_count"     : (game_df["move_time"] > 20).sum(),
+        "lag_spike_count"     : lag_spikes,
         "uniformity_score"    : uniform,
+        "clutch_accuracy_diff": clutch_acc,
         "timing_score"        : score,
     }
+    
+    logger.info(f"DEBUG TIMING: Final timing features: {result}")
+    return result
 
+def aggregate_time_management(moves_dfs):
+    if not moves_dfs:
+        return {}
+
+    mt = np.concatenate([df["move_time"] for df in moves_dfs if "move_time" in df])
+    mean_t  = float(mt.mean())
+    var_t   = float(mt.var())
+    spikes  = (mt > 5 * mean_t).sum()
+
+    uniformity = 1 - (np.std(mt) / mean_t) if mean_t else 0
+
+    return {
+        "mean_move_time": mean_t,
+        "time_variance": var_t,
+        "uniformity_score": round(uniformity, 3),
+        "lag_spike_count": int(spikes),
+    }
+
+def aggregate_time_complexity_corr(games_df: pd.DataFrame) -> dict:
+    if games_df.empty or "time_complexity_corr" not in games_df:
+        return {}
+    mean_corr = games_df["time_complexity_corr"].mean(skipna=True)
+    return {"time_complexity_corr": float(mean_corr)}
 # --------------------------------------------------------------------------- #
 # 7.  Ejemplo mínimo (ejecución directa)                                      #
 # --------------------------------------------------------------------------- #
