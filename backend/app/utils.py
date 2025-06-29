@@ -94,6 +94,27 @@ def fetch_games(username: str, months: int = 6) -> List[Dict]:
             logging.error(f"fetch_games: Error processing archive {url}: {e}")
             continue
 
+    # ---------------------------------------------------------------
+    #  Guardar copia local de las partidas descargadas
+    # ---------------------------------------------------------------
+    try:
+        archive_dir = pathlib.Path(
+            os.getenv("FETCH_ARCHIVE_DIR", "archives")
+        ).expanduser().resolve()  # ← ABSOLUTA
+
+        archive_dir.mkdir(parents=True, exist_ok=True)
+
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        out_path = archive_dir / f"{username}_{stamp}.json"
+
+        with out_path.open("w", encoding="utf-8") as fh:
+            json.dump(games, fh, ensure_ascii=False, indent=2)
+
+        logging.info(f"fetch_games: Saved {len(games)} games to {out_path}")
+    except Exception as exc:
+        # No queremos que un fallo de disco interrumpa el análisis
+        logging.warning(f"fetch_games: could not archive games → {exc}")
+
     logging.info(f"fetch_games: {username} → {len(games)} partidas")
     return games
 

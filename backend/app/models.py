@@ -4,20 +4,13 @@ Modelos actualizados para soportar análisis detallado.
 Mantiene compatibilidad con el sistema actual.
 """
 import enum
-from datetime import timezone, UTC
+from datetime import timezone
 from datetime import datetime
 from typing import Dict, List, Optional
 
-import sqlalchemy as sa
-from sqlalchemy import Column, JSON
-from sqlmodel import SQLModel, Field, Relationship
-
-
-class PlayerStatus(enum.Enum):
-    NOT_ANALYZED = "not_analyzed"
-    PENDING = "pending"
-    READY = "ready"
-    ERROR = "error"
+from sqlalchemy import Column, ForeignKey, JSON, String, Text
+from sqlmodel import Field, Relationship, SQLModel
+from sqlalchemy import Enum as SQLEnum
 
 
 # ============================================================
@@ -65,33 +58,6 @@ class MoveAnalysis(SQLModel, table=True):
     game: Game = Relationship(back_populates="moves")
 
 
-class Player(SQLModel, table=True):
-    username: str = Field(primary_key=True)
-    status: str = Field(
-        sa_column=sa.Column(
-            sa.Enum("not_analyzed", "pending", "ready", "error",
-                    name="player_status"),
-            nullable=False,
-            default="not_analyzed",
-        )
-    )
-    progress: int = 0
-    total_games: Optional[int] = None
-    done_games: Optional[int] = None
-    requested_at: Optional[datetime] = None
-    finished_at: Optional[datetime] = None
-    error: Optional[str] = None
-    last_task_id: str | None = Field(default=None, description="Celery id de la tarea en curso")
-
-
-    # Relación con análisis detallado
-    detailed_analysis: Optional["PlayerAnalysisDetailed"] = Relationship(back_populates="player")
-
-
-# ============================================================
-# NUEVOS MODELOS PARA ANÁLISIS DETALLADO
-# ============================================================
-
 class GameAnalysisDetailed(SQLModel, table=True):
     """Análisis detallado por partida usando los nuevos módulos."""
     __tablename__ = "game_analysis_detailed"
@@ -137,35 +103,99 @@ class GameAnalysisDetailed(SQLModel, table=True):
     game: Game = Relationship(back_populates="detailed_analysis")
 
 
+class PlayerStatus(str, enum.Enum):
+    pending = "pending"
+    ready   = "ready"
+    error   = "error"
+
+class Player(SQLModel, table=True):
+    """
+    Jugador individual.
+
+    Se declara la relación `analysis` con ON-DELETE CASCADE para que al borrar
+    el jugador se elimine automáticamente su análisis detallado y no sea
+    necesario borrarlo a mano.
+    """
+    __tablename__ = "player"
+
+    username: str = Field(primary_key=True)
+
+    # ── Estado de proceso ──────────────────────────────────────────────
+    status: PlayerStatus = Field(
+        default=PlayerStatus.pending,
+        sa_column=Column(
+            SQLEnum(PlayerStatus, name="player_status", native_enum=True),
+            nullable=False,
+        ),
+    )
+    requested_at: datetime | None = Field(default=None)
+    finished_at: datetime | None = Field(default=None)
+    progress: int = Field(default=0)
+    total_games: int = Field(default=0)
+    done_games: int = Field(default=0)
+
+    error: str | None = Field(
+        default=None,
+        sa_column=Column(Text, nullable=True),
+    )
+
+    last_task_id: str | None = Field(
+        default=None,
+        sa_column=Column(String, nullable=True),
+        description="Celery task id en ejecución (process_player_enhanced)",
+    )
+
+    # relación 1-a-1 con PlayerAnalysisDetailed
+    analysis: Optional["PlayerAnalysisDetailed"] = Relationship(
+        back_populates="player",
+        sa_relationship_kwargs={
+            "cascade": "all, delete-orphan",   # borra el hijo al borrar el padre
+            "passive_deletes": True,           # evita DetachedInstanceError
+        },
+    )
+
+
 class PlayerAnalysisDetailed(SQLModel, table=True):
-    """Análisis agregado detallado por jugador."""
+    """
+    Resumen estadístico y de riesgo de un jugador tras analizar todas sus
+    partidas.
+    """
     __tablename__ = "player_analysis_detailed"
 
-    username: str = Field(foreign_key="player.username", primary_key=True)
+    # PK y FK al mismo tiempo, con borrado en cascada
+    username: str = Field(
+        sa_column=Column(
+            String,
+            ForeignKey("player.username", ondelete="CASCADE"),
+            primary_key=True,
+        )
+    )
 
-    # === AGGREGATED METRICS ===
-    games_analyzed: int = Field(description="Número de partidas analizadas")
-    avg_acpl: float
-    avg_match_rate: float
-    avg_ipr: float
-    std_acpl: float = Field(description="Desviación estándar del ACPL")
-    std_match_rate: float
+    # ── Métricas globales de calidad ───────────────────────────────────
+    games_analyzed: int = Field(nullable=False, ge=0)
+    avg_acpl: float = Field(nullable=False, ge=0)
+    avg_match_rate: float = Field(nullable=False, ge=0)
+    avg_ipr: float = Field(nullable=False, ge=0)
+    std_acpl: float | None = None
+    std_match_rate: float | None = None
 
-    # === LONGITUDINAL METRICS ===
-    roi_mean: float = Field(description="ROI promedio")
-    roi_max: float = Field(description="ROI máximo")
-    roi_std: float = Field(description="Desviación estándar ROI")
+    # ── Métricas longitudinales ───────────────────────────────────────
+    roi_mean: float | None = None
+    roi_max: float | None = None
+    roi_std: float | None = None
     step_function_detected: bool = Field(default=False)
-    step_function_magnitude: Optional[float] = Field(default=None)
-    peer_delta_acpl: float = Field(default=0, description="Diferencia vs peers")
+    step_function_magnitude: float | None = None
+    peer_delta_acpl: float = Field(default=0)
     peer_delta_match: float = Field(default=0)
-    longest_streak: int = Field(default=0, description="Racha más larga de alto rendimiento")
-    selectivity_score: float = Field(default=0, description="Score de selectividad")
+    longest_streak: int = Field(default=0, ge=0)
+    selectivity_score: float = Field(default=0)
 
-    # === PATTERN ANALYSIS ===
-    time_patterns: dict = Field(default_factory=dict, sa_column=Column(JSON))
-    opening_patterns: dict = Field(default_factory=dict, sa_column=Column(JSON))
-    suspicious_games_ids: List[int] = Field(default_factory=list, sa_column=Column(JSON))
+    # ── Patrones y banderas ───────────────────────────────────────────
+    time_patterns: Dict | None = Field(sa_column=Column(JSON, default=dict))
+    opening_patterns: Dict | None = Field(sa_column=Column(JSON, default=dict))
+    suspicious_games_ids: List[int] = Field(
+        sa_column=Column(JSON, default=list)
+    )
 
     performance: Dict | None = Field(sa_column=Column(JSON, default=dict))
     phase_quality: Dict | None = Field(sa_column=Column(JSON, default=dict))
@@ -176,10 +206,10 @@ class PlayerAnalysisDetailed(SQLModel, table=True):
     risk_factors: Dict = Field(sa_column=Column(JSON, default=dict))
     confidence_level: int = Field(default=0)
 
-    # === TIMESTAMPS ===
-    first_game_date: Optional[datetime] = None
-    last_game_date: Optional[datetime] = None
-    analyzed_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    # ── Información temporal ─────────────────────────────────────────
+    first_game_date: datetime | None = None
+    last_game_date: datetime | None = None
+    analyzed_at: datetime = Field(default_factory=datetime.utcnow)
 
     time_management: Dict | None = Field(sa_column=Column(JSON, default=dict))
     clutch_accuracy: Dict | None = Field(sa_column=Column(JSON, default=dict))

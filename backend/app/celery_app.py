@@ -82,7 +82,7 @@ def export_analysis_to_json(data_obj, username: str, analysis_type: str = "analy
 
 
 @celery_app.task(name="analyze_player_detailed")
-def analyze_player_detailed(username: str):
+def analyze_player_detailed(_, username: str):
     """
     Análisis longitudinal detallado de un jugador.
     Se ejecuta después de que todas sus partidas han sido analizadas.
@@ -125,15 +125,15 @@ def analyze_player_detailed(username: str):
         # Notificar resultado
         notify_ws(username, {
             "type": "player_analysis_complete",
-            "risk_score": player_analysis.risk_score,
-            "risk_factors": player_analysis.risk_factors
+            "risk_score": pa.risk_score,
+            "risk_factors": pa.risk_factors
         })
 
         result = {
             "username": username,
-            "risk_score": player_analysis.risk_score,
-            "games_analyzed": player_analysis.games_analyzed,
-            "analyzed_at": player_analysis.analyzed_at.isoformat()
+            "risk_score": pa.risk_score,
+            "games_analyzed": pa.games_analyzed,
+            "analyzed_at": pa.analyzed_at.isoformat()
         }
         
         with Session(engine) as s:

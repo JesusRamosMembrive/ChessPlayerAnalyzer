@@ -105,17 +105,25 @@ def ipr_z_score(ipr: float, elo: float, sigma: float = 60) -> float:
 def complexity_weighted_match(game_df: pd.DataFrame,
                               max_moves_cap: int = 50) -> float:
     """
-    Calcula un % de coincidencia con Stockfish ponderado por la
-    complejidad (número de lances legales en la posición).
-    
-    Espera:
-    ─ 'is_engine_best' (bool)   – si la jugada coincide con la 1ª línea,
-    ─ 'legal_moves'    (int)    – nº de jugadas legales en la posición.
+    % de coincidencia con Stockfish ponderado por complejidad.
+    Si todos los pesos salen 0 (p.ej. legal_moves == max_moves_cap en
+    todos los lances) se hace fallback a la media simple para evitar
+    ZeroDivisionError.
     """
-    # Peso inverso: + complejidad  ⇒  mayor peso si acierta
-    weights = np.log1p(max_moves_cap - game_df.legal_moves.clip(0, max_moves_cap))
-    return np.average(game_df.is_engine_best, weights=weights)
+    if "is_engine_best" not in game_df.columns:
+        return np.nan
 
+    # Peso inverso a la complejidad: +difícil ⇒ +peso si acierta
+    weights = np.log1p(max_moves_cap - game_df.legal_moves.clip(0, max_moves_cap)
+                       if "legal_moves" in game_df.columns
+                       else max_moves_cap)
+
+    total_w = weights.sum()
+    if total_w == 0 or np.isnan(total_w):
+        # fallback seguro
+        return game_df.is_engine_best.mean()
+
+    return np.dot(game_df.is_engine_best, weights) / total_w
 ###############################################################################
 # 5.  Detección de rachas de precisión ########################################
 ###############################################################################

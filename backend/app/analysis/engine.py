@@ -167,7 +167,12 @@ def prepare_moves_dataframe(game: models.Game, username: Optional[str] = None) -
 
     return df
 
-
+def _safe_mean(df: pd.DataFrame, col: str, default: float = 0.0) -> float:
+    """Media que nunca devuelve None (NaN→default, col ausente→default)."""
+    if col not in df.columns:
+        return default
+    val = df[col].mean()
+    return float(val) if pd.notna(val) else default
 
 class ChessAnalysisEngine:
     """Motor principal que coordina todos los análisis."""

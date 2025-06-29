@@ -6,6 +6,9 @@ from typing import Dict, Tuple
 import logging
 from scipy.stats import linregress
 
+logger = logging.getLogger(__name__)
+
+
 ###############################################################################
 # 0.  CONSTANTES Y UTILIDADES ##################################################
 ###############################################################################
@@ -35,16 +38,29 @@ def performance_rating(match_pct: float, acpl: float,
     return coef_m * match_pct + coef_a * acpl + 2000
 
 def roi_per_game(games_df: pd.DataFrame,
-                 elo_col: str = "elo",
-                 acpl_col: str = "acpl",
-                 match_col: str = "match_pct"
-                ) -> pd.Series:
+                 match_col: str | None = None,
+                 acpl_col: str | None = None) -> pd.Series:
     """
-    Devuelve el ROI (z‑score) de cada partida:
-      (PerformanceRating − ELO) / 60    (σ≈60 ELO según Regan)
+    Devuelve el ROI (performance_rating) partida a partida.
+    Si faltan las columnas explícitas se usan alias seguros.
     """
+    # ── Resolver columnas por alias ──────────────────────────────
+    match_aliases = ["match_pct", "match_rate", "weighted_match_rate"]
+    acpl_aliases  = ["acl", "acpl"]
+
+    match_col = match_col or next(
+        (c for c in match_aliases if c in games_df.columns), None
+    )
+    acpl_col  = acpl_col  or next(
+        (c for c in acpl_aliases  if c in games_df.columns), None
+    )
+
+    if match_col is None or acpl_col is None:
+        # No data → devolvemos serie vacía para no romper el flujo
+        return pd.Series(dtype=float)
+
     pr = performance_rating(games_df[match_col], games_df[acpl_col])
-    return (pr - games_df[elo_col]) / 60.0
+    return pr
 
 def aggregate_roi(games_df: pd.DataFrame) -> Dict[str, float]:
     roi_series = roi_per_game(games_df)
@@ -67,14 +83,38 @@ def aggregate_roi(games_df: pd.DataFrame) -> Dict[str, float]:
 # 2.  STEP‑FUNCTION GAINS #####################################################
 ###############################################################################
 
-def detect_step_function(games_df: pd.DataFrame,
-                         metric: str = "acpl",
-                         min_delta: float = 20,
-                         window: int = 10
-                        ) -> Dict[str, float | int]:
+
+def detect_step_function(
+    games_df: pd.DataFrame,
+    *,
+    aliases: Tuple[str, ...] = ("acpl", "match_pct", "match_rate", "weighted_match_rate"),
+    min_delta: float = 20,
+    window: int = 10,
+) -> Dict[str, float | int | bool]:
     """
-    Busca un descenso súbito ≥ min_delta (ACPL) o ascenso (Match) puertas
-    deslizantes de longitud 'window'.
+    Busca un cambio súbito en la serie temporal de una métrica.
+
+    • Para métricas de **error** (por defecto «acpl») detecta un *descenso* ≥ min_delta.
+    • Para métricas de **calidad** (match_*) detecta un *ascenso* ≥ min_delta.
+      La métrica se selecciona usando el primer alias presente en `games_df`.
+
+    Parámetros
+    ----------
+    games_df : pd.DataFrame
+        DataFrame con las partidas ordenadas cronológicamente.
+    aliases : tuple[str, ...]
+        Nombres alternativos que se aceptan para la métrica.
+    min_delta : float
+        Umbral mínimo que debe superar la diferencia entre medias pre/post.
+    window : int
+        Longitud de la ventana deslizante para las medias móviles.
+
+    Retorna
+    -------
+    dict
+        {'step_<metric>_delta': float,
+         'step_<metric>_index': int,
+         'step_<metric>_flag' : bool}
     """
     # ── 1. Elegir columna disponible ─────────────────────────────
     metric = next((col for col in aliases if col in games_df.columns), None)
@@ -90,10 +130,12 @@ def detect_step_function(games_df: pd.DataFrame,
     series = games_df[metric].reset_index(drop=True)
     pre  = series.rolling(window).mean().shift(1)
     post = series.rolling(window).mean()
-    delta = pre - post if metric == "acpl" else post - pre
 
-    best_idx = delta.idxmax()
-    best_delta = delta.max()
+    # Error (ACPL) = buscamos *descenso*; Calidad (match) = *ascenso*
+    if metric == "acpl":
+        delta = pre - post
+    else:
+        delta = post - pre
 
     if delta.isna().all() or delta.empty:
         best_idx = -1
@@ -121,21 +163,22 @@ def detect_step_function(games_df: pd.DataFrame,
 # 3.  SELECTIVITY SCORE (varianza intra‑jugador) ##############################
 ###############################################################################
 
-def selectivity_score(games_df: pd.DataFrame,
-                      match_col: str = "match_pct"
-                     ) -> Dict[str, float]:
+def selectivity_score(
+    games_df: pd.DataFrame,
+    *,
+    match_aliases: tuple[str, ...] = ("match_pct", "match_rate", "weighted_match_rate"),
+) -> dict:
     """
-    Coeficiente de variación y kurtosis de la precisión entre partidas.
-    Alto CV + alta kurtosis ⇒ alterna partidas muy “buenas” y muy “malas”.
+    % de partidas cuya calidad (match-rate) está por encima de la mediana
+    personal.  Devuelve un diccionario para que .update() funcione.
     """
     match_col = next((c for c in match_aliases if c in games_df.columns), None)
     if match_col is None:
         return {"selectivity_pct": 50.0}
 
     s = games_df[match_col]
-    cv = s.std(ddof=1) / s.mean()
-    k  = s.kurtosis()
-    return {'selectivity_cv': cv, 'selectivity_kurtosis': k}
+    pct = (s > s.median()).mean() * 100.0
+    return {"selectivity_pct": pct}
 
 ###############################################################################
 # 4.  PEER‑GROUP DELTA ########################################################
