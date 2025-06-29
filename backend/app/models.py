@@ -4,13 +4,20 @@ Modelos actualizados para soportar análisis detallado.
 Mantiene compatibilidad con el sistema actual.
 """
 import enum
-from datetime import timezone
+from datetime import timezone, UTC
 from datetime import datetime
 from typing import Dict, List, Optional
 
 import sqlalchemy as sa
 from sqlalchemy import Column, JSON
 from sqlmodel import SQLModel, Field, Relationship
+
+
+class PlayerStatus(enum.Enum):
+    NOT_ANALYZED = "not_analyzed"
+    PENDING = "pending"
+    READY = "ready"
+    ERROR = "error"
 
 
 # ============================================================
