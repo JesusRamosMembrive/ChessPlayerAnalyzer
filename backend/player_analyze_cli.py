@@ -29,7 +29,12 @@ from tabulate import tabulate  # pip install tabulate
 from tqdm import tqdm  # pip install tqdm
 import time
 
-# Logger
+# # Logger
+# logging.basicConfig(
+#     level=logging.INFO,          # muestra info, warning y error
+#     format="%(message)s"         # sin adornos de fecha/módulo
+# )
+
 logger = logging.getLogger(__name__)
 
 # --------------------------- Configuración ---------------------------
@@ -160,6 +165,13 @@ def cmd_list(args: argparse.Namespace) -> None:
         logger.info("No hay jugadores almacenados todavía.")
         return
 
+    logger.info(f"\n<UNK> Jugadores almacenados: {len(data)}")
+    # Mostrar en formato JSON o tabular
+    # Si hay pocos jugadores, mostrar en JSON; si son muchos, tabular
+    if len(data) > 100:
+        logger.info("Demasiados jugadores para mostrar en JSON. Usando formato tabular.")
+        args.json = False
+
     if args.json:
         logger.info(json.dumps(data, indent=2, ensure_ascii=False))
     else:
@@ -182,16 +194,23 @@ def cmd_show(args: argparse.Namespace) -> None:
 
 
 def cmd_analyze(args: argparse.Namespace) -> None:
+    logger.info("DEBUG CLI: Starting analysis command")
+    logger.info(f"DEBUG CLI: Input parameters - username: {args.username}, host: {args.host}, timeout: {args.timeout}")
+    logger.info(f"DEBUG CLI: Analysis timeout: {args.analysis_timeout}, wait: {args.wait}, force: {args.force}")
+    
     with make_client(args.host, args.timeout) as client:
         # Primero verificar si ya existe
+        logger.info(f"DEBUG CLI: Checking existing player status for {args.username}")
         resp = client.get(ENDPOINT_PLAYER.format(username=args.username))
+        logger.info(f"DEBUG CLI: Player status response code: {resp.status_code}")
 
         if resp.status_code == 200:
             existing_data = resp.json()
+            logger.info(f"DEBUG CLI: Existing player data: {json.dumps(existing_data, indent=2, ensure_ascii=False)}")
             status = existing_data.get('status')
 
             if status == 'ready':
-                logger.info(f"ℹ️  El jugador ya está analizado.")
+                logger.info("ℹ️  El jugador ya está analizado.")
                 if not args.force:
                     logger.info("Usa --force para forzar un nuevo análisis.")
                     logger.info(json.dumps(existing_data, indent=2, ensure_ascii=False))
@@ -211,8 +230,10 @@ def cmd_analyze(args: argparse.Namespace) -> None:
                     return
 
         # Lanzar nuevo análisis
+        logger.info(f"DEBUG CLI: Launching new analysis for {args.username}")
         data = handle_response(
             client.post(ENDPOINT_PLAYER.format(username=args.username)))
+        logger.info(f"DEBUG CLI: Analysis launch response: {json.dumps(data, indent=2, ensure_ascii=False) if data else 'None'}")
 
         logger.info("✅ Análisis lanzado correctamente.")
         if data and args.json and not args.wait:
@@ -220,8 +241,10 @@ def cmd_analyze(args: argparse.Namespace) -> None:
 
         # Esperar si se solicita
         if args.wait:
+            logger.info("DEBUG CLI: Waiting for analysis completion...")
             final_data = wait_for_analysis(client, args.username,
                                            analysis_timeout=args.analysis_timeout)
+            logger.info(f"DEBUG CLI: Final analysis data: {json.dumps(final_data, indent=2, ensure_ascii=False)}")
             if args.json:
                 logger.info(json.dumps(final_data, indent=2, ensure_ascii=False))
             else:

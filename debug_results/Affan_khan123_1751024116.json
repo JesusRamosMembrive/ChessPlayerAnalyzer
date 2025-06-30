@@ -1,0 +1,76 @@
+{
+  "username": "Affan_khan123",
+  "games_analyzed": 65,
+  "avg_acpl": 5096.017104070193,
+  "avg_match_rate": 0.30059365783637065,
+  "avg_ipr": -307.53362576599994,
+  "std_acpl": 5858.915628806924,
+  "std_match_rate": 0.10132305425850019,
+  "roi_mean": -307.53362576599994,
+  "roi_max": 2527.833333333333,
+  "roi_std": 2939.375111933784,
+  "step_function_detected": true,
+  "step_function_magnitude": 1389.3975868525058,
+  "peer_delta_acpl": 0.0,
+  "peer_delta_match": 0.0,
+  "longest_streak": 5,
+  "selectivity_score": 49.23076923076923,
+  "time_patterns": null,
+  "opening_patterns": {
+    "mean_entropy": -0.0,
+    "novelty_depth": 11.215384615384615,
+    "opening_breadth": 1,
+    "second_choice_rate": 0.8814388824761293
+  },
+  "suspicious_games_ids": [],
+  "performance": {},
+  "phase_quality": {
+    "opening_acpl": 5915.915976868126,
+    "middlegame_acpl": 6364.7467637119835,
+    "endgame_acpl": 6765.721725556975,
+    "blunder_rate": 0.1918178969260135
+  },
+  "benchmark": {
+    "percentile_acpl": 90,
+    "percentile_entropy": 5
+  },
+  "risk_score": 20,
+  "risk_factors": {
+    "step_function": true
+  },
+  "confidence_level": 0,
+  "first_game_date": "2025-06-26 20:24:52.551598",
+  "last_game_date": "2025-06-26 20:24:52.823769",
+  "analyzed_at": "2025-06-27 11:35:16.716665",
+  "time_management": {
+    "mean_move_time": 15.965585026067634,
+    "time_variance": 5957.703667323196,
+    "uniformity_score": -3.835,
+    "lag_spike_count": 5602
+  },
+  "clutch_accuracy": {
+    "avg_clutch_diff": 5057.7,
+    "clutch_games_pct": 0.2
+  },
+  "tactical": {},
+  "endgame": {
+    "conversion_efficiency": 585,
+    "tb_match_rate": null,
+    "dtz_deviation": null
+  },
+  "time_complexity": {
+    "time_complexity_corr": null
+  },
+  "player": {
+    "username": "Affan_khan123",
+    "status": "ready",
+    "requested_at": "2025-06-27 11:34:07.443785",
+    "finished_at": "2025-06-27 11:35:14.899578",
+    "progress": 100,
+    "total_games": 65,
+    "done_games": 130,
+    "error": null,
+    "last_task_id": null,
+    "analysis": null
+  }
+}

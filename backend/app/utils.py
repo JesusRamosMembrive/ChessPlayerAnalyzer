@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import json
 import logging
+import math
+import pathlib
 import re
 from contextlib import contextmanager
 from datetime import datetime, UTC
@@ -10,10 +12,11 @@ from typing import List, Dict
 
 import redis
 import requests
+from sqlalchemy.inspection import inspect
 from app import models
 from app.database import engine
-from sqlmodel import Session
-from app import models, utils
+from sqlmodel import Session, select
+import numpy as np
 
 import os
 from pathlib import Path
@@ -91,6 +94,27 @@ def fetch_games(username: str, months: int = 6) -> List[Dict]:
             logging.error(f"fetch_games: Error processing archive {url}: {e}")
             continue
 
+    # ---------------------------------------------------------------
+    #  Guardar copia local de las partidas descargadas
+    # ---------------------------------------------------------------
+    try:
+        archive_dir = pathlib.Path(
+            os.getenv("FETCH_ARCHIVE_DIR", "archives")
+        ).expanduser().resolve()  # ← ABSOLUTA
+
+        archive_dir.mkdir(parents=True, exist_ok=True)
+
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        out_path = archive_dir / f"{username}_{stamp}.json"
+
+        with out_path.open("w", encoding="utf-8") as fh:
+            json.dump(games, fh, ensure_ascii=False, indent=2)
+
+        logging.info(f"fetch_games: Saved {len(games)} games to {out_path}")
+    except Exception as exc:
+        # No queremos que un fallo de disco interrumpa el análisis
+        logging.warning(f"fetch_games: could not archive games → {exc}")
+
     logging.info(f"fetch_games: {username} → {len(games)} partidas")
     return games
 
@@ -108,19 +132,30 @@ def notify_ws(username: str, payload: dict) -> None:
 
 
 def update_progress(username: str, *, increment: int = 1) -> None:
+    """Atomic progress update for player analysis."""
     with Session(engine) as s:
-        pl = s.get(models.Player, username)
+        pl = s.exec(
+            select(models.Player)
+            .where(models.Player.username == username)
+            .with_for_update()
+        ).one_or_none()
         if not pl:
             return
+
         pl.done_games = (pl.done_games or 0) + increment
-        expected = (pl.total_games or 0) * 2        # básico + detallado
+        expected = (pl.total_games or 0) * 2  # básico + detallado
         pl.progress = int(pl.done_games / expected * 100) if expected else 0
-        if pl.done_games == expected:
+
+        if expected and pl.done_games >= expected:
             pl.status = "ready"
             pl.finished_at = datetime.now(UTC)
+
         progress_now = pl.progress
-        status_now   = pl.status
-        s.add(pl); s.commit()
+        status_now = pl.status
+
+        s.add(pl)
+        s.commit()
+
     notify_ws(username, {"progress": progress_now, "status": status_now})
 
 @contextmanager
@@ -142,3 +177,55 @@ def player_lock(username: str, timeout: int = 900, block: int = 5):
     finally:
         # Si el código dentro del with explota no dejamos el lock colgado
         lock.release()
+
+
+def sa_to_dict(obj, _seen=None):
+    """
+    Convierte recursivamente un objeto SQLAlchemy en un dict serializable.
+    Incluye todos los atributos de columna y todas las relaciones,
+    evitando ciclos mediante el conjunto `_seen`.
+    """
+    if _seen is None:
+        _seen = set()
+
+    if obj is None or id(obj) in _seen:
+        return None
+
+    _seen.add(id(obj))
+    mapper = inspect(obj.__class__)
+
+    data = {c.key: getattr(obj, c.key) for c in mapper.column_attrs}
+
+    for rel in mapper.relationships:
+        value = getattr(obj, rel.key)
+        if value is None:
+            data[rel.key] = None
+        elif rel.uselist:
+            data[rel.key] = [sa_to_dict(i, _seen) for i in value]
+        else:
+            data[rel.key] = sa_to_dict(value, _seen)
+
+    return data
+
+
+def pretty_print_sa(obj):
+    """
+    Imprime en pantalla todo el contenido del objeto SQLAlchemy (y sub‑objetos)
+    con formato JSON legible.
+    """
+    print(json.dumps(sa_to_dict(obj), indent=2, ensure_ascii=False, default=str))
+
+def clean_json_numbers(obj):
+    """
+    Reemplaza NaN/inf por None y convierte numpy.* a tipos Python nativos
+    para que psycopg pueda serializar a JSON.
+    """
+    if isinstance(obj, dict):
+        return {k: clean_json_numbers(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [clean_json_numbers(v) for v in obj]
+    if isinstance(obj, (np.floating, np.integer)):
+        obj = obj.item()           # np.float64 → float, np.int64 → int
+    if isinstance(obj, float) and (math.isnan(obj) or math.isinf(obj)):
+        return None
+    return obj

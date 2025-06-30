@@ -1,0 +1,46 @@
+{
+  "username": "Affan_khan123",
+  "games_analyzed": 98,
+  "avg_acpl": 4954.99987360194,
+  "avg_match_rate": 0.28963085377235387,
+  "avg_ipr": 0.0,
+  "std_acpl": 5614.320597653278,
+  "std_match_rate": 0.09495414392212946,
+  "roi_mean": -245.7952537830869,
+  "roi_max": 2513.833333333333,
+  "roi_std": null,
+  "step_function_detected": false,
+  "step_function_magnitude": null,
+  "peer_delta_acpl": 0.0,
+  "peer_delta_match": 0.0,
+  "longest_streak": 0,
+  "selectivity_score": 46.93877551020408,
+  "time_patterns": null,
+  "opening_patterns": {
+    "mean_entropy": 4.250939988202237,
+    "novelty_depth": 5.744897959183674,
+    "opening_breadth": 30,
+    "second_choice_rate": null
+  },
+  "suspicious_games_ids": [],
+  "risk_score": 15,
+  "risk_factors": {
+    "long_streak": true
+  },
+  "confidence_level": 0,
+  "first_game_date": null,
+  "last_game_date": null,
+  "analyzed_at": "2025-06-25 13:44:03.597152",
+  "player": {
+    "username": "Affan_khan123",
+    "status": "ready",
+    "requested_at": "2025-06-25 13:41:51.085398",
+    "finished_at": "2025-06-25 13:44:02.644512",
+    "progress": 100,
+    "total_games": 98,
+    "done_games": 196,
+    "error": null,
+    "last_task_id": null,
+    "analysis": null
+  }
+}

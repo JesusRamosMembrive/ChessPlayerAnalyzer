@@ -4,10 +4,8 @@ import pandas as pd
 import numpy as np
 import chess.pgn
 import chess.polyglot
-from typing import List, Tuple
+from typing import List
 from pathlib import Path
-from math import log2
-from scipy.stats import zscore
 import logging
 
 logger = logging.getLogger(__name__)
@@ -21,7 +19,11 @@ def shannon_entropy(series: pd.Series) -> float:
     """
     H = −Σ p_i·log2(p_i)   (bits)
     """
-    counts = series.value_counts()
+    clean_series = series.dropna()
+    if clean_series.empty:
+        return 0.0
+    
+    counts = clean_series.value_counts()
     probs  = counts / counts.sum()
     return -(probs * np.log2(probs)).sum()
 
@@ -53,13 +55,13 @@ def novelty_ply(game: chess.pgn.Game, book: chess.polyglot.Reader) -> int:
 ###############################################################################
 
 def opening_entropy(games_df: pd.DataFrame,
-                    eco_col: str = "eco",
+                    eco_col: str = "eco_code",
                     elo: int | pd.Series | None = None,
                     reference_entropy_by_elo: pd.Series | None = None
                    ) -> dict:
     """
     Calcula H y, opcionalmente, un z‑score contra la distribución por tramo ELO.
-    * games_df debe contener una fila por partida con columna 'eco' (A00‑E99).
+    * games_df debe contener una fila por partida con columna 'eco_code' (A00‑E99).
 
     Devuelve { 'H_opening': float, 'H_z': float | None }
     """
@@ -127,7 +129,7 @@ def second_choice_rate(moves_df: pd.DataFrame,
 ###############################################################################
 
 def repertoire_breadth_focus(games_df: pd.DataFrame,
-                             eco_col: str = "eco",
+                             eco_col: str = "eco_code",
                              min_occurrences: int = 3
                             ) -> dict:
     """
@@ -179,6 +181,50 @@ def aggregate_opening_features(opening_key: str,
         "opening_score": 100 * (1 - novelty_depth / 50),
     }
 
+# ---------------------------------------------------------- #
+# 7.  AGREGADOR -- NIVEL JUGADOR ---------------------------- #
+# ---------------------------------------------------------- #
+def aggregate_player_opening_patterns(games_df: pd.DataFrame,
+                                      moves_dfs: list[pd.DataFrame]) -> dict:
+    """
+    Devuelve mean_entropy, novelty_depth, opening_breadth y second_choice_rate.
+    Requiere 'eco_code' y no falla si falta 'delta_eval'.
+    """
+    # ── 0. Use eco_code directly ──────────────────────────────────────────
+    if "eco_code" not in games_df.columns:
+        return {"mean_entropy": np.nan, "novelty_depth": np.nan,
+                "opening_breadth": 0, "second_choice_rate": np.nan}
+    eco_series = games_df["eco_code"]
+
+    # ── 1. Entropía y breadth ─────────────────────────────────────────
+    mean_entropy   = shannon_entropy(eco_series)
+    opening_breadth = eco_series.nunique()
+
+    # ── 2. Profundidad media de novedad ───────────────────────────────
+    nov_depths = []
+    for game_row, mv_df in zip(games_df.itertuples(), moves_dfs):
+        opening_key = getattr(game_row, "opening_key", "")
+        nov = next((i for i, mv in enumerate(mv_df.played, 1)
+                    if mv not in opening_key.split()), len(mv_df))
+        nov_depths.append(nov)
+    novelty_depth = float(np.mean(nov_depths))
+
+    # ── 3. Second-choice-rate global (sólo si hay delta_eval) ─────────
+    ranks = []
+    for mv_df in moves_dfs:
+        if "delta_eval" not in mv_df.columns:
+            continue
+        mask = mv_df["delta_eval"] > 50
+        if mask.any():
+            ranks.append(mv_df.loc[mask, "best_rank"].isin([2, 3]).mean())
+    second_choice_rate = float(np.mean(ranks)) if ranks else np.nan
+
+    return {
+        "mean_entropy": mean_entropy,
+        "novelty_depth": novelty_depth,
+        "opening_breadth": opening_breadth,
+        "second_choice_rate": second_choice_rate,
+    }
 
 ###############################################################################
 # 6.  DEMO RÁPIDO #############################################################
@@ -187,7 +233,7 @@ def aggregate_opening_features(opening_key: str,
 if __name__ == "__main__":
     # --- Dummy games_df (10 partidas) ----
     games_df = pd.DataFrame({
-        'eco': ['C54', 'B30', 'C54', 'C54', 'B30', 'A46', 'C54', 'C50', 'C50', 'B30']
+        'eco_code': ['C54', 'B30', 'C54', 'C54', 'B30', 'A46', 'C54', 'C50', 'C50', 'B30']
     })
 
     # --- Dummy moves_df (50 jugadas) -----
