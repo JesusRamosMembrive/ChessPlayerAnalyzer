@@ -1,5 +1,16 @@
 services:
   - type: web
-    name: chess-backend
-    dockerfilePath: backend/Dockerfile
-    dockerContext: .
+    name: chess-player-analyzer
+    runtime: docker
+    plan: free
+
+    # 🔧 1. Esta vez apunta a la carpeta, no al Dockerfile
+    rootDir: backend          # <— antes tenías backend/Dockerfile
+
+    # 🔧 2. Ruta del Dockerfile relativa al rootDir
+    dockerfilePath: ./Dockerfile
+
+    # Opcional (pero recomendable)
+    dockerContext: .          # contexto = carpeta backend
+    startCommand: ./entrypoint.sh   # usa el que tengas en el Dockerfile
+    healthCheckPath: /health        # si expones un endpoint de salud
