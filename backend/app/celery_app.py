@@ -16,10 +16,10 @@ from app.database import engine
 logger = logging.getLogger(__name__)
 
 
-from app.utils import fetch_games, notify_ws, update_progress, sa_to_dict
+from app.utils import fetch_games, notify_ws, update_progress, sa_to_dict, redis_client
 from celery import Celery
 from celery import chain, group, chord
-from celery.signals import task_failure
+from celery.signals import task_failure, task_revoked
 from sqlmodel import Session, select
 from sqlalchemy import func
 
@@ -52,7 +52,7 @@ MAX_DEPTH = int(os.getenv("STOCKFISH_DEPTH", "12"))
 def export_analysis_to_json(data_obj, username: str, analysis_type: str = "analysis"):
     """
     Export analysis results to JSON file in debug_results directory.
-    
+
     Args:
         data_obj: SQLAlchemy object to export (GameAnalysisDetailed or PlayerAnalysisDetailed)
         username: Player username for filename
@@ -61,20 +61,20 @@ def export_analysis_to_json(data_obj, username: str, analysis_type: str = "analy
     try:
         debug_dir = Path("debug_results")
         debug_dir.mkdir(parents=True, exist_ok=True)
-        
+
         timestamp = int(datetime.now(timezone.utc).timestamp())
-        
+
         filename = f"{username}_{timestamp}.json"
         filepath = debug_dir / filename
-        
+
         data_dict = sa_to_dict(data_obj)
-        
+
         with filepath.open("w", encoding="utf-8") as f:
             json.dump(data_dict, f, ensure_ascii=False, indent=2, default=str)
-        
+
         logger.info(f"DEBUG EXPORT: Saved {analysis_type} analysis to {filepath}")
         return str(filepath)
-        
+
     except Exception as e:
         logger.error(f"DEBUG EXPORT: Failed to export {analysis_type} analysis for {username}: {e}")
         return None
@@ -88,7 +88,7 @@ def analyze_player_detailed(_, username: str):
     Se ejecuta después de que todas sus partidas han sido analizadas.
     """
     logger.info(f"DEBUG PLAYER: Starting player detailed analysis for {username}")
-    
+
     try:
         # Verificar que hay suficientes partidas analizadas
         with Session(engine) as s:
@@ -100,10 +100,10 @@ def analyze_player_detailed(_, username: str):
                     (models.Game.black_username == username)
                 )
             ).one()
-            
+
             logger.info(f"DEBUG PLAYER: Pre-analysis check - Found {analyzed_count} games with existing analysis for {username} in GameAnalysisDetailed table")
 
-            if analyzed_count < 10:
+            if analyzed_count < 1:
                 logging.warning(f"Insuficientes partidas analizadas para {username}: {analyzed_count}")
                 return {
                     "username": username,
@@ -135,7 +135,7 @@ def analyze_player_detailed(_, username: str):
             "games_analyzed": pa.games_analyzed,
             "analyzed_at": pa.analyzed_at.isoformat()
         }
-        
+
         with Session(engine) as s:
             player = s.get(models.Player, username)
             if player:
@@ -144,9 +144,9 @@ def analyze_player_detailed(_, username: str):
                 player.finished_at = datetime.now(timezone.utc)
                 s.add(player)
                 s.commit()
-                
+
         notify_ws(username, {"status": "ready", "progress": 100})
-        
+
         logger.info(f"DEBUG PLAYER: Final analysis result for {username}: risk_score={result['risk_score']}, games_analyzed={result['games_analyzed']} (total games processed in this analysis session)")
         return result
 
@@ -166,6 +166,42 @@ def analyze_game_task(
     depth: int = MAX_DEPTH,
     multipv: int = 3,
 ):
+    # Helper para comprobar revocación de forma segura
+    def _is_aborted(task, player_username=None):
+        """Devuelve True si el worker indica que la tarea fue revocada.
+        Usa reflection para ser compatible con versiones de Celery donde
+        no existen is_aborted / revoked en request.
+        También verifica Redis para cancellación inmediata.
+        """
+        try:
+            # Check Redis cancellation flag first (fastest method)
+            if player_username:
+                cancellation_key = f"cancel:{player_username}"
+                if redis_client.get(cancellation_key):
+                    logger.info(f"Task {task.request.id} detected Redis cancellation flag for {player_username}")
+                    return True
+
+            # Celery >=5.3 expone Task.is_aborted()
+            if hasattr(task, "is_aborted"):
+                return task.is_aborted()
+            # Celery <5.3: intentar consultarlo en request (no siempre disponible)
+            if hasattr(task.request, "is_aborted"):
+                return task.request.is_aborted()
+            if getattr(task.request, "stopped", False):
+                return True
+        except Exception:
+            pass
+        return False
+
+    # Verificar si la tarea ha sido revocada
+    if self.request.called_directly:
+        # Si se ejecuta directamente, no verificar revocación
+        pass
+    else:
+        # Verificar si la tarea ha sido revocada
+        if _is_aborted(self, player):
+            logger.info(f"Task {self.request.id} aborted before start – exiting early")
+            return {"status": "revoked", "game_id": game_id}
     """
     Analiza una partida con Stockfish.
 
@@ -214,10 +250,10 @@ def analyze_game_task(
     game = chess.pgn.read_game(io.StringIO(pgn_text))
     board = game.board()
     logger.info(f"DEBUG STOCKFISH: Starting position: {board.fen()}")
-    
+
     engine_sf = chess.engine.SimpleEngine.popen_uci(ENGINE_PATH)
     logger.info(f"DEBUG STOCKFISH: Stockfish engine initialized from: {ENGINE_PATH}")
-    
+
     times_iter = iter(move_times or [])
 
     analyses: list[models.MoveAnalysis] = []
@@ -225,6 +261,12 @@ def analyze_game_task(
     logger.info(f"DEBUG STOCKFISH: Total moves to analyze: {total_moves}")
 
     for idx, move in enumerate(game.mainline_moves(), start=1):
+        # Verificar revocación cada movimiento (más frecuente para respuesta rápida)
+        if not self.request.called_directly and _is_aborted(self, player):
+            logger.info(f"Task {self.request.id} has been revoked during move analysis, stopping execution")
+            engine_sf.quit()
+            return {"status": "revoked", "game_id": game_id, "moves_analyzed": idx - 1}
+
         legal_cnt = board.legal_moves.count()
 
         # 1. Eval antes de mover (posición actual)
@@ -330,7 +372,13 @@ def analyze_game_detailed(game_id: int, username: str) -> dict[str, int | str | 
     • Notifica progreso (+1 unidad) y devuelve un resumen ligero.
     """
     logger.info(f"DEBUG DETAILED: Starting detailed analysis for game_id: {game_id}, username: {username}")
-    
+
+    # Check for cancellation at the start
+    cancellation_key = f"cancel:{username}"
+    if redis_client.get(cancellation_key):
+        logger.info(f"analyze_game_detailed detected Redis cancellation flag for {username}")
+        return {"status": "cancelled", "game_id": game_id, "username": username}
+
     # ── 1. Cargar partida + movimientos ────────────────────────────────
 
     # ── 1. Cargar Game + movimientos ────────────────────────────────────────
@@ -344,7 +392,7 @@ def analyze_game_detailed(game_id: int, username: str) -> dict[str, int | str | 
 
         # DataFrame de la partida actual (necesita game.moves *antes* de cerrar)
         game_df = prepare_moves_dataframe(game, username)
-        
+
         player_color = 'white' if game.white_username == username else 'black'
         logger.info(f"DEBUG DETAILED: Game DataFrame shape: {game_df.shape}")
         logger.info(f"DEBUG DETAILED: Game DataFrame columns: {list(game_df.columns)}")
@@ -358,7 +406,7 @@ def analyze_game_detailed(game_id: int, username: str) -> dict[str, int | str | 
         # ── 2. DataFrame de todas las partidas del jugador ──────────────────────
         # Creamos el objeto python-chess Game *antes* de procesar
         game_pgn_obj = chess.pgn.read_game(io.StringIO(game.pgn))
-        
+
         try:
             games_df = engine_helper._get_player_games_with_analysis(username, s)
         except Exception as e:
@@ -372,15 +420,15 @@ def analyze_game_detailed(game_id: int, username: str) -> dict[str, int | str | 
     logger.info("DEBUG DETAILED: Starting quality features calculation")
     q = q_feats(game_df, elo=game.white_elo if player_color == 'white' else game.black_elo, player_color=player_color)
     logger.info(f"DEBUG DETAILED: Quality features: {q}")
-    
+
     logger.info("DEBUG DETAILED: Starting timing features calculation")
     t = t_feats(game_df)
     logger.info(f"DEBUG DETAILED: Timing features: {t}")
-    
+
     logger.info("DEBUG DETAILED: Starting opening features calculation")
     o = o_feats(opening_key, eco_code, game_df, games_df)
     logger.info(f"DEBUG DETAILED: Opening features: {o}")
-    
+
     logger.info("DEBUG DETAILED: Starting endgame features calculation")
     e = e_feats(game_pgn_obj, game_df, TB_PATH if TB_PATH and Path(TB_PATH).exists() else None)
     logger.info(f"DEBUG DETAILED: Endgame features: {e}")
@@ -463,35 +511,74 @@ def analyze_game_detailed(game_id: int, username: str) -> dict[str, int | str | 
     logger.info("DEBUG DETAILED: analyze_game_detailed result: %s", result)
     return result
 
-@celery_app.task(name="process_player_enhanced")
-def process_player_enhanced(username: str, months: int = 6):
+@celery_app.task(name="process_player_enhanced", bind=True)
+def process_player_enhanced(self, username: str, months: int = 6):
     logger.info(f"DEBUG CELERY: Starting process_player_enhanced for {username}, months: {months}")
-    
+
+    # Helper para comprobar revocación de forma segura
+    def _is_aborted(task, player_username=None):
+        try:
+            # Check Redis cancellation flag first (fastest method)
+            if player_username:
+                cancellation_key = f"cancel:{player_username}"
+                if redis_client.get(cancellation_key):
+                    logger.info(f"Task {task.request.id} detected Redis cancellation flag for {player_username}")
+                    return True
+
+            if hasattr(task, "is_aborted"):
+                return task.is_aborted()
+            if hasattr(task.request, "is_aborted"):
+                return task.request.is_aborted()
+            if getattr(task.request, "stopped", False):
+                return True
+        except Exception:
+            pass
+        return False
+
     # 1. DESCARGAR partidas y crear registros Game ──────────────────────────
     logger.info(f"DEBUG CELERY: Fetching games for {username}")
     games = fetch_games(username, months)
     logger.info(f"DEBUG CELERY: Downloaded {len(games)} games")
     logger.info(f"DEBUG CELERY: Sample game structure: {games[0] if games else 'No games'}")
-    
+
+    # Verificar revocación después de descargar partidas
+    if not self.request.called_directly and _is_aborted(self, username):
+        logger.info(f"Task {self.request.id} has been revoked after fetching games, stopping execution")
+        return {"status": "revoked", "username": username, "games_fetched": len(games)}
+
     game_ids = []
 
     with Session(engine) as s:
-        player = models.Player(
-            username=username,
-            status="pending",
-            requested_at=datetime.now(timezone.utc),
-            progress=0,
-            total_games=len(games),
-            done_games=0,
-        )
-        s.merge(player);  s.commit()
+        player = s.get(models.Player, username)
+        if player is None:
+            player = models.Player(
+                username=username,
+                status="pending",
+                requested_at=datetime.now(timezone.utc),
+                progress=0,
+                total_games=len(games),
+                done_games=0,
+            )
+            s.add(player)
+        else:
+            player.status = "pending"
+            player.requested_at = datetime.now(timezone.utc)
+            player.progress = 0
+            player.total_games = len(games)
+            player.done_games = 0
+        s.commit()
         logger.info(f"DEBUG CELERY: Created/updated player record for {username}")
 
     chains = []          # ← aquí iremos acumulando chain por partida
     for i, g in enumerate(games):
+        # Verificar revocación cada 5 partidas (más frecuente)
+        if i % 5 == 0 and not self.request.called_directly and _is_aborted(self, username):
+            logger.info(f"Task {self.request.id} has been revoked during game processing, stopping execution")
+            return {"status": "revoked", "username": username, "games_processed": i}
+
         logger.info(f"DEBUG CELERY: Processing game {i+1}/{len(games)}")
         logger.info(f"DEBUG CELERY: Game data - white: {g.get('white')}, black: {g.get('black')}, white_elo: {g.get('white_elo')}, black_elo: {g.get('black_elo')}")
-        
+
         with Session(engine) as s:
             existing_game = s.exec(
                 select(models.Game).where(
@@ -500,7 +587,7 @@ def process_player_enhanced(username: str, months: int = 6):
                     (models.Game.black_username == g.get("black"))
                 )
             ).first()
-            
+
             if existing_game:
                 gid = existing_game.id
                 game_ids.append(gid)
@@ -525,17 +612,25 @@ def process_player_enhanced(username: str, months: int = 6):
         chains.append(chain(basic, detailed))
 
     logger.info(f"DEBUG CELERY: Created {len(chains)} analysis chains")
-    
+
     # 3. group & chord: cuando todas las partidas acaben … ──────────────────
     #    se lanza analyze_player_detailed(username)
     full_workflow = chord(group(chains), analyze_player_detailed.s(username))
-    full_workflow.delay()
+    chord_result = full_workflow.delay()  # AsyncResult del body
+    header_id = chord_result.parent.id if chord_result.parent else chord_result.id
+
+    # ── Guardar el ID del grupo/encabezado para poder revocarlo ────────────
+    with Session(engine) as s:
+        pl_upd = s.get(models.Player, username)
+        if pl_upd:
+            pl_upd.last_task_id = header_id
+            s.commit()
 
     result = {
         "username": username,
         "games_queued": len(games),
         "enhanced_analysis": True,
-        "task_id": full_workflow.id,
+        "task_id": header_id,
     }
     logger.info("DEBUG CELERY: process_player_enhanced result: %s", result)
     return result
@@ -553,6 +648,27 @@ def on_task_failure(sender=None, task_id=None, args=None, kwargs=None, **k):
                 s.add(pl); s.commit()
         if username:
             notify_ws(username, {"status": "error"})
+
+
+@task_revoked.connect
+def on_task_revoked(sender=None, request=None, terminated=None, signum=None, expired=None, **k):
+    """Maneja la revocación de tareas."""
+    logger.info(f"Task {request.id if request else 'unknown'} has been revoked (terminated={terminated}, signum={signum}, expired={expired})")
+
+    if request and request.task == "process_player_enhanced":
+        username = request.args[0] if request.args else None
+        if username:
+            logger.info(f"Updating player {username} status after task revocation")
+            with Session(engine) as s:
+                pl = s.get(models.Player, username)
+                if pl:
+                    pl.status = "ready"
+                    pl.error = "Analysis stopped by user"
+                    pl.finished_at = datetime.now(timezone.utc)
+                    s.add(pl)
+                    s.commit()
+                    logger.info(f"Player {username} status updated to ready after revocation")
+            notify_ws(username, {"status": "stopped", "message": "Analysis stopped by user"})
 
 
 @celery_app.task(name="process_player")

@@ -104,6 +104,7 @@ class GameAnalysisDetailed(SQLModel, table=True):
 
 
 class PlayerStatus(str, enum.Enum):
+    not_analyzed = "not_analyzed"
     pending = "pending"
     ready   = "ready"
     error   = "error"

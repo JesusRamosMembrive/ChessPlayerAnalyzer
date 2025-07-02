@@ -29,11 +29,11 @@ from tabulate import tabulate  # pip install tabulate
 from tqdm import tqdm  # pip install tqdm
 import time
 
-# # Logger
-# logging.basicConfig(
-#     level=logging.INFO,          # muestra info, warning y error
-#     format="%(message)s"         # sin adornos de fecha/módulo
-# )
+# Logger
+logging.basicConfig(
+    level=logging.INFO,          # muestra info, warning y error
+    format="%(message)s"         # sin adornos de fecha/módulo
+)
 
 logger = logging.getLogger(__name__)
 
@@ -197,7 +197,7 @@ def cmd_analyze(args: argparse.Namespace) -> None:
     logger.info("DEBUG CLI: Starting analysis command")
     logger.info(f"DEBUG CLI: Input parameters - username: {args.username}, host: {args.host}, timeout: {args.timeout}")
     logger.info(f"DEBUG CLI: Analysis timeout: {args.analysis_timeout}, wait: {args.wait}, force: {args.force}")
-    
+
     with make_client(args.host, args.timeout) as client:
         # Primero verificar si ya existe
         logger.info(f"DEBUG CLI: Checking existing player status for {args.username}")
@@ -266,33 +266,73 @@ def cmd_cancel(args: argparse.Namespace) -> None:
     """Cancela el análisis en curso de un jugador."""
     with make_client(args.host, args.timeout) as client:
         # Primero verificar el estado actual
-        resp = client.get(ENDPOINT_PLAYER.format(username=args.username))
+        player_url = ENDPOINT_PLAYER.format(username=args.username)
+        logger.info(f"DEBUG CANCEL: Checking player status at {args.host}{player_url}")
+        resp = client.get(player_url)
+        logger.info(f"DEBUG CANCEL: Response status code: {resp.status_code}")
+
         if resp.status_code == 404:
             logger.error(f"❌ Jugador '{args.username}' no encontrado")
             return
 
         player_data = resp.json()
-        if player_data.get('status') != 'pending':
-            logger.warning(f"⚠️  No hay análisis en curso. Estado actual: {player_data.get('status')}")
-            return
+        logger.info(f"DEBUG CANCEL: Player data: {json.dumps(player_data, indent=2, ensure_ascii=False)}")
+
+        # Verificar si hay un análisis en progreso
+        # Consideramos que hay un análisis en progreso si:
+        # 1. El estado es "pending" O
+        # 2. Hay progreso > 0 O
+        # 3. Hay un task_id
+        status = player_data.get('status')
+        progress = player_data.get('progress', 0)
+        task_id = player_data.get('last_task_id')
+
+        logger.info(f"DEBUG CANCEL: Analysis status check - status: {status}, progress: {progress}, task_id: {task_id}")
+
+        # Un análisis está en progreso si el estado es "pending" O si hay progreso > 0
+        analysis_in_progress = (status == 'pending') or (progress > 0) or (task_id is not None)
+
+        if not analysis_in_progress:
+            if args.force:
+                logger.warning(f"⚠️  No se detecta análisis en curso, pero se forzará la cancelación (--force)")
+            else:
+                logger.warning(f"⚠️  No hay análisis en progreso. Estado actual: {status}")
+                logger.info("Usa --force para forzar la cancelación si crees que hay un análisis en curso.")
+                return
 
         # Intentar cancelar
+        stop_url = f"{player_url}/stop"
+        logger.info(f"DEBUG CANCEL: Sending stop request to {args.host}{stop_url}")
         logger.info(f"🛑 Cancelando análisis de {args.username}...")
-        cancel_resp = client.post(f"{ENDPOINT_PLAYER.format(username=args.username)}/cancel")
+        cancel_resp = client.post(stop_url)
+        logger.info(f"DEBUG CANCEL: Stop response status code: {cancel_resp.status_code}")
 
-        if cancel_resp.status_code == 200:
-            data = cancel_resp.json()
-            if data.get('status') == 'cancelled':
-                logger.info("✅ Análisis cancelado exitosamente")
-                logger.info(f"   Task ID: {data.get('task_id')}")
+        try:
+            response_text = cancel_resp.text
+            logger.info(f"DEBUG CANCEL: Raw response: {response_text}")
+
+            if cancel_resp.status_code == 200:
+                data = cancel_resp.json()
+                logger.info(f"DEBUG CANCEL: Response data: {json.dumps(data, indent=2, ensure_ascii=False)}")
+
+                if data.get('status') == 'stopped':
+                    logger.info("✅ Análisis cancelado exitosamente")
+                    logger.info(f"   Task ID: {data.get('task_id')}")
+                else:
+                    logger.warning(f"⚠️  {data.get('message')}")
             else:
-                logger.warning(f"⚠️  {data.get('message')}")
-        else:
-            try:
-                error_detail = cancel_resp.json().get('detail', 'Error desconocido')
-            except:
-                error_detail = cancel_resp.text
-            logger.error(f"❌ Error al cancelar: {error_detail}")
+                try:
+                    error_detail = cancel_resp.json().get('detail', 'Error desconocido')
+                except:
+                    error_detail = response_text
+
+                # Handle specific error cases
+                if "Player not found" in str(error_detail):
+                    logger.error(f"❌ Error canceling: Not Found")
+                else:
+                    logger.error(f"❌ Error canceling: {error_detail}")
+        except Exception as e:
+            logger.error(f"DEBUG CANCEL: Error processing response: {str(e)}")
 
 
 def cmd_active(args: argparse.Namespace) -> None:
@@ -419,6 +459,8 @@ def build_parser() -> argparse.ArgumentParser:
     # cancel
     sp_cancel = sub.add_parser("cancel", help="Cancelar análisis en curso")
     sp_cancel.add_argument("username", help="Nombre de usuario en chess.com")
+    sp_cancel.add_argument("--force", "-f", action="store_true",
+                          help="Forzar cancelación incluso si no se detecta análisis en curso")
     sp_cancel.set_defaults(func=cmd_cancel)
 
     # active
