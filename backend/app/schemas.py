@@ -4,7 +4,7 @@ Refactored to make optional fields truly optional and match
 PlayerAnalysisDetailed without triggering ResponseValidationError.
 """
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Dict, Optional, List, Literal
 from pydantic import BaseModel, Field
 
 # ── Public API response models ────────────────────────────────────────────────
@@ -160,9 +160,53 @@ class PlayerMetricsOut(BaseModel):
         orm_mode = True  # allow returning SQLModel instances directly
 
 
+# ── New request / response models for API validation ─────────────────────────
+class AnalyzeGameIn(BaseModel):
+    """Request payload for /analyze endpoint."""
+
+    pgn: str = Field(..., description="PGN text of the game to analyze")
+    move_times: Optional[List[int]] = Field(
+        None, description="Optional list of move times in milliseconds"
+    )
+
+
+class TaskQueuedOut(BaseModel):
+    """Standard response when a background task has been queued."""
+
+    game_id: Optional[int] = Field(None, description="Identifier of the game, if applicable")
+    task_id: str = Field(..., description="Celery task identifier")
+    status: Literal["queued"]
+
+
+class MoveOut(BaseModel):
+    move_number: int
+    played: str
+    best: Optional[str] = None
+    best_rank: Optional[int] = None
+    cp_loss: Optional[int] = None
+
+
+class GameOut(BaseModel):
+    id: int
+    created_at: datetime
+    pgn: str
+    white_username: Optional[str] = None
+    black_username: Optional[str] = None
+    eco_code: Optional[str] = None
+    opening_key: Optional[str] = None
+    moves: List[MoveOut] | None = None
+
+    class Config:
+        orm_mode = True
+
+
 __all__ = [
     "PlayerMetricsOut",
     "TimePatternsOut",
     "OpeningPatternsOut",
     "RiskAssessmentOut",
+    "AnalyzeGameIn",
+    "TaskQueuedOut",
+    "MoveOut",
+    "GameOut",
 ]

@@ -101,6 +101,32 @@ legacy_router.include_router(v1_analysis.router, prefix="/analyze", tags=["legac
 # Include the legacy router
 app.include_router(legacy_router)
 
+# ────────────────────────────────────────────────────────────────────────────
+# Back-compat single-game analyze endpoint using new validation models
+# This mirrors /api/v1/games/analyze but keeps the old path used by tests.
+# ────────────────────────────────────────────────────────────────────────────
+
+from app.schemas import AnalyzeGameIn, TaskQueuedOut  # pylint: disable=wrong-import-position
+from app.celery_app import analyze_game_task  # pylint: disable=wrong-import-position
+
+
+@app.post("/analyze", response_model=TaskQueuedOut, tags=["legacy"])
+def analyze_game_root(request: AnalyzeGameIn, session: Session = Depends(get_session)):
+    """Legacy alias for single-game analysis (POST /analyze)."""
+    try:
+        # Persist game with minimal info – will be updated by Celery
+        game_db = models.Game(pgn=request.pgn, move_times=request.move_times)
+        session.add(game_db)
+        session.commit()
+        session.refresh(game_db)
+
+        task = analyze_game_task.delay(request.pgn, game_db.id, move_times=request.move_times)
+
+        return TaskQueuedOut(game_id=game_db.id, task_id=task.id, status="queued")
+    except Exception as exc:  # noqa: BLE001
+        session.rollback()
+        raise HTTPException(status_code=500, detail=str(exc))
+
 @app.get("/tasks/{task_id}")
 def task_status(task_id: str):
     """Obtiene el estado de una tarea de Celery."""

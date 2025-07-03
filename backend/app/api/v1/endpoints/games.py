@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
@@ -7,10 +7,11 @@ from app import models
 from app.database import get_session
 from app.celery_app import analyze_game_task, celery_app
 from celery.result import AsyncResult
+from app.schemas import AnalyzeGameIn, TaskQueuedOut, GameOut
 
 router = APIRouter()
 
-@router.get("/{game_id}")
+@router.get("/{game_id}", response_model=GameOut)
 async def get_game(game_id: int, session: Session = Depends(get_session)):
     """Get details of an analyzed game."""
     game = session.get(models.Game, game_id)
@@ -36,28 +37,23 @@ async def get_game(game_id: int, session: Session = Depends(get_session)):
         ] if game.moves else [],
     }
 
-@router.post("/analyze")
+@router.post("/analyze", response_model=TaskQueuedOut)
 async def analyze_game(
-    pgn: str,
-    move_times: Optional[List[int]] = None,
+    req: AnalyzeGameIn,
     session: Session = Depends(get_session)
 ):
     """Analyze a single game with Stockfish."""
     try:
         # Create game record in database
-        game_db = models.Game(pgn=pgn, move_times=move_times)
+        game_db = models.Game(pgn=req.pgn, move_times=req.move_times)
         session.add(game_db)
         session.commit()
         session.refresh(game_db)
 
         # Start Celery task for analysis
-        task = analyze_game_task.delay(pgn, game_db.id, move_times=move_times)
+        task = analyze_game_task.delay(req.pgn, game_db.id, move_times=req.move_times)
 
-        return {
-            "game_id": game_db.id,
-            "task_id": task.id,
-            "status": "queued"
-        }
+        return TaskQueuedOut(game_id=game_db.id, task_id=task.id, status="queued")
     except Exception as e:
         session.rollback()
         raise HTTPException(status_code=500, detail=str(e))
