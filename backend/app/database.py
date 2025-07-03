@@ -2,7 +2,7 @@
 """Conexión global a PostgreSQL y helper para obtener sesiones."""
 import os
 
-from sqlmodel import create_engine, Session
+from sqlmodel import SQLModel, create_engine, Session
 
 # La URL debe coincidir con docker-compose.yml
 DB_URL = os.getenv(
@@ -16,3 +16,9 @@ def get_session():
     """Dependencia FastAPI que abre y cierra la sesión por petición."""
     with Session(engine) as session:
         yield session
+
+
+def init_db():
+    """Initialize database tables."""
+    from app import models  # Import models here to avoid circular imports
+    SQLModel.metadata.create_all(engine)

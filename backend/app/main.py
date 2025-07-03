@@ -7,19 +7,16 @@ import logging
 from datetime import datetime, UTC
 from typing import List, Optional, Literal
 
-from app import models
-from app.celery_app import celery_app, analyze_game_task, process_player_enhanced as process_player
-from app.database import get_session
-from app.utils import redis_client, notify_ws, player_lock
-from celery.result import AsyncResult
-from fastapi import Depends, HTTPException, status
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 from sqlmodel import Session, select
-from sse_starlette.sse import EventSourceResponse
-from app.schemas import PlayerMetricsOut
 
+# Import versioned API routers and models
+from app import models
+from app.schemas import PlayerMetricsOut
+from app.api.v1.endpoints import health as health_endpoints
+from app.api.v1 import api_router as v1_router
+from app.database import get_session, init_db
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -29,7 +26,10 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="Chess Analyzer API",
     version="1.0.0",
-    description="Análisis de partidas de ajedrez con Stockfish"
+    description="Análisis de partidas de ajedrez con Stockfish",
+    docs_url="/api/v1/docs",
+    redoc_url="/api/v1/redoc",
+    openapi_url="/api/v1/openapi.json"
 )
 
 # Configurar CORS
@@ -41,68 +41,65 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Modelos Pydantic para requests
-class GameAnalysisRequest(BaseModel):
-    pgn: str
-    move_times: Optional[List[int]] = None
+# Include versioned API routers
+app.include_router(health_endpoints.router, prefix="/api/v1", tags=["health"])
+app.include_router(v1_router, prefix="/api/v1")
 
-# ============================================================
-# ENDPOINTS BÁSICOS
-# ============================================================
-
+# Root endpoint for API discovery
 @app.get("/")
-def root():
-    """Endpoint raíz con información de la API."""
+async def root():
+    """Root endpoint with API version information."""
     return {
         "name": "Chess Analyzer API",
         "version": "1.0.0",
+        "documentation": "/api/v1/docs",
+        "api_versions": ["v1"],
+        "current_version": "v1",
         "endpoints": {
-            "analyze": "POST /analyze",
-            "players": "GET/POST /players/{username}",
-            "games": "GET /games/{game_id}",
-            "metrics": "GET /metrics/game/{game_id}",
-            "stop_analysis": {
-                "player": "POST /players/{username}/stop",
-                "game": "POST /games/{game_id}/stop?task_id={task_id}"
+            "v1": {
+                "documentation": "/api/v1/docs",
+                "openapi_schema": "/api/v1/openapi.json",
+                "health": "/api/v1/health"
             }
         }
     }
 
+# Health check endpoint for backward compatibility
 @app.get("/health")
-def health_check():
-    """Health check para Docker/Kubernetes."""
-    return {"status": "healthy", "timestamp": datetime.now(UTC).isoformat()}
+async def health_check():
+    """Health check endpoint for backward compatibility."""
+    return {"status": "healthy", "version": "v1", "timestamp": datetime.now(UTC).isoformat()}
+
+# Initialize database tables on startup
+@app.on_event("startup")
+async def startup_event():
+    """Initialize database on startup."""
+    init_db()
+    logger.info("Application startup: Database initialized")
 
 # ============================================================
-# ANÁLISIS DE PARTIDAS
+# LEGACY ENDPOINTS (for backward compatibility)
+# These will be deprecated in a future version
 # ============================================================
 
-@app.post("/analyze")
-def analyze(
-    req: GameAnalysisRequest,
-    session: Session = Depends(get_session),
-):
-    """Analiza una partida individual con Stockfish."""
-    try:
-        # Crear registro en BD
-        game_db = models.Game(pgn=req.pgn, move_times=req.move_times)
-        session.add(game_db)
-        session.commit()
-        session.refresh(game_db)
+# Import the legacy endpoints at the bottom of the file to avoid circular imports
+from fastapi import APIRouter
 
-        # Lanzar tarea Celery
-        task = analyze_game_task.delay(req.pgn, game_db.id, move_times=req.move_times)
+# Create a router for legacy endpoints
+legacy_router = APIRouter()
 
-        logger.info(f"Análisis iniciado - Game ID: {game_db.id}, Task ID: {task.id}")
+# Import and include the versioned routers for legacy compatibility
+from app.api.v1.endpoints import games as v1_games
+from app.api.v1.endpoints import players as v1_players
+from app.api.v1.endpoints import analysis as v1_analysis
 
-        return {
-            "game_id": game_db.id,
-            "task_id": task.id,
-            "state": task.state,
-        }
-    except Exception as e:
-        logger.error(f"Error en analyze: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+# Map legacy routes to versioned endpoints
+legacy_router.include_router(v1_games.router, prefix="/games", tags=["legacy"])
+legacy_router.include_router(v1_players.router, prefix="/players", tags=["legacy"])
+legacy_router.include_router(v1_analysis.router, prefix="/analyze", tags=["legacy"])
+
+# Include the legacy router
+app.include_router(legacy_router)
 
 @app.get("/tasks/{task_id}")
 def task_status(task_id: str):

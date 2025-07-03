@@ -1,0 +1,29 @@
+from datetime import datetime, timezone
+from fastapi import APIRouter, Depends
+from sqlmodel import Session
+
+from app.database import get_session
+
+router = APIRouter()
+
+@router.get("/health")
+async def health_check(session: Session = Depends(get_session)):
+    """Health check endpoint for the API."""
+    # Test database connection
+    try:
+        session.execute("SELECT 1")
+        db_status = "connected"
+    except Exception as e:
+        db_status = f"error: {str(e)}"
+    
+    return {
+        "status": "healthy",
+        "version": "v1",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "database": db_status,
+        "services": {
+            "database": db_status == "connected",
+            "celery": True,  # Would need actual Celery health check
+            "redis": True    # Would need actual Redis health check
+        }
+    }
