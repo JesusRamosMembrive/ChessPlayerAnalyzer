@@ -17,6 +17,7 @@ from app.schemas import PlayerMetricsOut
 from app.api.v1.endpoints import health as health_endpoints
 from app.api.v1 import api_router as v1_router
 from app.database import get_session, init_db
+from app.error_handlers import register_exception_handlers
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -31,6 +32,9 @@ app = FastAPI(
     redoc_url="/api/v1/redoc",
     openapi_url="/api/v1/openapi.json"
 )
+
+# Registrar manejadores de errores personalizados
+register_exception_handlers(app)
 
 # Configurar CORS
 app.add_middleware(
