@@ -18,6 +18,9 @@ from app.api.v1.endpoints import health as health_endpoints
 from app.api.v1 import api_router as v1_router
 from app.database import get_session, init_db
 from app.error_handlers import register_exception_handlers
+from app.middleware.rate_limiter import RateLimitMiddleware  # nuevo middleware
+from app.middleware.request_logger import RequestLoggingMiddleware  # nuevo middleware de logging
+from prometheus_fastapi_instrumentator import Instrumentator
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -108,6 +111,23 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ───────────────────────────────────────────────────────────
+# Rate limiting global
+# ───────────────────────────────────────────────────────────
+# Se puede ajustar mediante variables de entorno:
+#   RATE_LIMIT_MAX_REQUESTS (por defecto 100)
+#   RATE_LIMIT_WINDOW_SECONDS (por defecto 60)
+app.add_middleware(RateLimitMiddleware)
+
+# Middleware de logging de peticiones
+app.add_middleware(RequestLoggingMiddleware)
+
+# ───────────────────────────────────────────────────────────
+# Métricas Prometheus
+# ───────────────────────────────────────────────────────────
+# Esto añade el endpoint `/metrics` y registra métricas básicas
+Instrumentator().instrument(app).expose(app)
 
 # Include versioned API routers
 app.include_router(health_endpoints.router, prefix="/api/v1", tags=["health"])
