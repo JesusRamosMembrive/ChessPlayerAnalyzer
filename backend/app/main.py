@@ -23,14 +23,78 @@ from app.error_handlers import register_exception_handlers
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Metadatos de etiquetas para la documentación OpenAPI
+tags_metadata = [
+    {
+        "name": "health",
+        "description": "Comprobaciones de estado del servicio y disponibilidad.",
+    },
+    {
+        "name": "players",
+        "description": "Crear, consultar y administrar análisis de jugadores.",
+        "externalDocs": {
+            "description": "Documentación de modelo Player",
+            "url": "https://github.com/OvertureLabs/ChessPlayerAnalyzer/blob/main/docs/tasks.md#player-flow"
+        }
+    },
+    {
+        "name": "games",
+        "description": "Operaciones relacionadas con partidas individuales (PGN)."
+    },
+    {
+        "name": "analysis",
+        "description": "Endpoints que devuelven métricas de análisis para partidas y jugadores."
+    },
+    {
+        "name": "tasks",
+        "description": "Monitorización y control de tareas asíncronas de Celery."
+    },
+    {
+        "name": "legacy",
+        "description": "Rutas mantenidas por compatibilidad que serán deprecadas."
+    },
+    {
+        "name": "v1",
+        "description": "Enrutador raíz que agrupa todos los endpoints versión 1."
+    },
+]
+
 # Crear aplicación FastAPI
 app = FastAPI(
     title="Chess Analyzer API",
     version="1.0.0",
-    description="Análisis de partidas de ajedrez con Stockfish",
+    description="""
+    # Chess Analyzer API
+
+    Bienvenido a la API de **Chess Analyzer**. Este servicio expone endpoints para:
+
+    * Analizar partidas PGN individuales o colecciones completas (jugadores).
+    * Obtener métricas de rendimiento (centipawns perdidos, precisión, etc.).
+    * Monitorizar, cancelar y reiniciar tareas de análisis en tiempo real.
+
+    ## Versionado
+    Actualmente sólo se encuentra disponible la versión **v1**. Todas las rutas están bajo el prefijo `/api/v1/*`.
+
+    ## Respuestas de ejemplo
+    En la documentación de cada endpoint encontrarás ejemplos reales de peticiones y respuestas que facilitan la integración.
+
+    ## Estado y contribuciones
+    El código está disponible bajo licencia MIT. ¡Se aceptan *pull-requests* y *issues*!
+    """,
+    terms_of_service="https://github.com/OvertureLabs/ChessPlayerAnalyzer/blob/main/LICENSE",
+    contact={
+        "name": "Equipo Chess Analyzer",
+        "url": "https://github.com/OvertureLabs/ChessPlayerAnalyzer",
+        "email": "support@chessplayeranalyzer.io",
+    },
+    license_info={
+        "name": "MIT",
+        "url": "https://opensource.org/licenses/MIT",
+    },
     docs_url="/api/v1/docs",
     redoc_url="/api/v1/redoc",
-    openapi_url="/api/v1/openapi.json"
+    openapi_url="/api/v1/openapi.json",
+    openapi_tags=tags_metadata,
 )
 
 # Registrar manejadores de errores personalizados

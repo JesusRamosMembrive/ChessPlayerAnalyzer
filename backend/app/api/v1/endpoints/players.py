@@ -7,10 +7,22 @@ from app import models
 from app.database import get_session
 from app.celery_app import process_player_enhanced as process_player
 from app.utils import redis_client, notify_ws, player_lock
+from app.schemas import (
+    PlayerStatusOut,
+    PlayerAnalyzeOut,
+    PlayerDeleteOut,
+    PlayerListItemOut,
+)
 
 router = APIRouter()
 
-@router.get("/{username}")
+@router.get(
+    "/{username}",
+    response_model=PlayerStatusOut,
+    summary="Obtener estado de análisis de jugador",
+    description="Devuelve el progreso y estado actual del análisis para **username**.",
+    responses={404: {"description": "Jugador no encontrado"}},
+)
 async def get_player(username: str, session: Session = Depends(get_session)):
     """Get player analysis status."""
     player = session.get(models.Player, username)
@@ -35,7 +47,13 @@ async def get_player(username: str, session: Session = Depends(get_session)):
         "last_task_id": player.last_task_id
     }
 
-@router.post("/{username}", status_code=status.HTTP_202_ACCEPTED)
+@router.post(
+    "/{username}",
+    response_model=PlayerAnalyzeOut,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Encolar análisis de jugador",
+    description="Inicia el procesamiento de partidas de **username** en los últimos *months* meses.",
+)
 async def analyze_player(
     username: str,
     months: int = 6,
@@ -76,7 +94,13 @@ async def analyze_player(
             "task_id": task.id
         }
 
-@router.delete("/{username}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{username}",
+    response_model=PlayerDeleteOut,
+    summary="Eliminar análisis de jugador",
+    description="Borra al jugador y todos sus datos de análisis.",
+    responses={404: {"description": "Jugador no encontrado"}},
+)
 async def delete_player(username: str, session: Session = Depends(get_session)):
     """Delete a player and their analysis data."""
     player = session.get(models.Player, username)
@@ -87,7 +111,12 @@ async def delete_player(username: str, session: Session = Depends(get_session)):
     session.commit()
     return {"status": "deleted", "username": username}
 
-@router.get("/")
+@router.get(
+    "/",
+    response_model=List[PlayerListItemOut],
+    summary="Listar jugadores",
+    description="Devuelve la lista de jugadores analizados o en cola con opción de filtrar por *status*.",
+)
 async def list_players(
     status: Optional[models.PlayerStatus] = None,
     session: Session = Depends(get_session),

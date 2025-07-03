@@ -3,10 +3,16 @@ from fastapi import APIRouter, Depends
 from sqlmodel import Session
 
 from app.database import get_session
+from app.schemas import HealthOut
 
 router = APIRouter()
 
-@router.get("/health")
+@router.get(
+    "/health",
+    response_model=HealthOut,
+    summary="Comprobación de salud del servicio",
+    description="Devuelve información de estado y conexión a servicios subyacentes.",
+)
 async def health_check(session: Session = Depends(get_session)):
     """Health check endpoint for the API."""
     # Test database connection

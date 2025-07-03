@@ -5,10 +5,16 @@ from celery.result import AsyncResult
 
 from app.celery_app import celery_app
 from app.database import get_session
+from app.schemas import TaskStatusOut, TaskCancelOut, TaskResultOut
 
 router = APIRouter()
 
-@router.get("/{task_id}")
+@router.get(
+    "/{task_id}",
+    response_model=TaskStatusOut,
+    summary="Obtener estado de una tarea Celery",
+    description="Devuelve el estado actual, mensaje y progreso de la tarea identificada por **task_id**.",
+)
 async def get_task_status(task_id: str):
     """Get the status of a Celery task."""
     try:
@@ -45,7 +51,12 @@ async def get_task_status(task_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error getting task status: {str(e)}")
 
-@router.delete("/{task_id}")
+@router.delete(
+    "/{task_id}",
+    response_model=TaskCancelOut,
+    summary="Cancelar tarea Celery",
+    description="Revoca una tarea en ejecución o pendiente.",
+)
 async def cancel_task(task_id: str):
     """Cancel a running Celery task."""
     try:
@@ -69,7 +80,13 @@ async def cancel_task(task_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error cancelling task: {str(e)}")
 
-@router.get("/{task_id}/result")
+@router.get(
+    "/{task_id}/result",
+    response_model=TaskResultOut,
+    summary="Obtener resultado de tarea Celery",
+    description="Devuelve el resultado si la tarea ha finalizado o 202 si sigue en progreso.",
+    responses={202: {"description": "Tarea no completada aún"}},
+)
 async def get_task_result(task_id: str):
     """Get the result of a completed Celery task."""
     try:

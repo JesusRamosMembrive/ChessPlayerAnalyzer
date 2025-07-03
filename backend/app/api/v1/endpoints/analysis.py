@@ -5,10 +5,19 @@ from sqlmodel import Session
 from app import models
 from app.database import get_session
 from app.analysis.engine import ChessAnalysisEngine
+from app.schemas import GameMetricsOut, PlayerMetricsSummaryOut
 
 router = APIRouter()
 
-@router.get("/metrics/game/{game_id}")
+@router.get(
+    "/metrics/game/{game_id}",
+    response_model=GameMetricsOut,
+    summary="Obtener métricas detalladas de una partida",
+    description="Devuelve métricas de calidad, tiempo y sospecha generadas por el motor de análisis para la partida identificada por **game_id**.",
+    responses={
+        404: {"description": "Partida o análisis detallado no encontrado"}
+    },
+)
 async def get_game_metrics(game_id: int, session: Session = Depends(get_session)):
     """Get detailed metrics for an analyzed game."""
     game = session.get(models.Game, game_id)
@@ -38,7 +47,15 @@ async def get_game_metrics(game_id: int, session: Session = Depends(get_session)
         "analyzed_at": detailed.analyzed_at.isoformat()
     }
 
-@router.get("/metrics/player/{username}")
+@router.get(
+    "/metrics/player/{username}",
+    response_model=PlayerMetricsSummaryOut,
+    summary="Obtener métricas agregadas de un jugador",
+    description="Devuelve las métricas promedio y estadísticas resumidas del jugador **username** basadas en todas sus partidas analizadas.",
+    responses={
+        404: {"description": "Análisis de jugador no encontrado"}
+    },
+)
 async def get_player_metrics(
     username: str,
     session: Session = Depends(get_session)

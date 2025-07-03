@@ -7,11 +7,23 @@ from app import models
 from app.database import get_session
 from app.celery_app import analyze_game_task, celery_app
 from celery.result import AsyncResult
-from app.schemas import AnalyzeGameIn, TaskQueuedOut, GameOut
+from app.schemas import (
+    AnalyzeGameIn,
+    TaskQueuedOut,
+    GameOut,
+    GameAnalysisStatusOut,
+    GameAnalysisCancelOut,
+)
 
 router = APIRouter()
 
-@router.get("/{game_id}", response_model=GameOut)
+@router.get(
+    "/{game_id}",
+    response_model=GameOut,
+    summary="Obtener los detalles de una partida analizada",
+    description="Devuelve la información almacenada y las jugadas evaluadas de la partida identificada por **game_id**.",
+    responses={404: {"description": "Partida no encontrada"}},
+)
 async def get_game(game_id: int, session: Session = Depends(get_session)):
     """Get details of an analyzed game."""
     game = session.get(models.Game, game_id)
@@ -37,7 +49,13 @@ async def get_game(game_id: int, session: Session = Depends(get_session)):
         ] if game.moves else [],
     }
 
-@router.post("/analyze", response_model=TaskQueuedOut)
+@router.post(
+    "/analyze",
+    response_model=TaskQueuedOut,
+    summary="Encolar análisis de una partida",
+    description="Crea un registro de partida y lanza una tarea Celery para analizar el PGN proporcionado.",
+    status_code=status.HTTP_202_ACCEPTED,
+)
 async def analyze_game(
     req: AnalyzeGameIn,
     session: Session = Depends(get_session)
@@ -58,7 +76,13 @@ async def analyze_game(
         session.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/{game_id}/status/{task_id}")
+@router.get(
+    "/{game_id}/status/{task_id}",
+    response_model=GameAnalysisStatusOut,
+    summary="Consultar estado del análisis de partida",
+    description="Devuelve el estado actual de la tarea de análisis asociada.",
+    responses={404: {"description": "Partida no encontrada"}},
+)
 async def get_game_analysis_status(
     game_id: int,
     task_id: str,
@@ -80,7 +104,13 @@ async def get_game_analysis_status(
         "result": result.result if result.ready() else None
     }
 
-@router.post("/{game_id}/cancel/{task_id}")
+@router.post(
+    "/{game_id}/cancel/{task_id}",
+    response_model=GameAnalysisCancelOut,
+    summary="Cancelar el análisis de una partida",
+    description="Revoca la tarea Celery en ejecución y marca el análisis como cancelado.",
+    responses={404: {"description": "Partida no encontrada"}},
+)
 async def cancel_game_analysis(
     game_id: int,
     task_id: str,
