@@ -99,3 +99,7 @@ backend/
 
 Este proyecto se distribuye bajo los términos de la licencia MIT incluida en `LICENSE`.
 
+## Copias de seguridad de la base de datos
+
+Consulta `docs/backup_recovery.md` para un procedimiento detallado de cómo generar dumps con `pg_dump` y restaurarlos mediante `psql`. También encontrarás ejemplos de uso en Docker y buenas prácticas.
+
