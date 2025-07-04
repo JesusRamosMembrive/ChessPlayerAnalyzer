@@ -16,7 +16,7 @@ from app.database import engine
 logger = logging.getLogger(__name__)
 
 
-from app.utils import fetch_games, notify_ws, update_progress, sa_to_dict, redis_client
+from app.utils import fetch_games, notify_ws, update_progress, sa_to_dict, redis_client, cache_get, cache_set
 from celery import Celery
 from celery import chain, group, chord
 from celery.signals import task_failure, task_revoked
@@ -100,6 +100,10 @@ def analyze_player_detailed(_, username: str):
     Se ejecuta después de que todas sus partidas han sido analizadas.
     """
     logger.info(f"DEBUG PLAYER: Starting player detailed analysis for {username}")
+    cached = cache_get("analyze_player_detailed", [username], {})
+    if cached:
+        logger.info("DEBUG PLAYER: Returning cached result for analyze_player_detailed")
+        return cached
 
     try:
         # Verificar que hay suficientes partidas analizadas
@@ -160,6 +164,8 @@ def analyze_player_detailed(_, username: str):
         notify_ws(username, {"status": "ready", "progress": 100})
 
         logger.info(f"DEBUG PLAYER: Final analysis result for {username}: risk_score={result['risk_score']}, games_analyzed={result['games_analyzed']} (total games processed in this analysis session)")
+        # Store result in cache
+        cache_set("analyze_player_detailed", [username], {}, result)
         return result
 
     except Exception as e:
@@ -226,6 +232,12 @@ def analyze_game_task(
     logger.info(f"DEBUG STOCKFISH: Starting analyze_game_task for game_id: {game_id}, player: {player}")
     logger.info(f"DEBUG STOCKFISH: PGN length: {len(pgn_text)} chars, move_times: {len(move_times) if move_times else 0} entries")
     logger.info(f"DEBUG STOCKFISH: Engine settings - depth: {depth}, multipv: {multipv}")
+
+    # ---- Result cache check ----
+    cached = cache_get("analyze_game_task", [pgn_text, depth, multipv, move_times], {"player": player})
+    if cached:
+        logger.info("DEBUG STOCKFISH: Returning cached result for analyze_game_task")
+        return cached
 
     # ---------- 1.  Asegurar objeto Game en BD --------------------
     if game_id is None:
@@ -355,6 +367,8 @@ def analyze_game_task(
         "analyzed_at": datetime.now(timezone.utc).isoformat(),
     }
     logger.info("DEBUG STOCKFISH: analyze_game_task result: %s", result)
+    # Store result in cache
+    cache_set("analyze_game_task", [pgn_text, depth, multipv, move_times], {"player": player}, result)
     return result
 
 
@@ -390,6 +404,12 @@ def analyze_game_detailed(game_id: int, username: str) -> dict[str, int | str | 
     if redis_client.get(cancellation_key):
         logger.info(f"analyze_game_detailed detected Redis cancellation flag for {username}")
         return {"status": "cancelled", "game_id": game_id, "username": username}
+
+    # ---- Result cache check ----
+    cached = cache_get("analyze_game_detailed", [game_id], {"username": username})
+    if cached:
+        logger.info("DEBUG DETAILED: Returning cached result for analyze_game_detailed")
+        return cached
 
     # ── 1. Cargar partida + movimientos ────────────────────────────────
 
@@ -521,6 +541,8 @@ def analyze_game_detailed(game_id: int, username: str) -> dict[str, int | str | 
     }
 
     logger.info("DEBUG DETAILED: analyze_game_detailed result: %s", result)
+    # Store result in cache
+    cache_set("analyze_game_detailed", [game_id], {"username": username}, result)
     return result
 
 @celery_app.task(name="process_player_enhanced", bind=True)

@@ -20,6 +20,8 @@ import numpy as np
 
 import os
 from pathlib import Path
+import hashlib
+
 # ──────────────────────────────────────────────────────────────────────────────
 #  Configuración común
 # ──────────────────────────────────────────────────────────────────────────────
@@ -229,3 +231,40 @@ def clean_json_numbers(obj):
     if isinstance(obj, float) and (math.isnan(obj) or math.isinf(obj)):
         return None
     return obj
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  Task result caching helpers
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _make_cache_key(task_name: str, args: list | tuple, kwargs: dict) -> str:
+    """Generate a deterministic Redis key for a task invocation."""
+    try:
+        payload = json.dumps({"args": args, "kwargs": kwargs}, default=str, sort_keys=True)
+        digest = hashlib.md5(payload.encode("utf-8")).hexdigest()
+        return f"cache:{task_name}:{digest}"
+    except Exception as exc:
+        logging.error(f"_make_cache_key error: {exc}")
+        # Fallback – not ideal but avoids crashing
+        return f"cache:{task_name}:fallback"
+
+
+def cache_get(task_name: str, args: list | tuple, kwargs: dict) -> dict | None:
+    """Return cached task result or None if missing/invalid."""
+    key = _make_cache_key(task_name, args, kwargs)
+    cached = redis_client.get(key)
+    if cached is None:
+        return None
+    try:
+        return json.loads(cached)
+    except Exception as exc:
+        logging.warning(f"cache_get: could not decode cached value for {task_name}: {exc}")
+        return None
+
+
+def cache_set(task_name: str, args: list | tuple, kwargs: dict, result: dict, ttl: int = 86_400) -> None:
+    """Store task result in Redis with TTL (default 24h)."""
+    key = _make_cache_key(task_name, args, kwargs)
+    try:
+        redis_client.setex(key, ttl, json.dumps(result, default=str))
+    except Exception as exc:
+        logging.error(f"cache_set: could not store result for {task_name}: {exc}")
