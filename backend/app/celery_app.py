@@ -37,13 +37,25 @@ from app.analysis import (
     aggregate_endgame_features as e_feats,
 )
 
+from kombu import Queue  # Añadido para configurar colas con prioridad
 
+# Configuración de prioridades (0 = más alta)
+HIGH_PRIORITY   = 0
+DEFAULT_PRIORITY = 5
+LOW_PRIORITY    = 9
 
 engine_helper = ChessAnalysisEngine()
 
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
 celery_app = Celery("chess_tasks", broker=REDIS_URL, backend=REDIS_URL)
+
+# Declarar la cola por defecto con soporte de prioridad (máx. 10 en Redis)
+celery_app.conf.task_default_queue = "default"
+# El tuple final debe contener únicamente el objeto Queue
+celery_app.conf.task_queues = (
+    Queue("default", max_priority=10),
+)
 
 ENGINE_PATH = os.getenv("STOCKFISH_PATH", "stockfish")
 MAX_DEPTH = int(os.getenv("STOCKFISH_DEPTH", "12"))
@@ -512,7 +524,7 @@ def analyze_game_detailed(game_id: int, username: str) -> dict[str, int | str | 
     return result
 
 @celery_app.task(name="process_player_enhanced", bind=True)
-def process_player_enhanced(self, username: str, months: int = 6):
+def process_player_enhanced(self, username: str, months: int = 6, priority: int = DEFAULT_PRIORITY):
     logger.info(f"DEBUG CELERY: Starting process_player_enhanced for {username}, months: {months}")
 
     # Helper para comprobar revocación de forma segura
@@ -570,6 +582,10 @@ def process_player_enhanced(self, username: str, months: int = 6):
         logger.info(f"DEBUG CELERY: Created/updated player record for {username}")
 
     chains = []          # ← aquí iremos acumulando chain por partida
+
+    # Normalizar prioridad (0-9)
+    priority = max(0, min(9, int(priority)))
+
     for i, g in enumerate(games):
         # Verificar revocación cada 5 partidas (más frecuente)
         if i % 5 == 0 and not self.request.called_directly and _is_aborted(self, username):
@@ -606,17 +622,26 @@ def process_player_enhanced(self, username: str, months: int = 6):
                 game_ids.append(gid)
                 logger.info(f"DEBUG CELERY: Created new game record with ID: {gid}")
 
-        # 2.  chain:  básico → detallado ───────────────────────────────────
-        basic = analyze_game_task.s(g["pgn"], gid, move_times=g.get("move_times"), player=username)
-        detailed = analyze_game_detailed.si(gid, username)
+        # Propagar prioridad a las subtareas
+        basic = (
+            analyze_game_task.s(g["pgn"], gid, move_times=g.get("move_times"), player=username)
+            .set(priority=priority)
+        )
+        detailed = (
+            analyze_game_detailed.si(gid, username)
+            .set(priority=priority)
+        )
         chains.append(chain(basic, detailed))
 
     logger.info(f"DEBUG CELERY: Created {len(chains)} analysis chains")
 
     # 3. group & chord: cuando todas las partidas acaben … ──────────────────
     #    se lanza analyze_player_detailed(username)
-    full_workflow = chord(group(chains), analyze_player_detailed.s(username))
-    chord_result = full_workflow.delay()  # AsyncResult del body
+    full_workflow = chord(
+        group(chains),
+        analyze_player_detailed.s(username).set(priority=priority)
+    ).set(priority=priority)
+    chord_result = full_workflow.apply_async(priority=priority)  # AsyncResult del body
     header_id = chord_result.parent.id if chord_result.parent else chord_result.id
 
     # ── Guardar el ID del grupo/encabezado para poder revocarlo ────────────
