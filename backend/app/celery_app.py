@@ -16,9 +16,19 @@ from app.database import engine
 logger = logging.getLogger(__name__)
 
 
-from app.utils import fetch_games, notify_ws, update_progress, sa_to_dict, redis_client, cache_get, cache_set
+from app.utils import (
+    fetch_games,
+    notify_ws,
+    update_progress,
+    task_progress,
+    sa_to_dict,
+    redis_client,
+    cache_get,
+    cache_set,
+)
 from celery import Celery
 from celery import chain, group, chord
+from celery import current_task
 from celery.signals import task_failure, task_revoked
 from sqlmodel import Session, select
 from sqlalchemy import func
@@ -38,6 +48,7 @@ from app.analysis import (
 )
 
 from kombu import Queue  # Añadido para configurar colas con prioridad
+from celery.exceptions import SoftTimeLimitExceeded
 
 # Configuración de prioridades (0 = más alta)
 HIGH_PRIORITY   = 0
@@ -60,6 +71,25 @@ celery_app.conf.task_queues = (
 ENGINE_PATH = os.getenv("STOCKFISH_PATH", "stockfish")
 MAX_DEPTH = int(os.getenv("STOCKFISH_DEPTH", "12"))
 
+# ──────────────────────────────────────────────────────────────
+#  Task timeout & retry configuration (env-driven)
+# ──────────────────────────────────────────────────────────────
+TASK_SOFT_TIME_LIMIT = int(os.getenv("TASK_SOFT_TIME_LIMIT", "1800"))  # 30 min default
+TASK_TIME_LIMIT      = int(os.getenv("TASK_TIME_LIMIT", "1860"))      # hard limit (soft + 1 min)
+TASK_MAX_RETRIES     = int(os.getenv("TASK_MAX_RETRIES", "3"))         # default max retries
+
+celery_app.conf.update(
+    # When a worker is lost (OOM/timeout) we want the broker to re-queue the task
+    task_reject_on_worker_lost=True,
+    # Force ACK *after* the task finishes so it can be retried on crash
+    task_acks_late=True,
+    # Apply global time limits – individual tasks can override these
+    task_soft_time_limit=TASK_SOFT_TIME_LIMIT,
+    task_time_limit=TASK_TIME_LIMIT,
+    # Global retry defaults (used by autoretry_for)
+    task_default_retry_delay=60,  # seconds between automatic retries
+    task_default_max_retries=TASK_MAX_RETRIES,
+)
 
 def export_analysis_to_json(data_obj, username: str, analysis_type: str = "analysis"):
     """
@@ -93,7 +123,16 @@ def export_analysis_to_json(data_obj, username: str, analysis_type: str = "analy
 
 
 
-@celery_app.task(name="analyze_player_detailed")
+@celery_app.task(
+    name="analyze_player_detailed",
+    autoretry_for=(Exception, SoftTimeLimitExceeded),
+    retry_backoff=True,
+    retry_backoff_max=600,
+    retry_jitter=True,
+    retry_kwargs={"max_retries": TASK_MAX_RETRIES},
+    soft_time_limit=TASK_SOFT_TIME_LIMIT,
+    time_limit=TASK_TIME_LIMIT,
+)
 def analyze_player_detailed(_, username: str):
     """
     Análisis longitudinal detallado de un jugador.
@@ -173,7 +212,17 @@ def analyze_player_detailed(_, username: str):
         raise
 
 
-@celery_app.task(name="analyze_game_task", bind=True)
+@celery_app.task(
+    name="analyze_game_task",
+    bind=True,
+    autoretry_for=(Exception, SoftTimeLimitExceeded),
+    retry_backoff=True,
+    retry_backoff_max=600,
+    retry_jitter=True,
+    retry_kwargs={"max_retries": TASK_MAX_RETRIES},
+    soft_time_limit=TASK_SOFT_TIME_LIMIT,
+    time_limit=TASK_TIME_LIMIT,
+)
 def analyze_game_task(
     self,
     pgn_text: str,
@@ -282,6 +331,7 @@ def analyze_game_task(
 
     analyses: list[models.MoveAnalysis] = []
     total_moves = len(list(game.mainline_moves()))
+    progress_every = max(1, total_moves // 20)  # ~5% granularity
     logger.info(f"DEBUG STOCKFISH: Total moves to analyze: {total_moves}")
 
     for idx, move in enumerate(game.mainline_moves(), start=1):
@@ -324,6 +374,13 @@ def analyze_game_task(
             time_spent=time_spent,
         ))
         board.push(move)
+
+        # ── Progress update ─────────────────────────────────────
+        if idx % progress_every == 0 or idx == total_moves:
+            try:
+                task_progress(self, idx, total_moves, player)
+            except Exception:
+                pass
 
     engine_sf.quit()
     logger.info(f"DEBUG STOCKFISH: Stockfish analysis complete, analyzed {len(analyses)} moves")
@@ -387,7 +444,16 @@ def safe(v):
         return 0.0
 
 
-@celery_app.task(name="analyze_game_detailed")
+@celery_app.task(
+    name="analyze_game_detailed",
+    autoretry_for=(Exception, SoftTimeLimitExceeded),
+    retry_backoff=True,
+    retry_backoff_max=600,
+    retry_jitter=True,
+    retry_kwargs={"max_retries": TASK_MAX_RETRIES},
+    soft_time_limit=TASK_SOFT_TIME_LIMIT,
+    time_limit=TASK_TIME_LIMIT,
+)
 def analyze_game_detailed(game_id: int, username: str) -> dict[str, int | str | bool]:
     """
     Calcula las métricas detalladas de una partida **sin** volver a usar Stockfish.
@@ -453,17 +519,38 @@ def analyze_game_detailed(game_id: int, username: str) -> dict[str, int | str | 
     q = q_feats(game_df, elo=game.white_elo if player_color == 'white' else game.black_elo, player_color=player_color)
     logger.info(f"DEBUG DETAILED: Quality features: {q}")
 
+    # Progress 1/5 (we include final save as last step)
+    try:
+        task_progress(current_task, 1, 5, username)
+    except Exception:
+        pass
+
     logger.info("DEBUG DETAILED: Starting timing features calculation")
     t = t_feats(game_df)
     logger.info(f"DEBUG DETAILED: Timing features: {t}")
+
+    try:
+        task_progress(current_task, 2, 5, username)
+    except Exception:
+        pass
 
     logger.info("DEBUG DETAILED: Starting opening features calculation")
     o = o_feats(opening_key, eco_code, game_df, games_df)
     logger.info(f"DEBUG DETAILED: Opening features: {o}")
 
+    try:
+        task_progress(current_task, 3, 5, username)
+    except Exception:
+        pass
+
     logger.info("DEBUG DETAILED: Starting endgame features calculation")
     e = e_feats(game_pgn_obj, game_df, TB_PATH if TB_PATH and Path(TB_PATH).exists() else None)
     logger.info(f"DEBUG DETAILED: Endgame features: {e}")
+
+    try:
+        task_progress(current_task, 4, 5, username)
+    except Exception:
+        pass
 
     quality_score = q.get("quality_score", 0) or 0  # None → 0
     logger.info(f"DEBUG DETAILED: Quality score: {quality_score}")
@@ -543,9 +630,26 @@ def analyze_game_detailed(game_id: int, username: str) -> dict[str, int | str | 
     logger.info("DEBUG DETAILED: analyze_game_detailed result: %s", result)
     # Store result in cache
     cache_set("analyze_game_detailed", [game_id], {"username": username}, result)
+
+    # Final progress 5/5
+    try:
+        task_progress(current_task, 5, 5, username)
+    except Exception:
+        pass
+
     return result
 
-@celery_app.task(name="process_player_enhanced", bind=True)
+@celery_app.task(
+    name="process_player_enhanced",
+    bind=True,
+    autoretry_for=(Exception, SoftTimeLimitExceeded),
+    retry_backoff=True,
+    retry_backoff_max=600,
+    retry_jitter=True,
+    retry_kwargs={"max_retries": TASK_MAX_RETRIES},
+    soft_time_limit=TASK_SOFT_TIME_LIMIT,
+    time_limit=TASK_TIME_LIMIT,
+)
 def process_player_enhanced(self, username: str, months: int = 6, priority: int = DEFAULT_PRIORITY):
     logger.info(f"DEBUG CELERY: Starting process_player_enhanced for {username}, months: {months}")
 
@@ -608,6 +712,7 @@ def process_player_enhanced(self, username: str, months: int = 6, priority: int 
     # Normalizar prioridad (0-9)
     priority = max(0, min(9, int(priority)))
 
+    total_games = len(games)
     for i, g in enumerate(games):
         # Verificar revocación cada 5 partidas (más frecuente)
         if i % 5 == 0 and not self.request.called_directly and _is_aborted(self, username):
@@ -654,6 +759,12 @@ def process_player_enhanced(self, username: str, months: int = 6, priority: int 
             .set(priority=priority)
         )
         chains.append(chain(basic, detailed))
+
+        # ── Progress update ─────────────────────────────────────
+        try:
+            task_progress(self, i + 1, total_games, username)
+        except Exception:
+            pass
 
     logger.info(f"DEBUG CELERY: Created {len(chains)} analysis chains")
 

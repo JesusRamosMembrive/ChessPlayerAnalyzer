@@ -21,8 +21,8 @@
 ### 3. Task Processing
 - [x] Implement task prioritization in Celery
 - [x] Add task result caching
-- [ ] Implement task timeout and retry policies
-- [ ] Add task progress tracking and reporting
+- [x] Implement task timeout and retry policies
+- [x] Add task progress tracking and reporting
 - [ ] Implement distributed locking mechanism for task management
 - [ ] Add task deduplication to prevent duplicate analysis
 

@@ -22,6 +22,11 @@ from app.middleware.rate_limiter import RateLimitMiddleware  # nuevo middleware
 from app.middleware.request_logger import RequestLoggingMiddleware  # nuevo middleware de logging
 from prometheus_fastapi_instrumentator import Instrumentator
 
+# Added utils and Celery app imports for task control and Redis interactions
+from app.utils import redis_client
+from app.celery_app import celery_app
+from celery.result import AsyncResult
+
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

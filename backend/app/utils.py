@@ -22,6 +22,8 @@ import os
 from pathlib import Path
 import hashlib
 
+from celery import current_task, Task  # noqa: E402 (circular import safe here)
+
 # ──────────────────────────────────────────────────────────────────────────────
 #  Configuración común
 # ──────────────────────────────────────────────────────────────────────────────
@@ -159,6 +161,51 @@ def update_progress(username: str, *, increment: int = 1) -> None:
         s.commit()
 
     notify_ws(username, {"progress": progress_now, "status": status_now})
+
+
+# ---------------------------------------------------------------
+#  3. Task-level progress reporting
+# ---------------------------------------------------------------
+
+def task_progress(task: Task | None, current: int, total: int, username: str | None = None) -> None:
+    """Report in-flight Celery task progress.
+
+    Parameters
+    ----------
+    task : celery.Task | None
+        The bound task instance (``self``) or ``current_task`` when not bound.
+    current : int
+        Units completed so far.
+    total : int
+        Total units to process.
+    username : str | None, optional
+        If provided, a WebSocket/Redis message will also be sent so that
+        clients can receive live updates.
+    """
+    if total <= 0:
+        percent = 0
+    else:
+        percent = int(current / total * 100)
+
+    try:
+        if task is None:
+            task = current_task
+        if task is not None:
+            task.update_state(state="PROGRESS", meta={"current": current, "total": total, "percent": percent})
+    except Exception as exc:
+        logging.debug(f"task_progress: could not update_state – {exc}")
+
+    if username:
+        try:
+            notify_ws(username, {
+                "type": "task_progress",
+                "task_id": task.request.id if task else None,
+                "current": current,
+                "total": total,
+                "percent": percent,
+            })
+        except Exception as exc:
+            logging.debug(f"task_progress: could not notify_ws – {exc}")
 
 @contextmanager
 def player_lock(username: str, timeout: int = 900, block: int = 5):
