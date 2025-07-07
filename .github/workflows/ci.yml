@@ -19,6 +19,12 @@ jobs:
           - 5432:5432
         options: >-
           --health-cmd="pg_isready -U postgres" --health-interval=10s --health-timeout=5s --health-retries=5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping" --health-interval=5s --health-timeout=5s --health-retries=5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -33,6 +39,7 @@ jobs:
       - name: Run tests
         env:
           DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost/testdb
+          REDIS_URL: redis://localhost:6379/0
           STOCKFISH_PATH: /usr/games/stockfish
           STOCKFISH_DEPTH: 1
         run: cd backend && pytest -vv
