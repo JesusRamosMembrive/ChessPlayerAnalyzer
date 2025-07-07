@@ -20,6 +20,10 @@ import numpy as np
 
 import os
 from pathlib import Path
+import hashlib
+
+from celery import current_task, Task  # noqa: E402 (circular import safe here)
+
 # ──────────────────────────────────────────────────────────────────────────────
 #  Configuración común
 # ──────────────────────────────────────────────────────────────────────────────
@@ -158,6 +162,51 @@ def update_progress(username: str, *, increment: int = 1) -> None:
 
     notify_ws(username, {"progress": progress_now, "status": status_now})
 
+
+# ---------------------------------------------------------------
+#  3. Task-level progress reporting
+# ---------------------------------------------------------------
+
+def task_progress(task: Task | None, current: int, total: int, username: str | None = None) -> None:
+    """Report in-flight Celery task progress.
+
+    Parameters
+    ----------
+    task : celery.Task | None
+        The bound task instance (``self``) or ``current_task`` when not bound.
+    current : int
+        Units completed so far.
+    total : int
+        Total units to process.
+    username : str | None, optional
+        If provided, a WebSocket/Redis message will also be sent so that
+        clients can receive live updates.
+    """
+    if total <= 0:
+        percent = 0
+    else:
+        percent = int(current / total * 100)
+
+    try:
+        if task is None:
+            task = current_task
+        if task is not None:
+            task.update_state(state="PROGRESS", meta={"current": current, "total": total, "percent": percent})
+    except Exception as exc:
+        logging.debug(f"task_progress: could not update_state – {exc}")
+
+    if username:
+        try:
+            notify_ws(username, {
+                "type": "task_progress",
+                "task_id": task.request.id if task else None,
+                "current": current,
+                "total": total,
+                "percent": percent,
+            })
+        except Exception as exc:
+            logging.debug(f"task_progress: could not notify_ws – {exc}")
+
 @contextmanager
 def player_lock(username: str, timeout: int = 900, block: int = 5):
     """
@@ -229,3 +278,40 @@ def clean_json_numbers(obj):
     if isinstance(obj, float) and (math.isnan(obj) or math.isinf(obj)):
         return None
     return obj
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  Task result caching helpers
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _make_cache_key(task_name: str, args: list | tuple, kwargs: dict) -> str:
+    """Generate a deterministic Redis key for a task invocation."""
+    try:
+        payload = json.dumps({"args": args, "kwargs": kwargs}, default=str, sort_keys=True)
+        digest = hashlib.md5(payload.encode("utf-8")).hexdigest()
+        return f"cache:{task_name}:{digest}"
+    except Exception as exc:
+        logging.error(f"_make_cache_key error: {exc}")
+        # Fallback – not ideal but avoids crashing
+        return f"cache:{task_name}:fallback"
+
+
+def cache_get(task_name: str, args: list | tuple, kwargs: dict) -> dict | None:
+    """Return cached task result or None if missing/invalid."""
+    key = _make_cache_key(task_name, args, kwargs)
+    cached = redis_client.get(key)
+    if cached is None:
+        return None
+    try:
+        return json.loads(cached)
+    except Exception as exc:
+        logging.warning(f"cache_get: could not decode cached value for {task_name}: {exc}")
+        return None
+
+
+def cache_set(task_name: str, args: list | tuple, kwargs: dict, result: dict, ttl: int = 86_400) -> None:
+    """Store task result in Redis with TTL (default 24h)."""
+    key = _make_cache_key(task_name, args, kwargs)
+    try:
+        redis_client.setex(key, ttl, json.dumps(result, default=str))
+    except Exception as exc:
+        logging.error(f"cache_set: could not store result for {task_name}: {exc}")

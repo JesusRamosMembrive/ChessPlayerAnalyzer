@@ -7,30 +7,106 @@ import logging
 from datetime import datetime, UTC
 from typing import List, Optional, Literal
 
-from app import models
-from app.celery_app import celery_app, analyze_game_task, process_player_enhanced as process_player
-from app.database import get_session
-from app.utils import redis_client, notify_ws, player_lock
-from celery.result import AsyncResult
-from fastapi import Depends, HTTPException, status
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 from sqlmodel import Session, select
-from sse_starlette.sse import EventSourceResponse
-from app.schemas import PlayerMetricsOut
 
+# Import versioned API routers and models
+from app import models
+from app.schemas import PlayerMetricsOut
+from app.api.v1.endpoints import health as health_endpoints
+from app.api.v1 import api_router as v1_router
+from app.database import get_session, init_db
+from app.error_handlers import register_exception_handlers
+from app.middleware.rate_limiter import RateLimitMiddleware  # nuevo middleware
+from app.middleware.request_logger import RequestLoggingMiddleware  # nuevo middleware de logging
+from prometheus_fastapi_instrumentator import Instrumentator
+
+# Added utils and Celery app imports for task control and Redis interactions
+from app.utils import redis_client
+from app.celery_app import celery_app
+from celery.result import AsyncResult
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Metadatos de etiquetas para la documentación OpenAPI
+tags_metadata = [
+    {
+        "name": "health",
+        "description": "Comprobaciones de estado del servicio y disponibilidad.",
+    },
+    {
+        "name": "players",
+        "description": "Crear, consultar y administrar análisis de jugadores.",
+        "externalDocs": {
+            "description": "Documentación de modelo Player",
+            "url": "https://github.com/OvertureLabs/ChessPlayerAnalyzer/blob/main/docs/tasks.md#player-flow"
+        }
+    },
+    {
+        "name": "games",
+        "description": "Operaciones relacionadas con partidas individuales (PGN)."
+    },
+    {
+        "name": "analysis",
+        "description": "Endpoints que devuelven métricas de análisis para partidas y jugadores."
+    },
+    {
+        "name": "tasks",
+        "description": "Monitorización y control de tareas asíncronas de Celery."
+    },
+    {
+        "name": "legacy",
+        "description": "Rutas mantenidas por compatibilidad que serán deprecadas."
+    },
+    {
+        "name": "v1",
+        "description": "Enrutador raíz que agrupa todos los endpoints versión 1."
+    },
+]
+
 # Crear aplicación FastAPI
 app = FastAPI(
     title="Chess Analyzer API",
     version="1.0.0",
-    description="Análisis de partidas de ajedrez con Stockfish"
+    description="""
+    # Chess Analyzer API
+
+    Bienvenido a la API de **Chess Analyzer**. Este servicio expone endpoints para:
+
+    * Analizar partidas PGN individuales o colecciones completas (jugadores).
+    * Obtener métricas de rendimiento (centipawns perdidos, precisión, etc.).
+    * Monitorizar, cancelar y reiniciar tareas de análisis en tiempo real.
+
+    ## Versionado
+    Actualmente sólo se encuentra disponible la versión **v1**. Todas las rutas están bajo el prefijo `/api/v1/*`.
+
+    ## Respuestas de ejemplo
+    En la documentación de cada endpoint encontrarás ejemplos reales de peticiones y respuestas que facilitan la integración.
+
+    ## Estado y contribuciones
+    El código está disponible bajo licencia MIT. ¡Se aceptan *pull-requests* y *issues*!
+    """,
+    terms_of_service="https://github.com/OvertureLabs/ChessPlayerAnalyzer/blob/main/LICENSE",
+    contact={
+        "name": "Equipo Chess Analyzer",
+        "url": "https://github.com/OvertureLabs/ChessPlayerAnalyzer",
+        "email": "support@chessplayeranalyzer.io",
+    },
+    license_info={
+        "name": "MIT",
+        "url": "https://opensource.org/licenses/MIT",
+    },
+    docs_url="/api/v1/docs",
+    redoc_url="/api/v1/redoc",
+    openapi_url="/api/v1/openapi.json",
+    openapi_tags=tags_metadata,
 )
+
+# Registrar manejadores de errores personalizados
+register_exception_handlers(app)
 
 # Configurar CORS
 app.add_middleware(
@@ -41,68 +117,108 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Modelos Pydantic para requests
-class GameAnalysisRequest(BaseModel):
-    pgn: str
-    move_times: Optional[List[int]] = None
+# ───────────────────────────────────────────────────────────
+# Rate limiting global
+# ───────────────────────────────────────────────────────────
+# Se puede ajustar mediante variables de entorno:
+#   RATE_LIMIT_MAX_REQUESTS (por defecto 100)
+#   RATE_LIMIT_WINDOW_SECONDS (por defecto 60)
+app.add_middleware(RateLimitMiddleware)
 
-# ============================================================
-# ENDPOINTS BÁSICOS
-# ============================================================
+# Middleware de logging de peticiones
+app.add_middleware(RequestLoggingMiddleware)
 
+# ───────────────────────────────────────────────────────────
+# Métricas Prometheus
+# ───────────────────────────────────────────────────────────
+# Esto añade el endpoint `/metrics` y registra métricas básicas
+Instrumentator().instrument(app).expose(app)
+
+# Include versioned API routers
+app.include_router(health_endpoints.router, prefix="/api/v1", tags=["health"])
+app.include_router(v1_router, prefix="/api/v1")
+
+# Root endpoint for API discovery
 @app.get("/")
-def root():
-    """Endpoint raíz con información de la API."""
+async def root():
+    """Root endpoint with API version information."""
     return {
         "name": "Chess Analyzer API",
         "version": "1.0.0",
+        "documentation": "/api/v1/docs",
+        "api_versions": ["v1"],
+        "current_version": "v1",
         "endpoints": {
-            "analyze": "POST /analyze",
-            "players": "GET/POST /players/{username}",
-            "games": "GET /games/{game_id}",
-            "metrics": "GET /metrics/game/{game_id}",
-            "stop_analysis": {
-                "player": "POST /players/{username}/stop",
-                "game": "POST /games/{game_id}/stop?task_id={task_id}"
+            "v1": {
+                "documentation": "/api/v1/docs",
+                "openapi_schema": "/api/v1/openapi.json",
+                "health": "/api/v1/health"
             }
         }
     }
 
+# Health check endpoint for backward compatibility
 @app.get("/health")
-def health_check():
-    """Health check para Docker/Kubernetes."""
-    return {"status": "healthy", "timestamp": datetime.now(UTC).isoformat()}
+async def health_check():
+    """Health check endpoint for backward compatibility."""
+    return {"status": "healthy", "version": "v1", "timestamp": datetime.now(UTC).isoformat()}
+
+# Initialize database tables on startup
+@app.on_event("startup")
+async def startup_event():
+    """Initialize database on startup."""
+    init_db()
+    logger.info("Application startup: Database initialized")
 
 # ============================================================
-# ANÁLISIS DE PARTIDAS
+# LEGACY ENDPOINTS (for backward compatibility)
+# These will be deprecated in a future version
 # ============================================================
 
-@app.post("/analyze")
-def analyze(
-    req: GameAnalysisRequest,
-    session: Session = Depends(get_session),
-):
-    """Analiza una partida individual con Stockfish."""
+# Import the legacy endpoints at the bottom of the file to avoid circular imports
+from fastapi import APIRouter
+
+# Create a router for legacy endpoints
+legacy_router = APIRouter()
+
+# Import and include the versioned routers for legacy compatibility
+from app.api.v1.endpoints import games as v1_games
+from app.api.v1.endpoints import players as v1_players
+from app.api.v1.endpoints import analysis as v1_analysis
+
+# Map legacy routes to versioned endpoints
+legacy_router.include_router(v1_games.router, prefix="/games", tags=["legacy"])
+legacy_router.include_router(v1_players.router, prefix="/players", tags=["legacy"])
+legacy_router.include_router(v1_analysis.router, prefix="/analyze", tags=["legacy"])
+
+# Include the legacy router
+app.include_router(legacy_router)
+
+# ────────────────────────────────────────────────────────────────────────────
+# Back-compat single-game analyze endpoint using new validation models
+# This mirrors /api/v1/games/analyze but keeps the old path used by tests.
+# ────────────────────────────────────────────────────────────────────────────
+
+from app.schemas import AnalyzeGameIn, TaskQueuedOut  # pylint: disable=wrong-import-position
+from app.celery_app import analyze_game_task  # pylint: disable=wrong-import-position
+
+
+@app.post("/analyze", response_model=TaskQueuedOut, tags=["legacy"])
+def analyze_game_root(request: AnalyzeGameIn, session: Session = Depends(get_session)):
+    """Legacy alias for single-game analysis (POST /analyze)."""
     try:
-        # Crear registro en BD
-        game_db = models.Game(pgn=req.pgn, move_times=req.move_times)
+        # Persist game with minimal info – will be updated by Celery
+        game_db = models.Game(pgn=request.pgn, move_times=request.move_times)
         session.add(game_db)
         session.commit()
         session.refresh(game_db)
 
-        # Lanzar tarea Celery
-        task = analyze_game_task.delay(req.pgn, game_db.id, move_times=req.move_times)
+        task = analyze_game_task.delay(request.pgn, game_db.id, move_times=request.move_times)
 
-        logger.info(f"Análisis iniciado - Game ID: {game_db.id}, Task ID: {task.id}")
-
-        return {
-            "game_id": game_db.id,
-            "task_id": task.id,
-            "state": task.state,
-        }
-    except Exception as e:
-        logger.error(f"Error en analyze: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        return TaskQueuedOut(game_id=game_db.id, task_id=task.id, status="queued")
+    except Exception as exc:  # noqa: BLE001
+        session.rollback()
+        raise HTTPException(status_code=500, detail=str(exc))
 
 @app.get("/tasks/{task_id}")
 def task_status(task_id: str):

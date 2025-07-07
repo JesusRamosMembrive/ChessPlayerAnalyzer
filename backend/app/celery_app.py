@@ -16,9 +16,19 @@ from app.database import engine
 logger = logging.getLogger(__name__)
 
 
-from app.utils import fetch_games, notify_ws, update_progress, sa_to_dict, redis_client
+from app.utils import (
+    fetch_games,
+    notify_ws,
+    update_progress,
+    task_progress,
+    sa_to_dict,
+    redis_client,
+    cache_get,
+    cache_set,
+)
 from celery import Celery
 from celery import chain, group, chord
+from celery import current_task
 from celery.signals import task_failure, task_revoked
 from sqlmodel import Session, select
 from sqlalchemy import func
@@ -37,7 +47,13 @@ from app.analysis import (
     aggregate_endgame_features as e_feats,
 )
 
+from kombu import Queue  # Añadido para configurar colas con prioridad
+from celery.exceptions import SoftTimeLimitExceeded
 
+# Configuración de prioridades (0 = más alta)
+HIGH_PRIORITY   = 0
+DEFAULT_PRIORITY = 5
+LOW_PRIORITY    = 9
 
 engine_helper = ChessAnalysisEngine()
 
@@ -45,9 +61,35 @@ engine_helper = ChessAnalysisEngine()
 REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
 celery_app = Celery("chess_tasks", broker=REDIS_URL, backend=REDIS_URL)
 
+# Declarar la cola por defecto con soporte de prioridad (máx. 10 en Redis)
+celery_app.conf.task_default_queue = "default"
+# El tuple final debe contener únicamente el objeto Queue
+celery_app.conf.task_queues = (
+    Queue("default", max_priority=10),
+)
+
 ENGINE_PATH = os.getenv("STOCKFISH_PATH", "stockfish")
 MAX_DEPTH = int(os.getenv("STOCKFISH_DEPTH", "12"))
 
+# ──────────────────────────────────────────────────────────────
+#  Task timeout & retry configuration (env-driven)
+# ──────────────────────────────────────────────────────────────
+TASK_SOFT_TIME_LIMIT = int(os.getenv("TASK_SOFT_TIME_LIMIT", "1800"))  # 30 min default
+TASK_TIME_LIMIT      = int(os.getenv("TASK_TIME_LIMIT", "1860"))      # hard limit (soft + 1 min)
+TASK_MAX_RETRIES     = int(os.getenv("TASK_MAX_RETRIES", "3"))         # default max retries
+
+celery_app.conf.update(
+    # When a worker is lost (OOM/timeout) we want the broker to re-queue the task
+    task_reject_on_worker_lost=True,
+    # Force ACK *after* the task finishes so it can be retried on crash
+    task_acks_late=True,
+    # Apply global time limits – individual tasks can override these
+    task_soft_time_limit=TASK_SOFT_TIME_LIMIT,
+    task_time_limit=TASK_TIME_LIMIT,
+    # Global retry defaults (used by autoretry_for)
+    task_default_retry_delay=60,  # seconds between automatic retries
+    task_default_max_retries=TASK_MAX_RETRIES,
+)
 
 def export_analysis_to_json(data_obj, username: str, analysis_type: str = "analysis"):
     """
@@ -81,13 +123,26 @@ def export_analysis_to_json(data_obj, username: str, analysis_type: str = "analy
 
 
 
-@celery_app.task(name="analyze_player_detailed")
+@celery_app.task(
+    name="analyze_player_detailed",
+    autoretry_for=(Exception, SoftTimeLimitExceeded),
+    retry_backoff=True,
+    retry_backoff_max=600,
+    retry_jitter=True,
+    retry_kwargs={"max_retries": TASK_MAX_RETRIES},
+    soft_time_limit=TASK_SOFT_TIME_LIMIT,
+    time_limit=TASK_TIME_LIMIT,
+)
 def analyze_player_detailed(_, username: str):
     """
     Análisis longitudinal detallado de un jugador.
     Se ejecuta después de que todas sus partidas han sido analizadas.
     """
     logger.info(f"DEBUG PLAYER: Starting player detailed analysis for {username}")
+    cached = cache_get("analyze_player_detailed", [username], {})
+    if cached:
+        logger.info("DEBUG PLAYER: Returning cached result for analyze_player_detailed")
+        return cached
 
     try:
         # Verificar que hay suficientes partidas analizadas
@@ -148,6 +203,8 @@ def analyze_player_detailed(_, username: str):
         notify_ws(username, {"status": "ready", "progress": 100})
 
         logger.info(f"DEBUG PLAYER: Final analysis result for {username}: risk_score={result['risk_score']}, games_analyzed={result['games_analyzed']} (total games processed in this analysis session)")
+        # Store result in cache
+        cache_set("analyze_player_detailed", [username], {}, result)
         return result
 
     except Exception as e:
@@ -155,7 +212,17 @@ def analyze_player_detailed(_, username: str):
         raise
 
 
-@celery_app.task(name="analyze_game_task", bind=True)
+@celery_app.task(
+    name="analyze_game_task",
+    bind=True,
+    autoretry_for=(Exception, SoftTimeLimitExceeded),
+    retry_backoff=True,
+    retry_backoff_max=600,
+    retry_jitter=True,
+    retry_kwargs={"max_retries": TASK_MAX_RETRIES},
+    soft_time_limit=TASK_SOFT_TIME_LIMIT,
+    time_limit=TASK_TIME_LIMIT,
+)
 def analyze_game_task(
     self,
     pgn_text: str,
@@ -215,6 +282,12 @@ def analyze_game_task(
     logger.info(f"DEBUG STOCKFISH: PGN length: {len(pgn_text)} chars, move_times: {len(move_times) if move_times else 0} entries")
     logger.info(f"DEBUG STOCKFISH: Engine settings - depth: {depth}, multipv: {multipv}")
 
+    # ---- Result cache check ----
+    cached = cache_get("analyze_game_task", [pgn_text, depth, multipv, move_times], {"player": player})
+    if cached:
+        logger.info("DEBUG STOCKFISH: Returning cached result for analyze_game_task")
+        return cached
+
     # ---------- 1.  Asegurar objeto Game en BD --------------------
     if game_id is None:
         game_pgn = chess.pgn.read_game(io.StringIO(pgn_text))
@@ -258,6 +331,7 @@ def analyze_game_task(
 
     analyses: list[models.MoveAnalysis] = []
     total_moves = len(list(game.mainline_moves()))
+    progress_every = max(1, total_moves // 20)  # ~5% granularity
     logger.info(f"DEBUG STOCKFISH: Total moves to analyze: {total_moves}")
 
     for idx, move in enumerate(game.mainline_moves(), start=1):
@@ -301,6 +375,13 @@ def analyze_game_task(
         ))
         board.push(move)
 
+        # ── Progress update ─────────────────────────────────────
+        if idx % progress_every == 0 or idx == total_moves:
+            try:
+                task_progress(self, idx, total_moves, player)
+            except Exception:
+                pass
+
     engine_sf.quit()
     logger.info(f"DEBUG STOCKFISH: Stockfish analysis complete, analyzed {len(analyses)} moves")
 
@@ -343,6 +424,8 @@ def analyze_game_task(
         "analyzed_at": datetime.now(timezone.utc).isoformat(),
     }
     logger.info("DEBUG STOCKFISH: analyze_game_task result: %s", result)
+    # Store result in cache
+    cache_set("analyze_game_task", [pgn_text, depth, multipv, move_times], {"player": player}, result)
     return result
 
 
@@ -361,7 +444,16 @@ def safe(v):
         return 0.0
 
 
-@celery_app.task(name="analyze_game_detailed")
+@celery_app.task(
+    name="analyze_game_detailed",
+    autoretry_for=(Exception, SoftTimeLimitExceeded),
+    retry_backoff=True,
+    retry_backoff_max=600,
+    retry_jitter=True,
+    retry_kwargs={"max_retries": TASK_MAX_RETRIES},
+    soft_time_limit=TASK_SOFT_TIME_LIMIT,
+    time_limit=TASK_TIME_LIMIT,
+)
 def analyze_game_detailed(game_id: int, username: str) -> dict[str, int | str | bool]:
     """
     Calcula las métricas detalladas de una partida **sin** volver a usar Stockfish.
@@ -378,6 +470,12 @@ def analyze_game_detailed(game_id: int, username: str) -> dict[str, int | str | 
     if redis_client.get(cancellation_key):
         logger.info(f"analyze_game_detailed detected Redis cancellation flag for {username}")
         return {"status": "cancelled", "game_id": game_id, "username": username}
+
+    # ---- Result cache check ----
+    cached = cache_get("analyze_game_detailed", [game_id], {"username": username})
+    if cached:
+        logger.info("DEBUG DETAILED: Returning cached result for analyze_game_detailed")
+        return cached
 
     # ── 1. Cargar partida + movimientos ────────────────────────────────
 
@@ -421,17 +519,38 @@ def analyze_game_detailed(game_id: int, username: str) -> dict[str, int | str | 
     q = q_feats(game_df, elo=game.white_elo if player_color == 'white' else game.black_elo, player_color=player_color)
     logger.info(f"DEBUG DETAILED: Quality features: {q}")
 
+    # Progress 1/5 (we include final save as last step)
+    try:
+        task_progress(current_task, 1, 5, username)
+    except Exception:
+        pass
+
     logger.info("DEBUG DETAILED: Starting timing features calculation")
     t = t_feats(game_df)
     logger.info(f"DEBUG DETAILED: Timing features: {t}")
+
+    try:
+        task_progress(current_task, 2, 5, username)
+    except Exception:
+        pass
 
     logger.info("DEBUG DETAILED: Starting opening features calculation")
     o = o_feats(opening_key, eco_code, game_df, games_df)
     logger.info(f"DEBUG DETAILED: Opening features: {o}")
 
+    try:
+        task_progress(current_task, 3, 5, username)
+    except Exception:
+        pass
+
     logger.info("DEBUG DETAILED: Starting endgame features calculation")
     e = e_feats(game_pgn_obj, game_df, TB_PATH if TB_PATH and Path(TB_PATH).exists() else None)
     logger.info(f"DEBUG DETAILED: Endgame features: {e}")
+
+    try:
+        task_progress(current_task, 4, 5, username)
+    except Exception:
+        pass
 
     quality_score = q.get("quality_score", 0) or 0  # None → 0
     logger.info(f"DEBUG DETAILED: Quality score: {quality_score}")
@@ -509,10 +628,29 @@ def analyze_game_detailed(game_id: int, username: str) -> dict[str, int | str | 
     }
 
     logger.info("DEBUG DETAILED: analyze_game_detailed result: %s", result)
+    # Store result in cache
+    cache_set("analyze_game_detailed", [game_id], {"username": username}, result)
+
+    # Final progress 5/5
+    try:
+        task_progress(current_task, 5, 5, username)
+    except Exception:
+        pass
+
     return result
 
-@celery_app.task(name="process_player_enhanced", bind=True)
-def process_player_enhanced(self, username: str, months: int = 6):
+@celery_app.task(
+    name="process_player_enhanced",
+    bind=True,
+    autoretry_for=(Exception, SoftTimeLimitExceeded),
+    retry_backoff=True,
+    retry_backoff_max=600,
+    retry_jitter=True,
+    retry_kwargs={"max_retries": TASK_MAX_RETRIES},
+    soft_time_limit=TASK_SOFT_TIME_LIMIT,
+    time_limit=TASK_TIME_LIMIT,
+)
+def process_player_enhanced(self, username: str, months: int = 6, priority: int = DEFAULT_PRIORITY):
     logger.info(f"DEBUG CELERY: Starting process_player_enhanced for {username}, months: {months}")
 
     # Helper para comprobar revocación de forma segura
@@ -570,6 +708,11 @@ def process_player_enhanced(self, username: str, months: int = 6):
         logger.info(f"DEBUG CELERY: Created/updated player record for {username}")
 
     chains = []          # ← aquí iremos acumulando chain por partida
+
+    # Normalizar prioridad (0-9)
+    priority = max(0, min(9, int(priority)))
+
+    total_games = len(games)
     for i, g in enumerate(games):
         # Verificar revocación cada 5 partidas (más frecuente)
         if i % 5 == 0 and not self.request.called_directly and _is_aborted(self, username):
@@ -606,17 +749,32 @@ def process_player_enhanced(self, username: str, months: int = 6):
                 game_ids.append(gid)
                 logger.info(f"DEBUG CELERY: Created new game record with ID: {gid}")
 
-        # 2.  chain:  básico → detallado ───────────────────────────────────
-        basic = analyze_game_task.s(g["pgn"], gid, move_times=g.get("move_times"), player=username)
-        detailed = analyze_game_detailed.si(gid, username)
+        # Propagar prioridad a las subtareas
+        basic = (
+            analyze_game_task.s(g["pgn"], gid, move_times=g.get("move_times"), player=username)
+            .set(priority=priority)
+        )
+        detailed = (
+            analyze_game_detailed.si(gid, username)
+            .set(priority=priority)
+        )
         chains.append(chain(basic, detailed))
+
+        # ── Progress update ─────────────────────────────────────
+        try:
+            task_progress(self, i + 1, total_games, username)
+        except Exception:
+            pass
 
     logger.info(f"DEBUG CELERY: Created {len(chains)} analysis chains")
 
     # 3. group & chord: cuando todas las partidas acaben … ──────────────────
     #    se lanza analyze_player_detailed(username)
-    full_workflow = chord(group(chains), analyze_player_detailed.s(username))
-    chord_result = full_workflow.delay()  # AsyncResult del body
+    full_workflow = chord(
+        group(chains),
+        analyze_player_detailed.s(username).set(priority=priority)
+    ).set(priority=priority)
+    chord_result = full_workflow.apply_async(priority=priority)  # AsyncResult del body
     header_id = chord_result.parent.id if chord_result.parent else chord_result.id
 
     # ── Guardar el ID del grupo/encabezado para poder revocarlo ────────────
