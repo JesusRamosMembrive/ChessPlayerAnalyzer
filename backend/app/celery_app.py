@@ -650,7 +650,7 @@ def analyze_game_detailed(game_id: int, username: str) -> dict[str, int | str | 
     soft_time_limit=TASK_SOFT_TIME_LIMIT,
     time_limit=TASK_TIME_LIMIT,
 )
-def process_player_enhanced(self, username: str, months: int = 6, priority: int = DEFAULT_PRIORITY):
+def process_player_enhanced(self, username: str, months: int = 12, priority: int = DEFAULT_PRIORITY):
     logger.info(f"DEBUG CELERY: Starting process_player_enhanced for {username}, months: {months}")
 
     # Helper para comprobar revocación de forma segura

@@ -48,7 +48,7 @@ def _sec(t: str) -> int:
     return int(h * 3600 + m * 60 + s)
 
 
-def fetch_games(username: str, months: int = 6) -> List[Dict]:
+def fetch_games(username: str, months: int = 12) -> List[Dict]:
     """
     Devuelve una lista de dicts con **pgn** y **move_times** de los últimos
     `months` meses del jugador `username`.

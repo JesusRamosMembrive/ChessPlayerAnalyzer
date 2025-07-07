@@ -349,7 +349,7 @@ def get_player(username: str, session: Session = Depends(get_session)):
 @app.post("/players/{username}", status_code=status.HTTP_202_ACCEPTED)
 def analyze_player(
     username: str,
-    months: int = 6,
+    months: int = 12,
     session: Session = Depends(get_session),
 ) -> dict[str, str | int | Literal["pending", "already_processing"]]:
     """
