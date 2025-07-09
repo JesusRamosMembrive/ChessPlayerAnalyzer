@@ -784,8 +784,7 @@ def stop_player_analysis(username: str, session: Session = Depends(get_session))
         logger.info(f"Successfully deleted player {username} and {len(games_to_delete)} associated games")
 
         # 7. Actualizar el estado del jugador
-        player.status = "ready"  # Marcamos como ready para permitir un nuevo análisis
-        player.error = "Analysis stopped by user"
+        session.commit()
         player.finished_at = datetime.now(UTC)
         session.add(player)
         session.commit()
