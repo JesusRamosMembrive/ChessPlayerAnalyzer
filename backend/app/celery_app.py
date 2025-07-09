@@ -415,6 +415,15 @@ def analyze_game_task(
             s.refresh(g)
             game_id = g.id
 
+        if not self.request.called_directly and _is_aborted(self, player):
+            logger.info(f"Task {self.request.id} aborted before database commit, skipping save")
+            return {"status": "revoked", "game_id": game_id, "moves_analyzed": len(analyses)}
+
+        game_db = s.get(models.Game, game_id)
+        if not game_db:
+            logger.warning(f"Game {game_id} no longer exists, skipping analysis save")
+            return {"status": "cancelled", "game_id": game_id, "reason": "game_deleted"}
+
         s.add_all(analyses)
 
         # actualizar campos en Game
@@ -606,6 +615,16 @@ def analyze_game_detailed(game_id: int, username: str) -> dict[str, int | str | 
             suspicious_opening=(o.get("opening_score") or 0) > 50,
             overall_suspicion_score=overall_score,
         )
+        cancellation_key = f"cancel:{username}"
+        if redis_client.get(cancellation_key):
+            logger.info(f"analyze_game_detailed detected Redis cancellation flag for {username} before database commit")
+            return {"status": "cancelled", "game_id": game_id, "username": username}
+
+        game_check = s.get(models.Game, game_id)
+        if not game_check:
+            logger.warning(f"Game {game_id} no longer exists, skipping detailed analysis save")
+            return {"status": "cancelled", "game_id": game_id, "reason": "game_deleted"}
+
         s.merge(detailed)     # create-or-update
         s.commit()
         logger.info("DEBUG DETAILED: GameAnalysisDetailed saved: %s", detailed)

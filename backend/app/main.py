@@ -748,9 +748,9 @@ def stop_player_analysis(username: str, session: Session = Depends(get_session))
         except Exception as e:
             logger.warning(f"Pattern-based revocation failed: {e}")
 
-        # 4. Esperar un poco más para que los workers procesen las revocaciones
+        # 4. Esperar más tiempo para que los workers procesen las revocaciones
         import time as _t
-        _t.sleep(2)
+        _t.sleep(5)  # Increased from 2 to 5 seconds
 
         # 5. Verificar el estado de la tarea principal
         res = AsyncResult(task_id, app=celery_app)
@@ -761,9 +761,7 @@ def stop_player_analysis(username: str, session: Session = Depends(get_session))
 
         logger.info(f"Starting complete data cleanup for player {username}")
         
-        cancellation_key = f"cancel:{username}"
-        redis_client.delete(cancellation_key)
-        logger.info(f"Cleaned up Redis cancellation flag for {username}")
+        logger.info(f"Keeping Redis cancellation flag active during deletion for {username}")
         
         games_to_delete = session.exec(
             select(models.Game).where(
@@ -791,9 +789,9 @@ def stop_player_analysis(username: str, session: Session = Depends(get_session))
         # 7. Notificar por WebSocket
         notify_ws(username, {"status": "stopped", "message": "Analysis stopped and all data removed"})
 
-        # 8. Clean up cancellation flag after a delay to ensure tasks see it
+        # 8. Clean up cancellation flag after a longer delay to ensure all tasks are terminated
         import time as _t2
-        _t2.sleep(1)  # Give tasks time to see the flag
+        _t2.sleep(3)  # Increased from 1 to 3 seconds to ensure tasks are fully terminated
         redis_client.delete(cancellation_key)
         logger.info(f"Cleaned up cancellation flag: {cancellation_key}")
 
