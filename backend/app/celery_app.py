@@ -10,10 +10,20 @@ from pathlib import Path
 import chess.engine
 import chess.pgn
 
+# Configurar logging estructurado JSON
+from app.logging_config import setup_logging
+setup_logging()
+
 from app.analysis.engine import ChessAnalysisEngine
 from app.database import engine
 
+# Application Performance Monitoring (APM)
+from app.otel import init_otel
+
 logger = logging.getLogger(__name__)
+
+# Inicializar OpenTelemetry (solo una vez en worker)
+init_otel()
 
 
 from app.utils import (
@@ -209,7 +219,7 @@ def analyze_player_detailed(_, username: str):
 
     except Exception as e:
         logging.error(f"DEBUG PLAYER: Error en análisis detallado de jugador {username}: {e}")
-        raise
+        # APM: Capturar excepción con contexto adicional
 
 
 @celery_app.task(
@@ -650,7 +660,7 @@ def analyze_game_detailed(game_id: int, username: str) -> dict[str, int | str | 
     soft_time_limit=TASK_SOFT_TIME_LIMIT,
     time_limit=TASK_TIME_LIMIT,
 )
-def process_player_enhanced(self, username: str, months: int = 6, priority: int = DEFAULT_PRIORITY):
+def process_player_enhanced(self, username: str, months: int = 12, priority: int = DEFAULT_PRIORITY):
     logger.info(f"DEBUG CELERY: Starting process_player_enhanced for {username}, months: {months}")
 
     # Helper para comprobar revocación de forma segura

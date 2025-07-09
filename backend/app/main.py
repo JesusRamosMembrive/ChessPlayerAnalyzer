@@ -20,15 +20,22 @@ from app.database import get_session, init_db
 from app.error_handlers import register_exception_handlers
 from app.middleware.rate_limiter import RateLimitMiddleware  # nuevo middleware
 from app.middleware.request_logger import RequestLoggingMiddleware  # nuevo middleware de logging
+from app.middleware.trace_context import TraceContextMiddleware  # añade encabezados de traza
 from prometheus_fastapi_instrumentator import Instrumentator
 
+# Application Performance Monitoring (APM)
+from app.otel import init_otel, instrument_fastapi
+
 # Added utils and Celery app imports for task control and Redis interactions
-from app.utils import redis_client
-from app.celery_app import celery_app
+from app.utils import notify_ws, player_lock, redis_client
+from app.celery_app import celery_app, process_player_enhanced
 from celery.result import AsyncResult
 
-# Configurar logging
-logging.basicConfig(level=logging.INFO)
+# Configurar logging estructurado (JSON)
+from app.logging_config import setup_logging
+
+# Esta llamada es idempotente; si otro módulo ya la ejecutó no tiene efecto.
+setup_logging()
 logger = logging.getLogger(__name__)
 
 # Metadatos de etiquetas para la documentación OpenAPI
@@ -108,6 +115,9 @@ app = FastAPI(
 # Registrar manejadores de errores personalizados
 register_exception_handlers(app)
 
+# Instrumentar FastAPI con OpenTelemetry (debe ser antes de iniciar)
+instrument_fastapi(app)
+
 # Configurar CORS
 app.add_middleware(
     CORSMiddleware,
@@ -127,6 +137,9 @@ app.add_middleware(RateLimitMiddleware)
 
 # Middleware de logging de peticiones
 app.add_middleware(RequestLoggingMiddleware)
+
+# Middleware que añade traceparent/X-Trace-Id
+app.add_middleware(TraceContextMiddleware)
 
 # ───────────────────────────────────────────────────────────
 # Métricas Prometheus
@@ -169,6 +182,9 @@ async def startup_event():
     """Initialize database on startup."""
     init_db()
     logger.info("Application startup: Database initialized")
+    # Inicializar instrumentación de SQLAlchemy y Celery
+    init_otel()
+    logger.info("Application startup: OpenTelemetry SQLAlchemy/Celery initialized")
 
 # ============================================================
 # LEGACY ENDPOINTS (for backward compatibility)
@@ -207,6 +223,7 @@ from app.celery_app import analyze_game_task  # pylint: disable=wrong-import-pos
 def analyze_game_root(request: AnalyzeGameIn, session: Session = Depends(get_session)):
     """Legacy alias for single-game analysis (POST /analyze)."""
     try:
+        
         # Persist game with minimal info – will be updated by Celery
         game_db = models.Game(pgn=request.pgn, move_times=request.move_times)
         session.add(game_db)
@@ -214,8 +231,7 @@ def analyze_game_root(request: AnalyzeGameIn, session: Session = Depends(get_ses
         session.refresh(game_db)
 
         task = analyze_game_task.delay(request.pgn, game_db.id, move_times=request.move_times)
-
-        return TaskQueuedOut(game_id=game_db.id, task_id=task.id, status="queued")
+        
     except Exception as exc:  # noqa: BLE001
         session.rollback()
         raise HTTPException(status_code=500, detail=str(exc))
@@ -349,7 +365,7 @@ def get_player(username: str, session: Session = Depends(get_session)):
 @app.post("/players/{username}", status_code=status.HTTP_202_ACCEPTED)
 def analyze_player(
     username: str,
-    months: int = 6,
+    months: int = 12,
     session: Session = Depends(get_session),
 ) -> dict[str, str | int | Literal["pending", "already_processing"]]:
     """
@@ -403,7 +419,7 @@ def analyze_player(
         # ── 3 · (Re)inicializar registro y publicar tarea ───────────────────
         if relaunch_needed:
             now = datetime.now(UTC)
-            player.status = "pending"
+            player.status = models.PlayerStatus.pending
             player.progress = 0
             player.done_games = 0
             player.total_games = 0
@@ -415,7 +431,7 @@ def analyze_player(
             session.commit()
 
             # Publicar tarea única
-            task = process_player.delay(username, months)
+            task = process_player_enhanced.delay(username, months)
             player.last_task_id = task.id
             session.add(player)
             session.commit()
@@ -447,9 +463,8 @@ def refresh_player(username: str, session: Session = Depends(get_session)):
         player.requested_at = datetime.now(UTC)
         player.error = None
         session.commit()
-
         # Lanzar tarea
-        task = process_player.delay(username)
+        task = process_player_enhanced.delay(username, 12)  # 12 meses por defecto
 
         return {
             "status": "queued",
@@ -620,9 +635,33 @@ def delete_player(username: str, session: Session = Depends(get_session)):
     player = session.get(models.Player, username)
     if not player:
         raise HTTPException(404, "Player not found")
-    # BORRAR análisis relacionados (foreign keys ON DELETE CASCADE)
+    
+    # 1. Limpiar flag de cancelación en Redis si existe
+    cancellation_key = f"cancel:{username}"
+    redis_client.delete(cancellation_key)
+    logger.info(f"Cleaned up Redis cancellation flag for {username}")
+    
+    # 2. Borrar todas las partidas asociadas a este jugador
+    # (tanto como blancas como negras)
+    games_to_delete = session.exec(
+        select(models.Game).where(
+            (models.Game.white_username == username) |
+            (models.Game.black_username == username)
+        )
+    ).all()
+    
+    logger.info(f"Found {len(games_to_delete)} games to delete for player {username}")
+    
+    for game in games_to_delete:
+        session.delete(game)
+    
+    # 3. Borrar el jugador (esto también borrará PlayerAnalysisDetailed por CASCADE)
     session.delete(player)
+    
+    # 4. Commit todos los cambios
     session.commit()
+    
+    logger.info(f"Successfully deleted player {username} and {len(games_to_delete)} associated games")
 
 
 @app.post("/players/{username}/stop")
@@ -756,8 +795,25 @@ def reset_player(username: str, session: Session = Depends(get_session)):
     if not player:
         raise HTTPException(404, "Player not found")
 
-    # Resetear a estado inicial
-    player.status = "not_analyzed"
+    # 1. Limpiar flag de cancelación en Redis
+    cancellation_key = f"cancel:{username}"
+    redis_client.delete(cancellation_key)
+    logger.info(f"Cleaned up Redis cancellation flag for {username}")
+
+    # 2. Opcional: borrar partidas existentes para forzar re-descarga
+    # (comentado por defecto, descomenta si quieres borrar todo)
+    # games_to_delete = session.exec(
+    #     select(models.Game).where(
+    #         (models.Game.white_username == username) |
+    #         (models.Game.black_username == username)
+    #     )
+    # ).all()
+    # for game in games_to_delete:
+    #     session.delete(game)
+    # logger.info(f"Deleted {len(games_to_delete)} existing games for {username}")
+
+    # 3. Resetear a estado inicial
+    player.status = models.PlayerStatus.not_analyzed
     player.progress = 0
     player.total_games = None
     player.done_games = None
@@ -767,7 +823,41 @@ def reset_player(username: str, session: Session = Depends(get_session)):
     player.last_task_id = None
     session.commit()
 
+    logger.info(f"Successfully reset player {username} to initial state")
     return {"status": "reset", "username": username}
+
+@app.post("/maintenance/cleanup-orphaned-games")
+def cleanup_orphaned_games(session: Session = Depends(get_session)):
+    """Limpia partidas huérfanas de jugadores que ya no existen."""
+    # Obtener todos los usernames existentes
+    existing_players = session.exec(select(models.Player.username)).all()
+    existing_usernames = set(existing_players)
+    
+    # Buscar partidas con jugadores que no existen
+    all_games = session.exec(select(models.Game)).all()
+    orphaned_games = []
+    
+    for game in all_games:
+        white_exists = game.white_username in existing_usernames if game.white_username else True
+        black_exists = game.black_username in existing_usernames if game.black_username else True
+        
+        # Si alguno de los jugadores no existe, la partida es huérfana
+        if not white_exists or not black_exists:
+            orphaned_games.append(game)
+    
+    # Borrar partidas huérfanas
+    for game in orphaned_games:
+        session.delete(game)
+    
+    session.commit()
+    
+    logger.info(f"Cleaned up {len(orphaned_games)} orphaned games")
+    
+    return {
+        "status": "success",
+        "orphaned_games_deleted": len(orphaned_games),
+        "total_games_checked": len(all_games)
+    }
 
 # ============================================================
 # STREAMING (SSE)

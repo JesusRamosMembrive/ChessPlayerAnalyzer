@@ -4,7 +4,7 @@ Refactored to make optional fields truly optional and match
 PlayerAnalysisDetailed without triggering ResponseValidationError.
 """
 from datetime import datetime
-from typing import Dict, Optional, List, Literal
+from typing import Dict, Optional, List, Literal, Any
 from pydantic import BaseModel, Field
 
 # ── Public API response models ────────────────────────────────────────────────
@@ -559,6 +559,7 @@ class HealthOut(BaseModel):
     timestamp: datetime
     database: str
     services: dict[str, bool]
+    metrics: Optional[Dict[str, Any]] = None
 
     class Config:
         schema_extra = {
@@ -567,7 +568,27 @@ class HealthOut(BaseModel):
                 "version": "v1",
                 "timestamp": "2024-06-28T15:30:00Z",
                 "database": "connected",
-                "services": {"database": True, "celery": True, "redis": True}
+                "services": {"database": True, "celery": True, "redis": True},
+                "metrics": {
+                    "response_times_ms": {
+                        "total": 15.5,
+                        "database": 2.3,
+                        "redis": 1.1
+                    },
+                    "celery": {
+                        "active_workers": 4
+                    },
+                    "system": {
+                        "cpu_percent": 23.5,
+                        "memory_percent": 45.2,
+                        "disk_percent": 60.1
+                    },
+                    "apm": {
+                        "enabled": True,
+                        "environment": "production",
+                        "traces_sample_rate": 0.1
+                    }
+                }
             }
         }
 

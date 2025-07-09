@@ -56,7 +56,7 @@ async def get_player(username: str, session: Session = Depends(get_session)):
 )
 async def analyze_player(
     username: str,
-    months: int = 6,
+    months: int = 12,
     session: Session = Depends(get_session),
 ):
     """Start analyzing a player's games."""

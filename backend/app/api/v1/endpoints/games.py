@@ -14,6 +14,8 @@ from app.schemas import (
     GameAnalysisStatusOut,
     GameAnalysisCancelOut,
 )
+import hashlib
+from app.utils import redis_client
 
 router = APIRouter()
 
@@ -61,6 +63,12 @@ async def analyze_game(
     session: Session = Depends(get_session)
 ):
     """Analyze a single game with Stockfish."""
+    # Dedupe: evitar análisis duplicados de la misma partida
+    dedupe_key = f"dedupe:analyze_game:{hashlib.sha256(req.pgn.encode('utf-8')).hexdigest()}"
+    if not redis_client.setnx(dedupe_key, "1"):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Duplicate analysis request")
+    redis_client.expire(dedupe_key, 3600)
+
     try:
         # Create game record in database
         game_db = models.Game(pgn=req.pgn, move_times=req.move_times)
@@ -74,6 +82,7 @@ async def analyze_game(
         return TaskQueuedOut(game_id=game_db.id, task_id=task.id, status="queued")
     except Exception as e:
         session.rollback()
+        redis_client.delete(dedupe_key)
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get(

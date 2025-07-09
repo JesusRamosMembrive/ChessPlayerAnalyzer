@@ -1,6 +1,15 @@
 # docker-compose.yml  (Compose V2, sin clave 'version')
 services:
 # ──────────────────────────────────────────────────────────────
+  # Application Performance Monitoring (APM) - Jaeger
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    ports:
+      - "16686:16686"  # UI web
+      - "6831:6831/udp"  # Thrift compact protocol (agent)
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+
   postgres:
     image: postgres:15-alpine
     environment:
@@ -57,6 +66,9 @@ services:
       REDIS_URL: redis://redis:6379/0
       STOCKFISH_PATH: /usr/games/stockfish
       STOCKFISH_DEPTH: 12
+      OTEL_SERVICE_NAME: chess-analyzer-api
+      OTEL_EXPORTER_JAEGER_AGENT_HOST: jaeger
+      OTEL_EXPORTER_JAEGER_AGENT_PORT: 6831
     ports:
       - "8000:8000"
     depends_on:
@@ -79,6 +91,9 @@ services:
       REDIS_URL: redis://redis:6379/0
       STOCKFISH_PATH: /usr/games/stockfish
       STOCKFISH_DEPTH: 12
+      OTEL_SERVICE_NAME: chess-analyzer-worker
+      OTEL_EXPORTER_JAEGER_AGENT_HOST: jaeger
+      OTEL_EXPORTER_JAEGER_AGENT_PORT: 6831
     depends_on:
       migrate:
         condition: service_completed_successfully
