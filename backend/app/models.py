@@ -41,7 +41,13 @@ class Game(SQLModel, table=True):
 
 class MoveAnalysis(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    game_id: int = Field(foreign_key="game.id", index=True)
+    game_id: int = Field(
+        sa_column=Column(
+            ForeignKey("game.id", ondelete="CASCADE"),
+            nullable=False,
+            index=True
+        )
+    )
 
     move_number: int
     played: str
@@ -62,7 +68,12 @@ class GameAnalysisDetailed(SQLModel, table=True):
     """Análisis detallado por partida usando los nuevos módulos."""
     __tablename__ = "game_analysis_detailed"
 
-    game_id: int = Field(foreign_key="game.id", primary_key=True)
+    game_id: int = Field(
+        sa_column=Column(
+            ForeignKey("game.id", ondelete="CASCADE"),
+            primary_key=True
+        )
+    )
 
     # === QUALITY METRICS ===
     acpl: float = Field(description="Average Centipawn Loss")
