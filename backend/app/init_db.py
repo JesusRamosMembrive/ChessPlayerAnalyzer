@@ -3,14 +3,10 @@ import logging
 from sqlmodel import SQLModel
 from app.database import engine
 from sqlalchemy import inspect
+from app.logging_config import setup_logging  # logging JSON estructurado
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout)
-    ]
-)
+# Configurar logging (idempotente)
+setup_logging()
 logger = logging.getLogger(__name__)
 
 def main():

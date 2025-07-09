@@ -20,15 +20,22 @@ from app.database import get_session, init_db
 from app.error_handlers import register_exception_handlers
 from app.middleware.rate_limiter import RateLimitMiddleware  # nuevo middleware
 from app.middleware.request_logger import RequestLoggingMiddleware  # nuevo middleware de logging
+from app.middleware.trace_context import TraceContextMiddleware  # añade encabezados de traza
 from prometheus_fastapi_instrumentator import Instrumentator
+
+# Application Performance Monitoring (APM)
+from app.otel import init_otel, instrument_fastapi
 
 # Added utils and Celery app imports for task control and Redis interactions
 from app.utils import redis_client
 from app.celery_app import celery_app
 from celery.result import AsyncResult
 
-# Configurar logging
-logging.basicConfig(level=logging.INFO)
+# Configurar logging estructurado (JSON)
+from app.logging_config import setup_logging
+
+# Esta llamada es idempotente; si otro módulo ya la ejecutó no tiene efecto.
+setup_logging()
 logger = logging.getLogger(__name__)
 
 # Metadatos de etiquetas para la documentación OpenAPI
@@ -108,6 +115,9 @@ app = FastAPI(
 # Registrar manejadores de errores personalizados
 register_exception_handlers(app)
 
+# Instrumentar FastAPI con OpenTelemetry (debe ser antes de iniciar)
+instrument_fastapi(app)
+
 # Configurar CORS
 app.add_middleware(
     CORSMiddleware,
@@ -127,6 +137,9 @@ app.add_middleware(RateLimitMiddleware)
 
 # Middleware de logging de peticiones
 app.add_middleware(RequestLoggingMiddleware)
+
+# Middleware que añade traceparent/X-Trace-Id
+app.add_middleware(TraceContextMiddleware)
 
 # ───────────────────────────────────────────────────────────
 # Métricas Prometheus
@@ -169,6 +182,9 @@ async def startup_event():
     """Initialize database on startup."""
     init_db()
     logger.info("Application startup: Database initialized")
+    # Inicializar instrumentación de SQLAlchemy y Celery
+    init_otel()
+    logger.info("Application startup: OpenTelemetry SQLAlchemy/Celery initialized")
 
 # ============================================================
 # LEGACY ENDPOINTS (for backward compatibility)
@@ -207,6 +223,7 @@ from app.celery_app import analyze_game_task  # pylint: disable=wrong-import-pos
 def analyze_game_root(request: AnalyzeGameIn, session: Session = Depends(get_session)):
     """Legacy alias for single-game analysis (POST /analyze)."""
     try:
+        
         # Persist game with minimal info – will be updated by Celery
         game_db = models.Game(pgn=request.pgn, move_times=request.move_times)
         session.add(game_db)
@@ -214,8 +231,7 @@ def analyze_game_root(request: AnalyzeGameIn, session: Session = Depends(get_ses
         session.refresh(game_db)
 
         task = analyze_game_task.delay(request.pgn, game_db.id, move_times=request.move_times)
-
-        return TaskQueuedOut(game_id=game_db.id, task_id=task.id, status="queued")
+        
     except Exception as exc:  # noqa: BLE001
         session.rollback()
         raise HTTPException(status_code=500, detail=str(exc))

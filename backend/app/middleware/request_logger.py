@@ -9,6 +9,7 @@ configurado en la aplicación para una trazabilidad sencilla.
 
 import logging
 import time
+from opentelemetry import trace
 from typing import Callable
 
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -34,6 +35,10 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         duration_ms = (time.perf_counter() - start_time) * 1000
         client_host = request.client.host if request.client else "unknown"
 
+        span_ctx = trace.get_current_span().get_span_context()
+        trace_id = f"{span_ctx.trace_id:032x}" if span_ctx.trace_id else None
+        span_id = f"{span_ctx.span_id:016x}" if span_ctx.span_id else None
+
         # Formato: GET /path - 200 (123.45 ms) from 127.0.0.1
         logger.info(
             "%s %s - %s (%.2f ms) from %s",
@@ -42,6 +47,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             response.status_code,
             duration_ms,
             client_host,
+            extra={"trace_id": trace_id, "span_id": span_id},
         )
 
         return response 

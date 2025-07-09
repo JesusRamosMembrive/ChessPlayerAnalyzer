@@ -23,17 +23,15 @@ import sys
 from typing import Any, Dict, List, Optional
 from datetime import datetime, timezone
 import logging
+from app.logging_config import setup_logging  # logging JSON estructurado
 
 import httpx  # pip install httpx
 from tabulate import tabulate  # pip install tabulate
 from tqdm import tqdm  # pip install tqdm
 import time
 
-# Logger
-logging.basicConfig(
-    level=logging.INFO,          # muestra info, warning y error
-    format="%(message)s"         # sin adornos de fecha/módulo
-)
+# Logger (estructura JSON)
+setup_logging()
 
 logger = logging.getLogger(__name__)
 
