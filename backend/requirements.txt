@@ -4,10 +4,6 @@ sqlmodel
 python-dotenv
 python-chess
 celery[redis]
-psycopg[binary]
+psycopg2-binary
 pydantic
-python-chess
-celery
-sqlmodel
-psycopg[binary]
 alembic

@@ -1,7 +1,8 @@
 from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
 from celery.result import AsyncResult
-from sqlmodel import Session
+from sqlmodel import Session, select
+from sqlalchemy import or_
 
 from app.celery_app import celery_app, analyze_game_task
 from app.database import get_session, engine
@@ -24,7 +25,7 @@ def ping():
 
 @app.post("/analyze")
 def analyze(req: GameAnalysisRequest, session: Session = Depends(get_session)):
-    game_db = models.Game(pgn=payload.pgn, move_times=payload.move_times)
+    game_db = models.Game(pgn=req.pgn, move_times=None)
     session.add(game_db)
     session.commit()
     session.refresh(game_db)
@@ -70,3 +71,54 @@ def player_metrics(username: str, session: Session = Depends(get_session)):
     if not pm:
         raise HTTPException(404, "No metrics yet")
     return pm
+
+
+@app.post("/players/{username}/stop")
+def stop_player_analysis(username: str, session: Session = Depends(get_session)):
+    """Stop analysis for a player and remove all traces from database."""
+    try:
+        games = session.exec(
+            select(models.Game).where(
+                or_(models.Game.white_username == username,
+                    models.Game.black_username == username)
+            )
+        ).all()
+        
+        if not games:
+            raise HTTPException(status_code=404, detail=f"No games found for player {username}")
+        
+        for game in games:
+            try:
+                celery_app.control.revoke(f"analyze_game_task_{game.id}", terminate=True)
+                celery_app.control.revoke(f"compute_game_metrics_{game.id}", terminate=True)
+            except Exception as e:
+                print(f"Warning: Could not cancel tasks for game {game.id}: {e}")
+        
+        game_ids = [game.id for game in games]
+        
+        for move_analysis in session.exec(
+            select(models.MoveAnalysis).where(models.MoveAnalysis.game_id.in_(game_ids))
+        ).all():
+            session.delete(move_analysis)
+        
+        for game_metrics in session.exec(
+            select(models.GameMetrics).where(models.GameMetrics.game_id.in_(game_ids))
+        ).all():
+            session.delete(game_metrics)
+        
+        for game in games:
+            session.delete(game)
+        
+        player_metrics = session.exec(
+            select(models.PlayerMetrics).where(models.PlayerMetrics.username == username)
+        ).first()
+        if player_metrics:
+            session.delete(player_metrics)
+        
+        session.commit()
+        
+        return {"message": f"Analysis stopped and all data removed for player {username}"}
+        
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(status_code=500, detail=f"Error stopping analysis: {str(e)}")

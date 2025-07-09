@@ -1,5 +1,5 @@
 import os, io, chess.pgn, chess.engine
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 from typing import List
 from celery import Celery
 from sqlmodel import Session
@@ -137,14 +137,20 @@ def analyze_game_task(pgn_text: str, game_id: int, depth: int = MAX_DEPTH, multi
 
     game_info = game.headers
     eco = game_info.get("ECO")
-    # Primeros 8 plies en SAN, sin números ni “...”
+    white_player = game_info.get("White")
+    black_player = game_info.get("Black")
+    
+    # Primeros 8 plies en SAN, sin números ni "..."
     opening_moves = " ".join(
         node.san() for i, node in enumerate(game.mainline()) if i < 8
     )
     game_db.eco_code = eco
     game_db.opening_key = opening_moves
+    game_db.white_username = white_player
+    game_db.black_username = black_player
 
     with Session(engine) as session:
+        session.merge(game_db)
         session.add_all(moves_for_db)
         session.commit()
 
@@ -154,7 +160,7 @@ def analyze_game_task(pgn_text: str, game_id: int, depth: int = MAX_DEPTH, multi
     return {
         "game_id": game_id,
         "move_count": len(moves_for_db),
-        "analyzed_at": datetime.now(UTC).isoformat(),
+        "analyzed_at": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -166,9 +172,9 @@ def compute_player_metrics(username: str):
     with Session(engine) as s:
         rows = s.exec(
             select(models.Game.opening_key)
-            .where(or_(models.Game.white == username,
-                       models.Game.black == username))
-            .where(models.Game.opening_key.is_not(None))
+            .where(or_(models.Game.white_username == username,
+                       models.Game.black_username == username))
+            .where(models.Game.opening_key != None)
         ).all()
 
         total = len(rows)

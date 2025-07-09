@@ -7,7 +7,7 @@ from sqlmodel import SQLModel, create_engine, Session
 
 DB_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql+psycopg://chess:chess@postgres:5432/chessdb",
+    "postgresql+psycopg2://chess:chess@postgres:5432/chessdb",
 )
 
 engine = create_engine(DB_URL, echo=False, pool_pre_ping=True)
