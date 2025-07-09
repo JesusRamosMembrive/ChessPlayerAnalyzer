@@ -748,9 +748,10 @@ def stop_player_analysis(username: str, session: Session = Depends(get_session))
         except Exception as e:
             logger.warning(f"Pattern-based revocation failed: {e}")
 
-        # 4. Esperar más tiempo para que los workers procesen las revocaciones
+        # 4. Brief wait after SIGKILL to ensure tasks are terminated
         import time as _t
-        _t.sleep(5)  # Increased from 2 to 5 seconds
+        _t.sleep(2)  # Brief wait for SIGKILL to take effect
+        logger.info(f"SIGKILL sent to all tasks for user {username}, proceeding with database cleanup")
 
         # 5. Verificar el estado de la tarea principal
         res = AsyncResult(task_id, app=celery_app)
