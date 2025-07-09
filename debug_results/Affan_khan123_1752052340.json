@@ -1,0 +1,82 @@
+{
+  "username": "Affan_khan123",
+  "games_analyzed": 258,
+  "avg_acpl": 4625.944743634974,
+  "avg_match_rate": 0.2796643155427292,
+  "avg_ipr": -89.24091938330358,
+  "std_acpl": 6393.482311233174,
+  "std_match_rate": 0.1502581876085594,
+  "roi_mean": -89.24091938330358,
+  "roi_max": 2796.0,
+  "roi_std": 3228.74171667231,
+  "step_function_detected": true,
+  "step_function_magnitude": 3332.475,
+  "peer_delta_acpl": 0.0,
+  "peer_delta_match": 0.0,
+  "longest_streak": 8,
+  "selectivity_score": 49.224806201550386,
+  "time_patterns": null,
+  "opening_patterns": {
+    "mean_entropy": -0.0,
+    "novelty_depth": 4.686046511627907,
+    "opening_breadth": 1,
+    "second_choice_rate": 0.8847511924094423
+  },
+  "suspicious_games_ids": [],
+  "performance": {
+    "trend_acpl": -342.8920717212229,
+    "trend_match_rate": 0.006615777165229662,
+    "roi_curve": [
+      -89.24
+    ]
+  },
+  "phase_quality": {
+    "opening_acpl": 1030.2560296846011,
+    "middlegame_acpl": 6379.377300613497,
+    "endgame_acpl": 10698.885193982582,
+    "blunder_rate": 0.18317853457172342
+  },
+  "benchmark": {
+    "percentile_acpl": 90,
+    "percentile_entropy": 5
+  },
+  "risk_score": 20,
+  "risk_factors": {
+    "step_function": true
+  },
+  "confidence_level": 0,
+  "first_game_date": "2025-07-09 09:07:25.519005",
+  "last_game_date": "2025-07-09 09:07:27.206118",
+  "analyzed_at": "2025-07-09 09:12:20.829687",
+  "time_management": {
+    "mean_move_time": 32.93481252149983,
+    "time_variance": 52792.97631474813,
+    "uniformity_score": -5.976,
+    "lag_spike_count": 392
+  },
+  "clutch_accuracy": {
+    "avg_clutch_diff": 10323.2,
+    "clutch_games_pct": 0.112
+  },
+  "tactical": {},
+  "endgame": {
+    "conversion_efficiency": 16,
+    "tb_match_rate": null,
+    "dtz_deviation": null
+  },
+  "time_complexity": {
+    "time_complexity_corr": null
+  },
+  "player": {
+    "username": "Affan_khan123",
+    "status": "ready",
+    "requested_at": "2025-07-09 09:07:25.509302",
+    "finished_at": "2025-07-09 09:12:16.966459",
+    "progress": 100,
+    "total_games": 258,
+    "done_games": 516,
+    "error": null,
+    "last_task_id": "0e354e6c-6206-4fff-bfb3-48757c51d5d8",
+    "analysis": null
+  }
+}
