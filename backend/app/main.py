@@ -232,6 +232,12 @@ def analyze_game_root(request: AnalyzeGameIn, session: Session = Depends(get_ses
 
         task = analyze_game_task.delay(request.pgn, game_db.id, move_times=request.move_times)
         
+        return TaskQueuedOut(
+            task_id=task.id,
+            game_id=game_db.id,
+            status="queued"
+        )
+        
     except Exception as exc:  # noqa: BLE001
         session.rollback()
         raise HTTPException(status_code=500, detail=str(exc))
