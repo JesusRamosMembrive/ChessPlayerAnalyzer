@@ -781,12 +781,11 @@ def stop_player_analysis(username: str, session: Session = Depends(get_session))
         session.delete(player)
         
         
-        logger.info(f"Successfully deleted player {username} and {len(games_to_delete)} associated games")
+        logger.info(
+            f"Successfully deleted player {username} and "
+            f"{len(games_to_delete)} associated games"
+        )
 
-        # 7. Actualizar el estado del jugador
-        session.commit()
-        player.finished_at = datetime.now(UTC)
-        session.add(player)
         session.commit()
 
         # 7. Notificar por WebSocket
@@ -809,6 +808,8 @@ def stop_player_analysis(username: str, session: Session = Depends(get_session))
             "games_deleted": len(games_to_delete)
         }
     except Exception as e:
+        # Revertir la transacción abierta para no dejar la sesión en estado indeterminado
+        session.rollback()
         logger.error(f"Error al detener el análisis para {username}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
