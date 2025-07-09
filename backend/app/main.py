@@ -666,7 +666,7 @@ def delete_player(username: str, session: Session = Depends(get_session)):
 
 @app.post("/players/{username}/stop")
 def stop_player_analysis(username: str, session: Session = Depends(get_session)):
-    """Detiene un análisis de jugador en progreso."""
+    """Detiene un análisis de jugador en progreso y elimina todos los rastros de la base de datos."""
     player = session.get(models.Player, username)
     if not player:
         raise HTTPException(status_code=404, detail="Player not found")
@@ -759,7 +759,31 @@ def stop_player_analysis(username: str, session: Session = Depends(get_session))
         else:
             logger.warning(f"Main task {task_id} state after revocation: {res.state}")
 
-        # 6. Actualizar el estado del jugador
+        logger.info(f"Starting complete data cleanup for player {username}")
+        
+        cancellation_key = f"cancel:{username}"
+        redis_client.delete(cancellation_key)
+        logger.info(f"Cleaned up Redis cancellation flag for {username}")
+        
+        games_to_delete = session.exec(
+            select(models.Game).where(
+                (models.Game.white_username == username) |
+                (models.Game.black_username == username)
+            )
+        ).all()
+        
+        logger.info(f"Found {len(games_to_delete)} games to delete for player {username}")
+        
+        for game in games_to_delete:
+            session.delete(game)
+        
+        # 6c. Delete the player record (this will cascade to PlayerAnalysisDetailed)
+        session.delete(player)
+        
+        
+        logger.info(f"Successfully deleted player {username} and {len(games_to_delete)} associated games")
+
+        # 7. Actualizar el estado del jugador
         player.status = "ready"  # Marcamos como ready para permitir un nuevo análisis
         player.error = "Analysis stopped by user"
         player.finished_at = datetime.now(UTC)
@@ -767,7 +791,7 @@ def stop_player_analysis(username: str, session: Session = Depends(get_session))
         session.commit()
 
         # 7. Notificar por WebSocket
-        notify_ws(username, {"status": "stopped", "message": "Analysis stopped by user"})
+        notify_ws(username, {"status": "stopped", "message": "Analysis stopped and all data removed"})
 
         # 8. Clean up cancellation flag after a delay to ensure tasks see it
         import time as _t2
@@ -775,14 +799,15 @@ def stop_player_analysis(username: str, session: Session = Depends(get_session))
         redis_client.delete(cancellation_key)
         logger.info(f"Cleaned up cancellation flag: {cancellation_key}")
 
-        logger.info(f"Revocation completed for {username}. Total tasks revoked: {len(revoked_tasks)}")
+        logger.info(f"Complete cleanup completed for {username}. Total tasks revoked: {len(revoked_tasks)}")
 
         return {
             "username": username,
             "task_id": task_id,
             "status": "stopped",
-            "message": "Analysis has been stopped successfully",
-            "revoked_tasks": len(revoked_tasks)
+            "message": "Analysis stopped and all data removed successfully",
+            "revoked_tasks": len(revoked_tasks),
+            "games_deleted": len(games_to_delete)
         }
     except Exception as e:
         logger.error(f"Error al detener el análisis para {username}: {e}")
@@ -878,6 +903,7 @@ async def stream_updates(username: str):
             await pubsub.unsubscribe(f"player:{username}")
             await pubsub.close()
 
+    from sse_starlette.sse import EventSourceResponse
     return EventSourceResponse(event_generator())
 
 # ============================================================
