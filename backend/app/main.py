@@ -858,24 +858,42 @@ def stop_player_analysis(username: str, session: Session = Depends(get_session))
                 # STEP 6: Wait for Forceful Exit
                 logger.info(f"STEP 6: Waiting up to {FORCEFUL_WAIT_S}s for tasks to terminate after SIGKILL.")
                 forceful_period_end_time = time.time() + FORCEFUL_WAIT_S
+
+                # Keep track of tasks that received SIGKILL to apply special handling
+                sigkilled_tasks = set(tasks_to_monitor) # Assume all tasks currently monitored were SIGKILLed in STEP 5
+                # More precise would be to pass the list of sigkilled tasks from STEP 5,
+                # but this approximation is generally fine if STEP 5 targets all remaining tasks_to_monitor.
+
+                post_sigkill_check_delay_s = 10 # How long to wait after SIGKILL before assuming termination if state is stale
+                sigkill_assumption_applied_to = set()
+
                 while time.time() < forceful_period_end_time:
                     if not tasks_to_monitor: break
 
                     current_batch_to_check = list(tasks_to_monitor)
                     for t_id in current_batch_to_check:
+                        if t_id in sigkill_assumption_applied_to: # Already assumed killed, skip further checks
+                            continue
                         try:
                             task_result = AsyncResult(t_id, app=celery_app)
-                            # After SIGKILL, state might not update to REVOKED immediately or ever if worker crashes hard.
-                            # It might remain PENDING/STARTED or disappear.
-                            # If ready(), it's done. If not, it's uncertain.
-                            if task_result.ready() or task_result.state == 'REVOKED': # Explicitly check REVOKED too
-                                logger.info(f"Task {t_id} forcefully terminated or completed. State: {task_result.state}")
+                            if task_result.ready() or task_result.state == 'REVOKED':
+                                logger.info(f"Task {t_id} confirmed terminated/completed after SIGKILL. State: {task_result.state}")
                                 tasks_to_monitor.discard(t_id)
+                                sigkilled_tasks.discard(t_id) # No longer need special handling
+                            elif t_id in sigkilled_tasks and (time.time() > (forceful_period_end_time - FORCEFUL_WAIT_S + post_sigkill_check_delay_s)):
+                                # If it's a SIGKILLed task and we're past the initial short check delay for it
+                                logger.warning(f"Task {t_id} (SIGKILLed) state is still {task_result.state}. Assuming terminated due to SIGKILL.")
+                                tasks_to_monitor.discard(t_id)
+                                sigkill_assumption_applied_to.add(t_id) # Mark as assumed killed
                             # else:
-                            #   logger.info(f"Task {t_id} still not ready after SIGKILL. State: {task_result.state}")
+                                # Task is not ready, not revoked, and either not SIGKILLed or within its initial post-SIGKILL check delay
+                                # logger.info(f"Task {t_id} still not ready after SIGKILL. State: {task_result.state}")
+                                pass
+
                         except Exception as e:
                             logger.error(f"Error checking status of task {t_id} during forceful wait: {e}. Assuming terminated.")
                             tasks_to_monitor.discard(t_id)
+                            sigkilled_tasks.discard(t_id)
 
                     if not tasks_to_monitor: break
 
@@ -883,8 +901,8 @@ def stop_player_analysis(username: str, session: Session = Depends(get_session))
                         logger.info(f"Still waiting for {len(tasks_to_monitor)} tasks (forceful). Polling in {POLL_INTERVAL_S}s")
                         time.sleep(POLL_INTERVAL_S)
 
-            if tasks_to_monitor:
-                logger.warning(f"TIMEOUT: {len(tasks_to_monitor)} tasks might still be running for {username} after all attempts: {list(tasks_to_monitor)}")
+            if tasks_to_monitor: # This check remains, but fewer tasks should reach here
+                logger.warning(f"TIMEOUT or assumed termination: {len(tasks_to_monitor)} tasks could not be definitively confirmed stopped but are assumed terminated for {username}: {list(tasks_to_monitor)}")
             else:
                 logger.info(f"All monitored tasks for {username} appear to be terminated.")
 
