@@ -839,6 +839,25 @@ def stop_player_analysis(username: str, session: Session = Depends(get_session))
         
         logger.info(f"Found {len(games_to_delete)} games to delete for player {username}")
         
+        game_ids = [game.id for game in games_to_delete]
+        if game_ids:
+            logger.info(f"Deleting moveanalysis records for {len(game_ids)} games")
+            moveanalysis_to_delete = session.exec(
+                select(models.MoveAnalysis).where(models.MoveAnalysis.game_id.in_(game_ids))
+            ).all()
+            logger.info(f"Found {len(moveanalysis_to_delete)} moveanalysis records to delete")
+            
+            for moveanalysis in moveanalysis_to_delete:
+                session.delete(moveanalysis)
+            
+            gameanalysis_to_delete = session.exec(
+                select(models.GameAnalysisDetailed).where(models.GameAnalysisDetailed.game_id.in_(game_ids))
+            ).all()
+            logger.info(f"Found {len(gameanalysis_to_delete)} game analysis detailed records to delete")
+            
+            for gameanalysis in gameanalysis_to_delete:
+                session.delete(gameanalysis)
+        
         for game in games_to_delete:
             session.delete(game)
         
