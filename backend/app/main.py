@@ -745,169 +745,139 @@ def stop_player_analysis(username: str, session: Session = Depends(get_session))
 
         # --- Overall timings and constants ---
         POLL_INTERVAL_S = 5
-        GRACEFUL_WAIT_S = 30
-        FORCEFUL_WAIT_S = 60 # After graceful wait, for tasks that needed SIGKILL
-        # MAX_TOTAL_WAIT_S = GRACEFUL_WAIT_S + FORCEFUL_WAIT_S # Approx 90s
+        # GRACEFUL_WAIT_S = 30 # Initial wait after SIGTERM
+        # FORCEFUL_WAIT_S = 60 # Max wait after SIGKILL (now part of quiescence)
+        INITIAL_SIGTERM_GRACE_S = 10 # Short wait after initial SIGTERM
+        INITIAL_SIGKILL_GRACE_S = 5  # Short wait after initial SIGKILL
+        MAX_QUIESCENCE_WAIT_S = 60   # Max time for the worker quiescence loop
+        QUIESCENCE_POLL_INTERVAL_S = 5
 
         # STEP 1: Set Redis cancellation flag
         logger.info(f"STEP 1: Setting Redis cancellation flag for {username}")
+        cancellation_key = f"cancel:{username}" # Define it early for use in finally if needed
         try:
-            cancellation_key = f"cancel:{username}"
-            redis_client.set(cancellation_key, "true", ex=GRACEFUL_WAIT_S + FORCEFUL_WAIT_S + 60) # Flag lives longer than wait
+            # Set TTL long enough to cover the whole stop operation + buffer
+            redis_client.set(cancellation_key, "true", ex=MAX_QUIESCENCE_WAIT_S + INITIAL_SIGTERM_GRACE_S + INITIAL_SIGKILL_GRACE_S + 60)
         except Exception as e:
             logger.error(f"Error setting Redis cancellation flag for {username}: {e}")
 
-        # STEP 2: Identify all relevant tasks
-        logger.info(f"STEP 2: Identifying all relevant Celery tasks for {username}")
-        tasks_to_monitor = set()
-        if task_id:
-            tasks_to_monitor.add(task_id)
-            logger.info(f"Main task {task_id} added to monitor list.")
+        # STEP 2: Identify all relevant tasks and initial revocation pass
+        logger.info(f"STEP 2: Identifying tasks and initial revocation for {username}")
+        all_potentially_related_task_ids = set()
+        if task_id: # Main task ID from player record
+            all_potentially_related_task_ids.add(task_id)
+            logger.info(f"Main task {task_id} added for handling.")
 
         try:
-            inspect = celery_app.control.inspect()
+            inspect = celery_app.control.inspect(timeout=2.0) # Short timeout for inspect
             if inspect:
-                active_tasks_dict = inspect.active() # Tasks currently running
-                scheduled_tasks_dict = inspect.scheduled() # Tasks waiting in ETA/countdown
-                reserved_tasks_dict = inspect.reserved() # Tasks prefetched by workers
-
-                all_inspected_tasks = []
-                if active_tasks_dict:
-                    for worker_tasks in active_tasks_dict.values():
-                        all_inspected_tasks.extend(worker_tasks)
-                if scheduled_tasks_dict:
-                    for worker_tasks in scheduled_tasks_dict.values():
-                        all_inspected_tasks.extend(worker_tasks)
-                if reserved_tasks_dict: # Reserved tasks might be harder to get args from, structure varies
-                    for worker_tasks in reserved_tasks_dict.values():
-                        all_inspected_tasks.extend(worker_tasks)
-
-                for task_info in all_inspected_tasks:
-                    task_info_id = task_info.get('id') or task_info.get('request', {}).get('id')
-                    if not task_info_id:
-                        continue
-
-                    task_args_repr = str(task_info.get('args', '[]'))
-                    task_kwargs_repr = str(task_info.get('kwargs', '{}'))
-
-                    if username in task_args_repr or username in task_kwargs_repr:
-                        if task_info_id not in tasks_to_monitor:
-                            tasks_to_monitor.add(task_info_id)
-                            logger.info(f"Identified related task {task_info_id} for {username} via inspection.")
+                # Consolidate inspection of active, scheduled, reserved
+                task_sources = {
+                    "active": inspect.active(),
+                    "scheduled": inspect.scheduled(),
+                    "reserved": inspect.reserved()
+                }
+                for source_name, tasks_by_worker in task_sources.items():
+                    if tasks_by_worker:
+                        for worker_name, tasks_on_worker in tasks_by_worker.items():
+                            for task_info in tasks_on_worker:
+                                if _username_in_task_details(task_info, username):
+                                    task_info_id = task_info.get('id') or task_info.get('request', {}).get('id')
+                                    if task_info_id and task_info_id not in all_potentially_related_task_ids:
+                                        all_potentially_related_task_ids.add(task_info_id)
+                                        logger.info(f"Identified related task {task_info_id} ({source_name} on {worker_name}) for {username}.")
             else:
-                logger.warning("Could not inspect Celery workers. Monitoring will rely on main task ID only if available.")
+                logger.warning("Could not inspect Celery workers during initial task identification.")
         except Exception as e:
-            logger.error(f"Error inspecting Celery tasks: {e}. Proceeding with tasks identified so far.")
+            logger.error(f"Error during initial Celery task inspection: {e}.")
 
-        if not tasks_to_monitor:
-            logger.info(f"No tasks found to monitor for {username}. Proceeding to cleanup.")
+        if not all_potentially_related_task_ids:
+            logger.info(f"No potentially related Celery tasks found for {username}. Proceeding to cleanup.")
         else:
-            logger.info(f"Monitoring the following tasks for termination: {list(tasks_to_monitor)}")
+            logger.info(f"Attempting to stop {len(all_potentially_related_task_ids)} tasks: {list(all_potentially_related_task_ids)}")
+            # Initial SIGTERM pass
+            logger.info(f"STEP 2a: Sending SIGTERM to identified tasks.")
+            for t_id in all_potentially_related_task_ids:
+                try: celery_app.control.revoke(t_id, terminate=True)
+                except Exception as e: logger.error(f"Error sending SIGTERM to task {t_id}: {e}")
 
-            # STEP 3: Graceful Revocation (SIGTERM)
-            logger.info(f"STEP 3: Attempting graceful revocation (SIGTERM) for {len(tasks_to_monitor)} tasks.")
-            for t_id in tasks_to_monitor:
-                try:
-                    celery_app.control.revoke(t_id, terminate=True) # SIGTERM
-                    logger.info(f"Sent SIGTERM to task {t_id}")
-                except Exception as e:
-                    logger.error(f"Error sending SIGTERM to task {t_id}: {e}")
+            logger.info(f"Waiting {INITIAL_SIGTERM_GRACE_S}s for SIGTERM to be processed.")
+            time.sleep(INITIAL_SIGTERM_GRACE_S)
 
-            # STEP 4: Wait for Graceful Exit
-            logger.info(f"STEP 4: Waiting up to {GRACEFUL_WAIT_S}s for tasks to terminate gracefully.")
-            graceful_period_end_time = time.time() + GRACEFUL_WAIT_S
+            # Initial SIGKILL pass for all initially identified tasks
+            # (as some might be PENDING and SIGTERM doesn't remove them from AsyncResult's view quickly)
+            logger.info(f"STEP 2b: Sending SIGKILL to all initially identified tasks.")
+            for t_id in all_potentially_related_task_ids:
+                try: celery_app.control.revoke(t_id, terminate=True, signal='SIGKILL')
+                except Exception as e: logger.error(f"Error sending SIGKILL to task {t_id}: {e}")
 
-            still_running_after_graceful = set()
-            while time.time() < graceful_period_end_time:
-                if not tasks_to_monitor: break # All tasks handled
+            logger.info(f"Waiting {INITIAL_SIGKILL_GRACE_S}s for SIGKILL to take effect.")
+            time.sleep(INITIAL_SIGKILL_GRACE_S)
 
-                current_batch_to_check = list(tasks_to_monitor) # Check a snapshot
-                for t_id in current_batch_to_check:
-                    try:
-                        task_result = AsyncResult(t_id, app=celery_app)
-                        if task_result.ready() or task_result.state in ['REVOKED', 'SUCCESS', 'FAILURE']:
-                            logger.info(f"Task {t_id} gracefully terminated or completed. State: {task_result.state}")
-                            tasks_to_monitor.discard(t_id)
-                        else:
-                            still_running_after_graceful.add(t_id) # Re-add if not ready, for next check or SIGKILL
-                    except Exception as e:
-                        logger.error(f"Error checking status of task {t_id} during graceful wait: {e}. Assuming terminated for safety.")
-                        tasks_to_monitor.discard(t_id)
+        # STEP 3: Worker Quiescence Loop - Ensure no active tasks for the user
+        logger.info(f"STEP 3: Entering worker quiescence check for {username} (up to {MAX_QUIESCENCE_WAIT_S}s).")
+        quiescence_deadline = time.time() + MAX_QUIESCENCE_WAIT_S
+        user_tasks_remain_active = False
 
-                if not tasks_to_monitor: break
+        while time.time() < quiescence_deadline:
+            user_tasks_found_this_iteration = False
+            active_tasks_on_workers = None
+            try:
+                inspect = celery_app.control.inspect(timeout=1.0) # Short timeout for inspect call
+                if inspect:
+                    active_tasks_on_workers = inspect.active()
+                else: # Workers not responding to inspect
+                    logger.warning("Celery inspect returned None (no workers responding?). Assuming quiescence for this iteration.")
+                    # This means we can't confirm tasks are running, so we might proceed if this state persists.
+                    # However, if tasks were running on a worker that just became unresponsive, they might still be writing.
+                    # This is a tricky state. For now, treat as "no tasks found".
+                    pass # user_tasks_found_this_iteration remains False
 
-                # Update tasks_to_monitor for the next iteration or for SIGKILL phase
-                # tasks_to_monitor is already being modified, ensure still_running_after_graceful is what we carry forward
-                # The set `tasks_to_monitor` will contain only those not yet confirmed terminated.
+            except Exception as e: # Covers redis.exceptions.TimeoutError from inspect, etc.
+                logger.error(f"Error during celery inspect.active() call: {e}. Assuming quiescence for this iteration.")
+                # Similar to inspect returning None, if we can't query, we can't find tasks.
+                pass # user_tasks_found_this_iteration remains False
 
-                if tasks_to_monitor: # Only sleep if there's something to wait for
-                    logger.info(f"Still waiting for {len(tasks_to_monitor)} tasks (graceful). Polling in {POLL_INTERVAL_S}s")
-                    time.sleep(POLL_INTERVAL_S)
+            if active_tasks_on_workers:
+                for worker_name, tasks_on_worker_list in active_tasks_on_workers.items():
+                    if not tasks_on_worker_list: continue # Skip worker if it reports no active tasks
+                    for active_task_info in tasks_on_worker_list:
+                        if _username_in_task_details(active_task_info, username):
+                            user_tasks_found_this_iteration = True
+                            active_task_id = active_task_info.get('id') or active_task_info.get('request', {}).get('id')
+                            logger.warning(f"User '{username}' task {active_task_id or 'unknown_id'} still active on worker {worker_name}. Re-issuing SIGKILL.")
+                            if active_task_id: # Only revoke if we have an ID
+                                try:
+                                    celery_app.control.revoke(active_task_id, terminate=True, signal='SIGKILL', destination=[worker_name])
+                                except Exception as e_revoke:
+                                    logger.error(f"Error re-issuing SIGKILL to {active_task_id} on {worker_name}: {e_revoke}")
+                            break # Found an active task for the user on this worker
+                    if user_tasks_found_this_iteration: break # Break from worker loop
 
-            # STEP 5: Forceful Revocation (SIGKILL) if necessary
-            if tasks_to_monitor: # Tasks that didn't stop gracefully
-                logger.info(f"STEP 5: {len(tasks_to_monitor)} tasks did not stop gracefully. Attempting forceful (SIGKILL).")
-                for t_id in list(tasks_to_monitor): # Iterate over a copy as we might modify it
-                    try:
-                        celery_app.control.revoke(t_id, terminate=True, signal='SIGKILL')
-                        logger.info(f"Sent SIGKILL to task {t_id}")
-                    except Exception as e:
-                        logger.error(f"Error sending SIGKILL to task {t_id}: {e}")
-                        # tasks_to_monitor.discard(t_id) # Optionally remove if revoke fails catastrophically
+            user_tasks_remain_active = user_tasks_found_this_iteration # Update overall status
 
-                # STEP 6: Wait for Forceful Exit
-                logger.info(f"STEP 6: Waiting up to {FORCEFUL_WAIT_S}s for tasks to terminate after SIGKILL.")
-                forceful_period_end_time = time.time() + FORCEFUL_WAIT_S
+            if not user_tasks_remain_active:
+                logger.info(f"No active tasks for user '{username}' found in this quiescence check. Verification successful.")
+                break # Exit quiescence loop
 
-                # Keep track of tasks that received SIGKILL to apply special handling
-                sigkilled_tasks = set(tasks_to_monitor) # Assume all tasks currently monitored were SIGKILLed in STEP 5
-                # More precise would be to pass the list of sigkilled tasks from STEP 5,
-                # but this approximation is generally fine if STEP 5 targets all remaining tasks_to_monitor.
+            logger.info(f"User tasks still active. Waiting {QUIESCENCE_POLL_INTERVAL_S}s before next quiescence check...")
+            time.sleep(QUIESCENCE_POLL_INTERVAL_S)
 
-                post_sigkill_check_delay_s = 10 # How long to wait after SIGKILL before assuming termination if state is stale
-                sigkill_assumption_applied_to = set()
+        if user_tasks_remain_active: # Check after loop finishes (either by break or timeout)
+            logger.error(f"CRITICAL: Workers still report active tasks for user '{username}' after {MAX_QUIESCENCE_WAIT_S}s of quiescence checks. Database deletion will be ABORTED to prevent data corruption.")
+            # No need to rollback session here as we haven't done DB operations yet in this path
+            clear_cleanup_in_progress() # Clear our own flag
+            # Clear analysis_in_progress if it was set for this user, to allow retries or other operations.
+            # This depends on how ANALYSIS_IN_PROGRESS_KEY is managed. Assuming it might be set.
+            if redis_client.get(ANALYSIS_IN_PROGRESS_KEY) == username.encode(): # Check if this user set it
+                 clear_analysis_in_progress()
+            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=f"Could not stop all Celery tasks for user {username} after multiple attempts. Player data has not been deleted. Please try again later or contact support if the issue persists.")
 
-                while time.time() < forceful_period_end_time:
-                    if not tasks_to_monitor: break
+        # If we reach here, user_tasks_remain_active is False.
+        logger.info(f"Worker quiescence confirmed for user '{username}'. Proceeding with cleanup.")
 
-                    current_batch_to_check = list(tasks_to_monitor)
-                    for t_id in current_batch_to_check:
-                        if t_id in sigkill_assumption_applied_to: # Already assumed killed, skip further checks
-                            continue
-                        try:
-                            task_result = AsyncResult(t_id, app=celery_app)
-                            if task_result.ready() or task_result.state == 'REVOKED':
-                                logger.info(f"Task {t_id} confirmed terminated/completed after SIGKILL. State: {task_result.state}")
-                                tasks_to_monitor.discard(t_id)
-                                sigkilled_tasks.discard(t_id) # No longer need special handling
-                            elif t_id in sigkilled_tasks and (time.time() > (forceful_period_end_time - FORCEFUL_WAIT_S + post_sigkill_check_delay_s)):
-                                # If it's a SIGKILLed task and we're past the initial short check delay for it
-                                logger.warning(f"Task {t_id} (SIGKILLed) state is still {task_result.state}. Assuming terminated due to SIGKILL.")
-                                tasks_to_monitor.discard(t_id)
-                                sigkill_assumption_applied_to.add(t_id) # Mark as assumed killed
-                            # else:
-                                # Task is not ready, not revoked, and either not SIGKILLed or within its initial post-SIGKILL check delay
-                                # logger.info(f"Task {t_id} still not ready after SIGKILL. State: {task_result.state}")
-                                pass
-
-                        except Exception as e:
-                            logger.error(f"Error checking status of task {t_id} during forceful wait: {e}. Assuming terminated.")
-                            tasks_to_monitor.discard(t_id)
-                            sigkilled_tasks.discard(t_id)
-
-                    if not tasks_to_monitor: break
-
-                    if tasks_to_monitor:
-                        logger.info(f"Still waiting for {len(tasks_to_monitor)} tasks (forceful). Polling in {POLL_INTERVAL_S}s")
-                        time.sleep(POLL_INTERVAL_S)
-
-            if tasks_to_monitor: # This check remains, but fewer tasks should reach here
-                logger.warning(f"TIMEOUT or assumed termination: {len(tasks_to_monitor)} tasks could not be definitively confirmed stopped but are assumed terminated for {username}: {list(tasks_to_monitor)}")
-            else:
-                logger.info(f"All monitored tasks for {username} appear to be terminated.")
-
-        # STEP 7: Comprehensive Redis and queue cleanup (original step 3)
-        logger.info(f"STEP 7: Comprehensive Redis and queue cleanup")
+        # STEP 4: Comprehensive Redis and queue cleanup (previously Step 7)
+        logger.info(f"STEP 4: Comprehensive Redis and queue cleanup")
 
         try:
             # Reduced scope of key deletion to be less aggressive.
@@ -988,6 +958,33 @@ def stop_player_analysis(username: str, session: Session = Depends(get_session))
         clear_cleanup_in_progress()
         clear_analysis_in_progress()
         logger.info(f"Cleanup flags cleared for user {username}")
+
+
+def _username_in_task_details(task_info: dict, username_to_check: str) -> bool:
+    """
+    Checks if the username appears in the string representation of a task's args or kwargs.
+    `task_info` is a dictionary like one item from `inspect.active()[worker_name]`.
+    """
+    if not task_info or not isinstance(task_info, dict):
+        return False
+
+    # Celery task args/kwargs from inspect can be complex. Checking string representation is a common approach.
+    task_args_repr = str(task_info.get('args', '[]'))
+    task_kwargs_repr = str(task_info.get('kwargs', '{}'))
+
+    if username_to_check in task_args_repr or username_to_check in task_kwargs_repr:
+        return True
+
+    # Sometimes the request object itself is nested
+    request_info = task_info.get('request')
+    if isinstance(request_info, dict):
+        request_args_repr = str(request_info.get('args', '[]'))
+        request_kwargs_repr = str(request_info.get('kwargs', '{}'))
+        if username_to_check in request_args_repr or username_to_check in request_kwargs_repr:
+            return True
+
+    return False
+
 
 @app.post("/players/{username}/reset")
 def reset_player(username: str, session: Session = Depends(get_session)):
