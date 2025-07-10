@@ -741,43 +741,86 @@ def stop_player_analysis(username: str, session: Session = Depends(get_session))
         set_cleanup_in_progress(username)
         logger.info(f"Cleanup started for user {username} - blocking new requests")
 
-        import subprocess
-        import signal
-        import psutil
+        # Removed unused imports: subprocess, signal, psutil
+        import time # Keep time for polling interval
 
-        logger.info(f"STEP 2: Terminating all Celery tasks using Celery control mechanisms")
+        logger.info(f"STEP 1: Set cancellation flag and revoke tasks")
 
         try:
             cancellation_key = f"cancel:{username}"
             redis_client.set(cancellation_key, "true", ex=300)  # 5 minute expiry
-            logger.info(f"Set cancellation flag for user {username}")
-            
+            logger.info(f"Set Redis cancellation flag for {username}")
+
+            tasks_to_monitor = set()
+
+            # Explicitly revoke the main task_id for the player
+            if task_id:
+                logger.info(f"Revoking main task {task_id} for player {username} with SIGKILL")
+                celery_app.control.revoke(task_id, terminate=True, signal='SIGKILL')
+                tasks_to_monitor.add(task_id)
+
+            # Fallback: Inspect active tasks and revoke any others related to the username
+            # This is a defense-in-depth measure.
             inspect = celery_app.control.inspect()
-            active_tasks = inspect.active()
-            
-            if active_tasks:
-                tasks_to_revoke = []
-                for worker, tasks in active_tasks.items():
-                    for task in tasks:
-                        task_args = task.get('args', [])
-                        if any(username in str(arg) for arg in task_args):
-                            tasks_to_revoke.append(task['id'])
-                            logger.info(f"Found task to revoke: {task['id']} on worker {worker}")
-                
-                if tasks_to_revoke:
-                    celery_app.control.revoke(tasks_to_revoke, terminate=True, signal='SIGKILL')
-                    logger.info(f"Revoked {len(tasks_to_revoke)} active tasks for user {username}")
+            if inspect: # inspect can return None if no workers are available
+                active_tasks_dict = inspect.active()
+                if active_tasks_dict:
+                    additional_tasks_to_revoke = []
+                    for worker, worker_tasks_list in active_tasks_dict.items():
+                        for task_info in worker_tasks_list:
+                            task_args_repr = task_info.get('args', '[]')
+                            task_kwargs_repr = task_info.get('kwargs', '{}')
+                            # Check if username is in string representation of args or kwargs
+                            if username in task_args_repr or username in task_kwargs_repr:
+                                if task_info['id'] not in tasks_to_monitor: # Avoid re-revoking main task if listed here
+                                    additional_tasks_to_revoke.append(task_info['id'])
+                                    tasks_to_monitor.add(task_info['id'])
+                                    logger.info(f"Found additional task to revoke: {task_info['id']} on worker {worker}")
                     
-                    import time as _t
-                    _t.sleep(5)
-            
-            celery_app.control.purge()
-            logger.info("Purged all Celery queues")
+                    if additional_tasks_to_revoke:
+                        celery_app.control.revoke(additional_tasks_to_revoke, terminate=True, signal='SIGKILL')
+                        logger.info(f"Revoked {len(additional_tasks_to_revoke)} additional active tasks for user {username}")
+            else:
+                logger.warning("Could not inspect active Celery tasks (no workers responding?).")
+
+            # celery_app.control.purge() # This is very aggressive, avoid if possible.
+            # logger.info("Purged all Celery queues")
             
         except Exception as e:
-            logger.error(f"Error terminating Celery tasks: {e}")
-            import time as _t
-            _t.sleep(2)
+            logger.error(f"Error during Celery task revocation phase: {e}")
+
+        logger.info(f"STEP 2: Wait for tasks to terminate")
+        POLL_INTERVAL = 5  # seconds
+        MAX_WAIT_TIME = 120  # seconds
+        start_wait_time = time.time()
+
+        while tasks_to_monitor and (time.time() - start_wait_time) < MAX_WAIT_TIME:
+            still_processing = set()
+            for t_id in list(tasks_to_monitor): # Iterate over a copy
+                try:
+                    task_result = AsyncResult(t_id, app=celery_app)
+                    if not task_result.ready() and task_result.state not in ['REVOKED', 'SUCCESS', 'FAILURE']: # SUCCESS/FAILURE also mean "ready"
+                        logger.info(f"Task {t_id} is still in state: {task_result.state}")
+                        still_processing.add(t_id)
+                    else:
+                        logger.info(f"Task {t_id} finished or revoked. State: {task_result.state}")
+                        tasks_to_monitor.remove(t_id) # Remove from monitoring
+                except Exception as e:
+                    logger.error(f"Error checking status of task {t_id}: {e}. Assuming it's gone.")
+                    tasks_to_monitor.remove(t_id) # Remove from monitoring to avoid infinite loop on error
+
+            if not still_processing:
+                logger.info("All monitored tasks have completed or been revoked.")
+                break
+
+            tasks_to_monitor = still_processing
+            logger.info(f"Waiting for {len(tasks_to_monitor)} tasks to terminate... polling in {POLL_INTERVAL}s")
+            time.sleep(POLL_INTERVAL)
+
+        if tasks_to_monitor:
+            logger.warning(f"Timeout reached. {len(tasks_to_monitor)} tasks might still be running for user {username}: {tasks_to_monitor}")
+        else:
+            logger.info(f"All tasks for user {username} appear to be terminated.")
 
         logger.info(f"STEP 3: Comprehensive Redis and queue cleanup")
 
@@ -828,7 +871,7 @@ def stop_player_analysis(username: str, session: Session = Depends(get_session))
         except Exception as e:
             logger.warning(f"Could not verify task status: {e}")
 
-        logger.info(f"STEP 5: Starting database cleanup for player {username}")
+        logger.info(f"STEP 4: Starting database cleanup for player {username}") # Adjusted step number
         
         games_to_delete = session.exec(
             select(models.Game).where(
