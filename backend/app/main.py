@@ -923,19 +923,32 @@ def stop_player_analysis(username: str, session: Session = Depends(get_session))
         logger.info(f"Found {len(games_to_delete)} games to delete for player {username}")
         
         for game in games_to_delete:
-            session.delete(game)
+            # Explicitly delete MoveAnalysis records for the current game FIRST
+            move_analyses_to_delete = session.exec(
+                select(models.MoveAnalysis).where(models.MoveAnalysis.game_id == game.id)
+            ).all()
+            if move_analyses_to_delete:
+                logger.info(f"Found {len(move_analyses_to_delete)} move analysis records to delete for game {game.id}")
+                for ma in move_analyses_to_delete:
+                    session.delete(ma)
+            else:
+                logger.info(f"No move analysis records found for game {game.id}, or they are already marked for deletion via cascade.")
+
+            logger.info(f"Marking game record for deletion: game_id {game.id}")
+            session.delete(game) # Mark the game for deletion
         
-        # Delete the player record (this will cascade to PlayerAnalysisDetailed)
+        # Delete the player record (this will cascade to PlayerAnalysisDetailed if configured)
+        logger.info(f"Marking player record for deletion: {username}")
         session.delete(player)
         
         logger.info(
-            f"Successfully deleted player {username} and "
-            f"{len(games_to_delete)} associated games"
+            f"Attempting to commit deletions for player {username} and {len(games_to_delete)} associated games (plus their move analyses)."
         )
 
-        session.commit()
+        session.commit() # This is where the error was happening. Now it should succeed.
 
-        logger.info(f"STEP 5: Cleanup sequence completed - workers terminated, tasks deleted, database cleaned")
+        logger.info(f"Database cleanup successful for player {username}.")
+        logger.info(f"STEP 5: Cleanup sequence completed - tasks handled, Redis cleaned, database records deleted.") # Adjusted log
 
         # Notificar por WebSocket
         notify_ws(username, {"status": "stopped", "message": "Analysis stopped and all data removed"})
