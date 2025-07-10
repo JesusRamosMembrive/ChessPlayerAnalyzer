@@ -745,58 +745,90 @@ def stop_player_analysis(username: str, session: Session = Depends(get_session))
         import signal
         import psutil
 
-        logger.info(f"STEP 2: Terminating all Celery worker processes")
+        logger.info(f"STEP 2: Terminating all Celery tasks using Celery control mechanisms")
 
         try:
-            celery_processes = []
-            for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
-                try:
-                    if proc.info['cmdline']:
-                        cmdline_str = ' '.join(proc.info['cmdline'])
-                        if 'celery' in cmdline_str and 'worker' in cmdline_str and 'app.celery_app' in cmdline_str:
-                            celery_processes.append(proc)
-                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-                    continue
+            cancellation_key = f"cancel:{username}"
+            redis_client.set(cancellation_key, "true", ex=300)  # 5 minute expiry
+            logger.info(f"Set cancellation flag for user {username}")
             
-            for proc in celery_processes:
-                try:
-                    logger.info(f"Sending SIGKILL to Celery worker process {proc.pid}")
-                    proc.send_signal(signal.SIGKILL)
-                except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
-                    logger.warning(f"Could not kill process {proc.pid}: {e}")
+            inspect = celery_app.control.inspect()
+            active_tasks = inspect.active()
             
-            import time as _t
-            _t.sleep(3)
+            if active_tasks:
+                tasks_to_revoke = []
+                for worker, tasks in active_tasks.items():
+                    for task in tasks:
+                        task_args = task.get('args', [])
+                        if any(username in str(arg) for arg in task_args):
+                            tasks_to_revoke.append(task['id'])
+                            logger.info(f"Found task to revoke: {task['id']} on worker {worker}")
+                
+                if tasks_to_revoke:
+                    celery_app.control.revoke(tasks_to_revoke, terminate=True, signal='SIGKILL')
+                    logger.info(f"Revoked {len(tasks_to_revoke)} active tasks for user {username}")
+                    
+                    import time as _t
+                    _t.sleep(5)
             
-            logger.info(f"Terminated {len(celery_processes)} Celery worker processes")
-            
-        except Exception as e:
-            logger.error(f"Error terminating Celery workers: {e}")
-            import time as _t
-            _t.sleep(2)
-
-        logger.info(f"STEP 3: Deleting all tasks from Redis/Celery queues")
-
-        try:
             celery_app.control.purge()
             logger.info("Purged all Celery queues")
             
+        except Exception as e:
+            logger.error(f"Error terminating Celery tasks: {e}")
+            import time as _t
+            _t.sleep(2)
+
+        logger.info(f"STEP 3: Comprehensive Redis and queue cleanup")
+
+        try:
             task_keys = redis_client.keys("celery-task-meta-*")
             if task_keys:
                 redis_client.delete(*task_keys)
                 logger.info(f"Deleted {len(task_keys)} task metadata keys from Redis")
-            
+
             queue_keys = redis_client.keys("*queue*")
             if queue_keys:
                 redis_client.delete(*queue_keys)
                 logger.info(f"Deleted {len(queue_keys)} queue keys from Redis")
-                
+
+            user_keys = redis_client.keys(f"*{username}*")
+            if user_keys:
+                redis_client.delete(*user_keys)
+                logger.info(f"Deleted {len(user_keys)} user-specific keys from Redis")
+
+            import time as _t
+            _t.sleep(3)
+
         except Exception as e:
-            logger.error(f"Error deleting tasks from queues: {e}")
+            logger.error(f"Error during Redis cleanup: {e}")
 
-        logger.info(f"All workers terminated and tasks deleted for user {username}, proceeding with database cleanup")
+        logger.info(f"STEP 4: Verifying all tasks are stopped before database cleanup")
 
-        logger.info(f"STEP 4: Starting database cleanup for player {username}")
+        try:
+            inspect = celery_app.control.inspect()
+            active_tasks = inspect.active()
+
+            user_tasks_still_active = False
+            if active_tasks:
+                for worker, tasks in active_tasks.items():
+                    for task in tasks:
+                        task_args = task.get('args', [])
+                        if any(username in str(arg) for arg in task_args):
+                            user_tasks_still_active = True
+                            logger.warning(f"Task still active: {task['id']} on worker {worker}")
+
+            if user_tasks_still_active:
+                logger.warning(f"Some tasks still active for {username}, waiting additional time")
+                import time as _t
+                _t.sleep(5)
+
+            logger.info(f"Task verification complete - proceeding with database cleanup")
+
+        except Exception as e:
+            logger.warning(f"Could not verify task status: {e}")
+
+        logger.info(f"STEP 5: Starting database cleanup for player {username}")
         
         games_to_delete = session.exec(
             select(models.Game).where(
