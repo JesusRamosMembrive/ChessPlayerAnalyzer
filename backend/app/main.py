@@ -748,55 +748,57 @@ def stop_player_analysis(username: str, session: Session = Depends(get_session))
         import time as _t
         import os
 
-        logger.info(f"STEP 1: KILLING Celery and Redis services completely")
+        logger.info(f"STEP 1: TERMINATING all Celery workers and clearing queues")
         
         try:
-            project_dir = "/app"  # Directorio dentro del contenedor donde está el docker-compose.yml
-            if not os.path.exists(project_dir):
-                project_dir = os.getcwd()
+            from celery import current_app
+            from app.celery_app import celery_app
             
-            logger.info("Stopping Celery and Redis services gracefully...")
-            result = subprocess.run(
-                ["docker-compose", "stop", "celery", "redis"], 
-                cwd=project_dir,
-                capture_output=True, 
-                text=True, 
-                timeout=30
-            )
-            logger.info(f"Stop command result: {result.returncode}, stdout: {result.stdout}, stderr: {result.stderr}")
+            logger.info("Revoking all active tasks...")
+            active_tasks = celery_app.control.inspect().active()
+            if active_tasks:
+                for worker, tasks in active_tasks.items():
+                    for task in tasks:
+                        if username in str(task.get('args', [])) or username in str(task.get('kwargs', {})):
+                            logger.info(f"Revoking task {task['id']} on worker {worker}")
+                            celery_app.control.revoke(task['id'], terminate=True, signal='SIGKILL')
             
-            logger.info("Killing Celery and Redis services forcefully...")
-            result = subprocess.run(
-                ["docker-compose", "kill", "celery", "redis"], 
-                cwd=project_dir,
-                capture_output=True, 
-                text=True, 
-                timeout=30
-            )
-            logger.info(f"Kill command result: {result.returncode}, stdout: {result.stdout}, stderr: {result.stderr}")
+            logger.info("Clearing Redis queues...")
+            redis_client.flushdb()  # Clear all Redis data for this database
             
-            # Verificar que los servicios están parados
-            logger.info("Verifying services are stopped...")
-            result = subprocess.run(
-                ["docker-compose", "ps"], 
-                cwd=project_dir,
-                capture_output=True, 
-                text=True, 
-                timeout=30
-            )
-            logger.info(f"Services status after kill: {result.stdout}")
+            logger.info("Waiting for workers to terminate...")
+            import time
+            time.sleep(5)  # Give workers time to actually stop
             
-            # Esperar un momento para asegurar que todo está parado
-            _t.sleep(3)
-            
-            logger.info("Celery and Redis services successfully terminated")
-            
-        except subprocess.TimeoutExpired:
-            logger.error("Timeout while stopping services - continuing with database cleanup")
+            remaining_tasks = celery_app.control.inspect().active()
+            if remaining_tasks:
+                logger.warning(f"Some tasks still active after termination: {remaining_tasks}")
+            else:
+                logger.info("All Celery workers successfully terminated")
+                
         except Exception as e:
-            logger.error(f"Error stopping services: {e} - continuing with database cleanup")
+            logger.error(f"Error terminating Celery workers: {e} - continuing with database cleanup")
 
-        logger.info(f"STEP 2: Database cleanup while services are dead for player {username}")
+        logger.info(f"STEP 2: Verifying all workers are stopped before database cleanup")
+        
+        try:
+            active_tasks = celery_app.control.inspect().active()
+            user_tasks_still_running = []
+            if active_tasks:
+                for worker, tasks in active_tasks.items():
+                    for task in tasks:
+                        if username in str(task.get('args', [])) or username in str(task.get('kwargs', {})):
+                            user_tasks_still_running.append(task['id'])
+            
+            if user_tasks_still_running:
+                logger.error(f"Tasks still running for user {username}: {user_tasks_still_running}")
+                raise HTTPException(status_code=500, detail="Could not terminate all tasks - aborting cleanup")
+            
+            logger.info(f"Verified: No tasks running for user {username} - safe to proceed with database cleanup")
+        except Exception as e:
+            logger.error(f"Error verifying task termination: {e}")
+
+        logger.info(f"STEP 3: Database cleanup while workers are terminated for player {username}")
         
         games_to_delete = session.exec(
             select(models.Game).where(
@@ -839,16 +841,11 @@ def stop_player_analysis(username: str, session: Session = Depends(get_session))
 
         session.commit()
 
-        logger.info(f"STEP 3: Services will restart automatically via Docker restart policies")
+        logger.info(f"STEP 4: Cleanup completed - workers terminated, database cleaned")
         
-        logger.info("Services killed successfully - Docker will restart them automatically")
+        logger.info("Celery workers terminated and database cleaned successfully")
         
-        # Esperar un momento para que los servicios se reinicien
-        _t.sleep(3)
-        
-        logger.info("Service restart delegated to Docker restart policies")
-
-        logger.info(f"DRASTIC cleanup sequence completed - services killed, database cleaned, services restarted")
+        logger.info(f"Complete cleanup sequence completed for {username}")
 
         # Notificar por WebSocket
         notify_ws(username, {"status": "stopped", "message": "Analysis stopped and all data removed"})
