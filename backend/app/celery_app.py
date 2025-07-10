@@ -209,6 +209,10 @@ def analyze_player_detailed(_, username: str):
                 player.finished_at = datetime.now(timezone.utc)
                 s.add(player)
                 s.commit()
+        from app.main import clear_analysis_in_progress
+        clear_analysis_in_progress()
+        logger.info(f"Analysis completed for user {username} - system ready for new requests")
+
 
         notify_ws(username, {"status": "ready", "progress": 100})
 
@@ -861,3 +865,11 @@ def on_task_revoked(sender=None, request=None, terminated=None, signum=None, exp
 @celery_app.task(name="process_player")
 def _deprecated(*a, **kw):
     raise RuntimeError("Deprecated. Use process_player_enhanced")
+
+
+@celery_app.task(name="test_worker_functionality")
+def test_worker_functionality():
+    """Simple no-op task to verify worker functionality after restart."""
+    import time
+    time.sleep(0.1)
+    return {"status": "success", "message": "Worker functionality verified"}
