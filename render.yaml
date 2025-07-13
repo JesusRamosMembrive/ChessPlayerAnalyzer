@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: chess-player-analyzer
+    env: docker
+    plan: free
+    # 1️⃣ usa la raíz como rootDir (o elimínalo)
+    rootDir: .
+    # 2️⃣ Dockerfile dentro de backend
+    dockerfilePath: backend/Dockerfile
+    # 3️⃣ opcional: quita dockerContext o pon “.”
