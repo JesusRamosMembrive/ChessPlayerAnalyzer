@@ -38,6 +38,33 @@ from app.logging_config import setup_logging
 setup_logging()
 logger = logging.getLogger(__name__)
 
+CLEANUP_IN_PROGRESS_KEY = "cleanup_in_progress"
+ANALYSIS_IN_PROGRESS_KEY = "analysis_in_progress"
+
+def is_cleanup_in_progress():
+    """Check if cleanup is currently in progress."""
+    return redis_client.get(CLEANUP_IN_PROGRESS_KEY) is not None
+
+def is_analysis_in_progress():
+    """Check if any analysis is currently in progress."""
+    return redis_client.get(ANALYSIS_IN_PROGRESS_KEY) is not None
+
+def set_cleanup_in_progress(username: str):
+    """Mark cleanup as in progress for a specific user."""
+    redis_client.set(CLEANUP_IN_PROGRESS_KEY, username, ex=300)  # 5 minute timeout
+
+def clear_cleanup_in_progress():
+    """Clear cleanup in progress flag."""
+    redis_client.delete(CLEANUP_IN_PROGRESS_KEY)
+
+def set_analysis_in_progress(username: str):
+    """Mark analysis as in progress for a specific user."""
+    redis_client.set(ANALYSIS_IN_PROGRESS_KEY, username, ex=3600)  # 1 hour timeout
+
+def clear_analysis_in_progress():
+    """Clear analysis in progress flag."""
+    redis_client.delete(ANALYSIS_IN_PROGRESS_KEY)
+
 # Metadatos de etiquetas para la documentación OpenAPI
 tags_metadata = [
     {
@@ -232,6 +259,12 @@ def analyze_game_root(request: AnalyzeGameIn, session: Session = Depends(get_ses
 
         task = analyze_game_task.delay(request.pgn, game_db.id, move_times=request.move_times)
         
+        return TaskQueuedOut(
+            task_id=task.id,
+            game_id=game_db.id,
+            status="queued"
+        )
+        
     except Exception as exc:  # noqa: BLE001
         session.rollback()
         raise HTTPException(status_code=500, detail=str(exc))
@@ -375,6 +408,21 @@ def analyze_player(
     • Distribuido: usa un lock Redis + row-lock para evitar carreras entre pods.
     • Fiable: si el análisis previo murió, lo detecta y lo relanza.
     """
+    if is_cleanup_in_progress():
+        cleanup_user = redis_client.get(CLEANUP_IN_PROGRESS_KEY).decode('utf-8')
+        raise HTTPException(
+            status_code=423, 
+            detail=f"System is currently cleaning up player '{cleanup_user}'. Please wait and try again."
+        )
+    
+    if is_analysis_in_progress():
+        active_user = redis_client.get(ANALYSIS_IN_PROGRESS_KEY).decode('utf-8')
+        if active_user != username:
+            raise HTTPException(
+                status_code=423,
+                detail=f"Analysis already in progress for player '{active_user}'. Only one analysis allowed at a time."
+            )
+    
     # 🔒 EXCLUSIÓN A NIVEL DE CLÚSTER (Redis)
     with player_lock(username):
         # ── 1 · Obtener y BLOQUEAR la fila (segunda barrera) ────────────────
@@ -435,6 +483,8 @@ def analyze_player(
             player.last_task_id = task.id
             session.add(player)
             session.commit()
+            
+            set_analysis_in_progress(username)
 
             # Aviso opcional vía WebSocket
             notify_ws(username, {"status": "pending", "progress": 0})
@@ -666,13 +716,15 @@ def delete_player(username: str, session: Session = Depends(get_session)):
 
 @app.post("/players/{username}/stop")
 def stop_player_analysis(username: str, session: Session = Depends(get_session)):
-    """Detiene un análisis de jugador en progreso."""
+    """Detiene un análisis de jugador en progreso y elimina todos los rastros de la base de datos.
+    
+    SOLUCIÓN DRÁSTICA: Mata completamente Celery y Redis, limpia la base de datos, y los reinicia.
+    """
     player = session.get(models.Player, username)
     if not player:
         raise HTTPException(status_code=404, detail="Player not found")
 
     try:
-
         # Verificar si hay un análisis en progreso
         analysis_in_progress = (
             player.status == "pending" or (player.progress and player.progress > 0)
@@ -687,106 +739,135 @@ def stop_player_analysis(username: str, session: Session = Depends(get_session))
             }
 
         task_id = player.last_task_id
-        logger.info(f"Starting comprehensive task revocation for player {username}, main task: {task_id}")
+        logger.info(f"Starting DRASTIC cleanup sequence for player {username}, main task: {task_id}")
 
-        # Set cancellation flag in Redis for immediate task checking
-        cancellation_key = f"cancel:{username}"
-        redis_client.setex(cancellation_key, 3600, "true")  # Expire after 1 hour
-        logger.info(f"Set cancellation flag in Redis: {cancellation_key}")
+        set_cleanup_in_progress(username)
+        logger.info(f"Cleanup started for user {username} - blocking new requests")
 
-        # Estrategia más agresiva de revocación
-        revoked_tasks = []
+        import subprocess
+        import time as _t
+        import os
 
-        # 1. Revocar la tarea principal
-        logger.info(f"Revoking main task {task_id}")
-        celery_app.control.revoke(task_id, terminate=True, signal='SIGKILL')
-        revoked_tasks.append(task_id)
-
-        # 2. Usar inspect para encontrar todas las tareas activas relacionadas con este usuario
+        logger.info(f"STEP 1: TERMINATING all Celery workers and clearing queues")
+        
         try:
-            inspect = celery_app.control.inspect()
-            active_tasks = inspect.active()
-
+            from celery import current_app
+            from app.celery_app import celery_app
+            
+            logger.info("Revoking all active tasks...")
+            active_tasks = celery_app.control.inspect().active()
             if active_tasks:
                 for worker, tasks in active_tasks.items():
-                    for task_info in tasks:
-                        task_name = task_info.get('name', '')
-                        task_args = task_info.get('args', [])
-                        current_task_id = task_info.get('id', '')
-
-                        # Buscar tareas relacionadas con este usuario
-                        user_related = False
-                        if task_name in ['analyze_game_task', 'analyze_game_detailed', 'process_player_enhanced']:
-                            # Verificar si el usuario está en los argumentos
-                            if username in str(task_args):
-                                user_related = True
-
-                        if user_related and current_task_id not in revoked_tasks:
-                            logger.info(f"Found related task on worker {worker}: {task_name} ({current_task_id})")
-                            celery_app.control.revoke(current_task_id, terminate=True, signal='SIGKILL')
-                            revoked_tasks.append(current_task_id)
-
+                    for task in tasks:
+                        if username in str(task.get('args', [])) or username in str(task.get('kwargs', {})):
+                            logger.info(f"Revoking task {task['id']} on worker {worker}")
+                            celery_app.control.revoke(task['id'], terminate=True, signal='SIGKILL')
+            
+            logger.info("Clearing Redis queues...")
+            redis_client.flushdb()  # Clear all Redis data for this database
+            
+            logger.info("Waiting for workers to terminate...")
+            import time
+            time.sleep(5)  # Give workers time to actually stop
+            
+            remaining_tasks = celery_app.control.inspect().active()
+            if remaining_tasks:
+                logger.warning(f"Some tasks still active after termination: {remaining_tasks}")
+            else:
+                logger.info("All Celery workers successfully terminated")
+                
         except Exception as e:
-            logger.warning(f"Could not inspect active tasks: {e}")
+            logger.error(f"Error terminating Celery workers: {e} - continuing with database cleanup")
 
-        # 3. Revocar usando patrones de nombres de tareas
+        logger.info(f"STEP 2: Verifying all workers are stopped before database cleanup")
+        
         try:
-            # Intentar revocar todas las tareas que podrían estar relacionadas
-            task_patterns = [
-                f"analyze_game_task.*{username}",
-                f"analyze_game_detailed.*{username}",
-                f"process_player_enhanced.*{username}"
-            ]
-
-            for pattern in task_patterns:
-                try:
-                    celery_app.control.revoke(pattern, terminate=True, signal='SIGKILL')
-                    logger.info(f"Attempted to revoke tasks matching pattern: {pattern}")
-                except Exception as e:
-                    logger.debug(f"Pattern revocation failed for {pattern}: {e}")
-
+            active_tasks = celery_app.control.inspect().active()
+            user_tasks_still_running = []
+            if active_tasks:
+                for worker, tasks in active_tasks.items():
+                    for task in tasks:
+                        if username in str(task.get('args', [])) or username in str(task.get('kwargs', {})):
+                            user_tasks_still_running.append(task['id'])
+            
+            if user_tasks_still_running:
+                logger.error(f"Tasks still running for user {username}: {user_tasks_still_running}")
+                raise HTTPException(status_code=500, detail="Could not terminate all tasks - aborting cleanup")
+            
+            logger.info(f"Verified: No tasks running for user {username} - safe to proceed with database cleanup")
         except Exception as e:
-            logger.warning(f"Pattern-based revocation failed: {e}")
+            logger.error(f"Error verifying task termination: {e}")
 
-        # 4. Esperar un poco más para que los workers procesen las revocaciones
-        import time as _t
-        _t.sleep(2)
+        logger.info(f"STEP 3: Database cleanup while workers are terminated for player {username}")
+        
+        games_to_delete = session.exec(
+            select(models.Game).where(
+                (models.Game.white_username == username) |
+                (models.Game.black_username == username)
+            )
+        ).all()
+        
+        logger.info(f"Found {len(games_to_delete)} games to delete for player {username}")
+        
+        game_ids = [game.id for game in games_to_delete]
+        if game_ids:
+            logger.info(f"Deleting moveanalysis records for {len(game_ids)} games")
+            moveanalysis_to_delete = session.exec(
+                select(models.MoveAnalysis).where(models.MoveAnalysis.game_id.in_(game_ids))
+            ).all()
+            logger.info(f"Found {len(moveanalysis_to_delete)} moveanalysis records to delete")
+            
+            for moveanalysis in moveanalysis_to_delete:
+                session.delete(moveanalysis)
+            
+            gameanalysis_to_delete = session.exec(
+                select(models.GameAnalysisDetailed).where(models.GameAnalysisDetailed.game_id.in_(game_ids))
+            ).all()
+            logger.info(f"Found {len(gameanalysis_to_delete)} game analysis detailed records to delete")
+            
+            for gameanalysis in gameanalysis_to_delete:
+                session.delete(gameanalysis)
+        
+        for game in games_to_delete:
+            session.delete(game)
+        
+        # Eliminar el jugador (esto hará cascade a PlayerAnalysisDetailed)
+        session.delete(player)
+        
+        logger.info(
+            f"Successfully deleted player {username} and "
+            f"{len(games_to_delete)} associated games while services were dead"
+        )
 
-        # 5. Verificar el estado de la tarea principal
-        res = AsyncResult(task_id, app=celery_app)
-        if res.state == "REVOKED":
-            logger.info(f"Main task {task_id} successfully revoked")
-        else:
-            logger.warning(f"Main task {task_id} state after revocation: {res.state}")
-
-        # 6. Actualizar el estado del jugador
-        player.status = "ready"  # Marcamos como ready para permitir un nuevo análisis
-        player.error = "Analysis stopped by user"
-        player.finished_at = datetime.now(UTC)
-        session.add(player)
         session.commit()
 
-        # 7. Notificar por WebSocket
-        notify_ws(username, {"status": "stopped", "message": "Analysis stopped by user"})
+        logger.info(f"STEP 4: Cleanup completed - workers terminated, database cleaned")
+        
+        logger.info("Celery workers terminated and database cleaned successfully")
+        
+        logger.info(f"Complete cleanup sequence completed for {username}")
 
-        # 8. Clean up cancellation flag after a delay to ensure tasks see it
-        import time as _t2
-        _t2.sleep(1)  # Give tasks time to see the flag
-        redis_client.delete(cancellation_key)
-        logger.info(f"Cleaned up cancellation flag: {cancellation_key}")
+        # Notificar por WebSocket
+        notify_ws(username, {"status": "stopped", "message": "Analysis stopped and all data removed"})
 
-        logger.info(f"Revocation completed for {username}. Total tasks revoked: {len(revoked_tasks)}")
+        logger.info(f"Complete DRASTIC cleanup completed for {username}. Games deleted: {len(games_to_delete)}")
 
         return {
             "username": username,
             "task_id": task_id,
             "status": "stopped",
-            "message": "Analysis has been stopped successfully",
-            "revoked_tasks": len(revoked_tasks)
+            "message": "Analysis stopped and all data removed successfully (DRASTIC method)",
+            "games_deleted": len(games_to_delete)
         }
     except Exception as e:
+        # Revertir la transacción abierta para no dejar la sesión en estado indeterminado
+        session.rollback()
         logger.error(f"Error al detener el análisis para {username}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        clear_cleanup_in_progress()
+        clear_analysis_in_progress()
+        logger.info(f"Cleanup flags cleared for user {username}")
 
 @app.post("/players/{username}/reset")
 def reset_player(username: str, session: Session = Depends(get_session)):
@@ -878,6 +959,7 @@ async def stream_updates(username: str):
             await pubsub.unsubscribe(f"player:{username}")
             await pubsub.close()
 
+    from sse_starlette.sse import EventSourceResponse
     return EventSourceResponse(event_generator())
 
 # ============================================================
