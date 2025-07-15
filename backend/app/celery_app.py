@@ -101,40 +101,11 @@ celery_app.conf.update(
     task_default_max_retries=TASK_MAX_RETRIES,
 )
 
-def export_analysis_to_json(data_obj, username: str, analysis_type: str = "analysis"):
-    """
-    Export analysis results to JSON file in debug_results directory.
-
-    Args:
-        data_obj: SQLAlchemy object to export (GameAnalysisDetailed or PlayerAnalysisDetailed)
-        username: Player username for filename
-        analysis_type: Type of analysis for logging ("game" or "player")
-    """
-    try:
-        debug_dir = Path("debug_results")
-        debug_dir.mkdir(parents=True, exist_ok=True)
-
-        timestamp = int(datetime.now(timezone.utc).timestamp())
-
-        filename = f"{username}_{timestamp}.json"
-        filepath = debug_dir / filename
-
-        data_dict = sa_to_dict(data_obj)
-
-        with filepath.open("w", encoding="utf-8") as f:
-            json.dump(data_dict, f, ensure_ascii=False, indent=2, default=str)
-
-        logger.info(f"DEBUG EXPORT: Saved {analysis_type} analysis to {filepath}")
-        return str(filepath)
-
-    except Exception as e:
-        logger.error(f"DEBUG EXPORT: Failed to export {analysis_type} analysis for {username}: {e}")
-        return None
-
+from app.tasks.utils import export_analysis_to_json, safe
 
 
 @celery_app.task(
-    name="analyze_player_detailed",
+    name="analyze_player_detailed_legacy",
     autoretry_for=(Exception, SoftTimeLimitExceeded),
     retry_backoff=True,
     retry_backoff_max=600,
@@ -143,7 +114,7 @@ def export_analysis_to_json(data_obj, username: str, analysis_type: str = "analy
     soft_time_limit=TASK_SOFT_TIME_LIMIT,
     time_limit=TASK_TIME_LIMIT,
 )
-def analyze_player_detailed(_, username: str):
+def analyze_player_detailed_legacy(_, username: str):
     """
     Análisis longitudinal detallado de un jugador.
     Se ejecuta después de que todas sus partidas han sido analizadas.
@@ -227,7 +198,7 @@ def analyze_player_detailed(_, username: str):
 
 
 @celery_app.task(
-    name="analyze_game_task",
+    name="analyze_game_task_legacy",
     bind=True,
     autoretry_for=(Exception, SoftTimeLimitExceeded),
     retry_backoff=True,
@@ -237,7 +208,7 @@ def analyze_player_detailed(_, username: str):
     soft_time_limit=TASK_SOFT_TIME_LIMIT,
     time_limit=TASK_TIME_LIMIT,
 )
-def analyze_game_task(
+def analyze_game_task_legacy(
     self,
     pgn_text: str,
     game_id: int | None = None,
@@ -246,7 +217,21 @@ def analyze_game_task(
     player: str | None = None,
     depth: int = MAX_DEPTH,
     multipv: int = 3,
-):
+):  # parámetros sin cambiar
+    # Delegar inmediatamente a la nueva implementación migrada.
+    from app.tasks.games import analyze_game_task as _new_analyze_game_task  # import local para evitar ciclos
+
+    return _new_analyze_game_task(
+        self,
+        pgn_text,
+        game_id,
+        move_times=move_times,
+        player=player,
+        depth=depth,
+        multipv=multipv,
+    )
+
+    # --- Código original (obsoleto) se mantiene sin ejecutar para referencia durante la transición ---
     # Helper para comprobar revocación de forma segura
     def _is_aborted(task, player_username=None):
         """Devuelve True si el worker indica que la tarea fue revocada.
@@ -459,16 +444,9 @@ analysis_engine = ChessAnalysisEngine(
     tablebase_path=Path("/data/syzygy") if Path("/data/syzygy").exists() else None,
 )
 
-def safe(v):
-    # v puede ser None o np.nan; devuélvelo como 0.0 si no es numérico
-    try:
-        return float(v) if v == v else 0.0      # np.nan != np.nan
-    except (TypeError, ValueError):
-        return 0.0
-
 
 @celery_app.task(
-    name="analyze_game_detailed",
+    name="analyze_game_detailed_legacy",
     autoretry_for=(Exception, SoftTimeLimitExceeded),
     retry_backoff=True,
     retry_backoff_max=600,
@@ -477,15 +455,23 @@ def safe(v):
     soft_time_limit=TASK_SOFT_TIME_LIMIT,
     time_limit=TASK_TIME_LIMIT,
 )
-def analyze_game_detailed(game_id: int, username: str) -> dict[str, int | str | bool]:
-    """
-    Calcula las métricas detalladas de una partida **sin** volver a usar Stockfish.
+def analyze_game_detailed_legacy(game_id: int, username: str) -> dict[str, int | str | bool]:
+    """[LEGACY] Wrapper que delega en la nueva implementación.
 
-    Reglas:
-    • Lee las evaluaciones ya almacenadas en MoveAnalysis (eval_before / eval_after).
-    • Persiste el resultado en GameAnalysisDetailed.
-    • Notifica progreso (+1 unidad) y devuelve un resumen ligero.
+    La lógica real vive ahora en ``app.tasks.games.analyze_game_detailed``;
+    este alias existe solo por compatibilidad con workers antiguos que puedan
+    enviar tareas con el nombre *_legacy*.
     """
+
+    from app.tasks.games import analyze_game_detailed as _new_analyze_game_detailed
+
+    return _new_analyze_game_detailed(game_id, username)
+
+    # -------------------------------------------------------------------
+    # El código original se mantiene debajo como referencia histórica pero
+    # ya no se ejecutará gracias al *early return* anterior.
+    # -------------------------------------------------------------------
+
     logger.info(f"DEBUG DETAILED: Starting detailed analysis for game_id: {game_id}, username: {username}")
 
     # Check for cancellation at the start
@@ -673,7 +659,7 @@ def analyze_game_detailed(game_id: int, username: str) -> dict[str, int | str | 
     return result
 
 @celery_app.task(
-    name="process_player_enhanced",
+    name="process_player_enhanced_legacy",
     bind=True,
     autoretry_for=(Exception, SoftTimeLimitExceeded),
     retry_backoff=True,
@@ -683,7 +669,7 @@ def analyze_game_detailed(game_id: int, username: str) -> dict[str, int | str | 
     soft_time_limit=TASK_SOFT_TIME_LIMIT,
     time_limit=TASK_TIME_LIMIT,
 )
-def process_player_enhanced(self, username: str, months: int = 12, priority: int = DEFAULT_PRIORITY):
+def process_player_enhanced_legacy(self, username: str, months: int = 12, priority: int = DEFAULT_PRIORITY):
     logger.info(f"DEBUG CELERY: Starting process_player_enhanced for {username}, months: {months}")
 
     # Helper para comprobar revocación de forma segura
@@ -784,11 +770,11 @@ def process_player_enhanced(self, username: str, months: int = 12, priority: int
 
         # Propagar prioridad a las subtareas
         basic = (
-            analyze_game_task.s(g["pgn"], gid, move_times=g.get("move_times"), player=username)
+            analyze_game_task_legacy.s(g["pgn"], gid, move_times=g.get("move_times"), player=username)
             .set(priority=priority)
         )
         detailed = (
-            analyze_game_detailed.si(gid, username)
+            analyze_game_detailed_legacy.si(gid, username)
             .set(priority=priority)
         )
         chains.append(chain(basic, detailed))
@@ -805,7 +791,7 @@ def process_player_enhanced(self, username: str, months: int = 12, priority: int
     #    se lanza analyze_player_detailed(username)
     full_workflow = chord(
         group(chains),
-        analyze_player_detailed.s(username).set(priority=priority)
+        analyze_player_detailed_legacy.s(username).set(priority=priority)
     ).set(priority=priority)
     chord_result = full_workflow.apply_async(priority=priority)  # AsyncResult del body
     header_id = chord_result.parent.id if chord_result.parent else chord_result.id
@@ -829,7 +815,7 @@ def process_player_enhanced(self, username: str, months: int = 12, priority: int
 
 @task_failure.connect
 def on_task_failure(sender=None, task_id=None, args=None, kwargs=None, **k):
-    if sender and sender.name == "process_player_enhanced":
+    if sender and sender.name == "process_player_enhanced_legacy":
         username = args[0] if args else None
         with Session(engine) as s:
             pl = s.get(models.Player, username)
@@ -846,7 +832,7 @@ def on_task_revoked(sender=None, request=None, terminated=None, signum=None, exp
     """Maneja la revocación de tareas."""
     logger.info(f"Task {request.id if request else 'unknown'} has been revoked (terminated={terminated}, signum={signum}, expired={expired})")
 
-    if request and request.task == "process_player_enhanced":
+    if request and request.task == "process_player_enhanced_legacy":
         username = request.args[0] if request.args else None
         if username:
             logger.info(f"Updating player {username} status after task revocation")
@@ -873,3 +859,17 @@ def test_worker_functionality():
     import time
     time.sleep(0.1)
     return {"status": "success", "message": "Worker functionality verified"}
+
+# Reexportar tareas de jugador para compatibilidad con imports existentes
+from app.tasks.player import process_player_enhanced, analyze_player_detailed  # noqa: F401 reexport
+
+# Reexportar tareas de games para compatibilidad con imports existentes
+from app.tasks.games import analyze_game_task, analyze_game_detailed  # noqa: F401 reexport
+
+# Dejar disponibles en el módulo actual
+globals().update({
+    'process_player_enhanced': process_player_enhanced,
+    'analyze_player_detailed': analyze_player_detailed,
+    'analyze_game_task': analyze_game_task,
+    'analyze_game_detailed': analyze_game_detailed,
+})
