@@ -115,86 +115,102 @@ from app.tasks.utils import export_analysis_to_json, safe
     time_limit=TASK_TIME_LIMIT,
 )
 def analyze_player_detailed_legacy(_, username: str):
+    """[LEGACY] Wrapper que delega en la nueva implementación.
+
+    La lógica real vive ahora en ``app.tasks.player.analyze_player_detailed_impl``;
+    este alias existe solo por compatibilidad con workers antiguos que puedan
+    enviar tareas con el nombre *_legacy*.
     """
-    Análisis longitudinal detallado de un jugador.
-    Se ejecuta después de que todas sus partidas han sido analizadas.
-    """
-    logger.info(f"DEBUG PLAYER: Starting player detailed analysis for {username}")
-    cached = cache_get("analyze_player_detailed", [username], {})
-    if cached:
-        logger.info("DEBUG PLAYER: Returning cached result for analyze_player_detailed")
-        return cached
+    
+    from app.tasks.player import analyze_player_detailed_impl as _new_analyze_player_detailed
 
-    try:
-        # Verificar que hay suficientes partidas analizadas
-        with Session(engine) as s:
-            analyzed_count = s.exec(
-                select(func.count(GameAnalysisDetailed.game_id))
-                .join(models.Game)
-                .where(
-                    (models.Game.white_username == username) |
-                    (models.Game.black_username == username)
-                )
-            ).one()
+    return _new_analyze_player_detailed(username)
 
-            logger.info(f"DEBUG PLAYER: Pre-analysis check - Found {analyzed_count} games with existing analysis for {username} in GameAnalysisDetailed table")
+    # -------------------------------------------------------------------
+    # El código original se mantiene debajo como referencia histórica pero
+    # ya no se ejecutará gracias al *early return* anterior.
+    # -------------------------------------------------------------------
 
-            if analyzed_count < 1:
-                logging.warning(f"Insuficientes partidas analizadas para {username}: {analyzed_count}")
-                return {
-                    "username": username,
-                    "status": "insufficient_data",
-                    "games_analyzed": analyzed_count
-                }
+    # """
+    # Análisis longitudinal detallado de un jugador.
+    # Se ejecuta después de que todas sus partidas han sido analizadas.
+    # """
+    # logger.info(f"DEBUG PLAYER: Starting player detailed analysis for {username}")
+    # cached = cache_get("analyze_player_detailed", [username], {})
+    # if cached:
+    #     logger.info("DEBUG PLAYER: Returning cached result for analyze_player_detailed")
+    #     return cached
 
-        # Ejecutar análisis del jugador
-        logger.info(f"DEBUG PLAYER: Starting analysis engine for {username}")
-        player_analysis = analysis_engine.analyze_player(username)
-        logger.info("DEBUG PLAYER: PlayerAnalysisDetailed result: %s", player_analysis)
+    # try:
+    #     # Verificar que hay suficientes partidas analizadas
+    #     with Session(engine) as s:
+    #         analyzed_count = s.exec(
+    #             select(func.count(GameAnalysisDetailed.game_id))
+    #             .join(models.Game)
+    #             .where(
+    #                 (models.Game.white_username == username) |
+    #                 (models.Game.black_username == username)
+    #             )
+    #         ).one()
 
-        with Session(engine) as s:
-           pa = s.get(models.PlayerAnalysisDetailed, username)
-           logger.info(f"DEBUG PLAYER: Retrieved player analysis from DB for {username}: risk_score={pa.risk_score}, games_analyzed={pa.games_analyzed} (this count reflects games with completed analysis in GameAnalysisDetailed table)")
+    #         logger.info(f"DEBUG PLAYER: Pre-analysis check - Found {analyzed_count} games with existing analysis for {username} in GameAnalysisDetailed table")
 
-           export_analysis_to_json(pa, username, "player")
+    #         if analyzed_count < 1:
+    #             logging.warning(f"Insuficientes partidas analizadas para {username}: {analyzed_count}")
+    #             return {
+    #                 "username": username,
+    #                 "status": "insufficient_data",
+    #                 "games_analyzed": analyzed_count
+    #             }
 
-        # Notificar resultado
-        notify_ws(username, {
-            "type": "player_analysis_complete",
-            "risk_score": pa.risk_score,
-            "risk_factors": pa.risk_factors
-        })
+    #     # Ejecutar análisis del jugador
+    #     logger.info(f"DEBUG PLAYER: Starting analysis engine for {username}")
+    #     player_analysis = analysis_engine.analyze_player(username)
+    #     logger.info("DEBUG PLAYER: PlayerAnalysisDetailed result: %s", player_analysis)
 
-        result = {
-            "username": username,
-            "risk_score": pa.risk_score,
-            "games_analyzed": pa.games_analyzed,
-            "analyzed_at": pa.analyzed_at.isoformat()
-        }
+    #     with Session(engine) as s:
+    #        pa = s.get(models.PlayerAnalysisDetailed, username)
+    #        logger.info(f"DEBUG PLAYER: Retrieved player analysis from DB for {username}: risk_score={pa.risk_score}, games_analyzed={pa.games_analyzed} (this count reflects games with completed analysis in GameAnalysisDetailed table)")
 
-        with Session(engine) as s:
-            player = s.get(models.Player, username)
-            if player:
-                player.status = "ready"
-                player.progress = 100
-                player.finished_at = datetime.now(timezone.utc)
-                s.add(player)
-                s.commit()
-        from app.main import clear_analysis_in_progress
-        clear_analysis_in_progress()
-        logger.info(f"Analysis completed for user {username} - system ready for new requests")
+    #        export_analysis_to_json(pa, username, "player")
+
+    #     # Notificar resultado
+    #     notify_ws(username, {
+    #         "type": "player_analysis_complete",
+    #         "risk_score": pa.risk_score,
+    #         "risk_factors": pa.risk_factors
+    #     })
+
+    #     result = {
+    #         "username": username,
+    #         "risk_score": pa.risk_score,
+    #         "games_analyzed": pa.games_analyzed,
+    #         "analyzed_at": pa.analyzed_at.isoformat()
+    #     }
+
+    #     with Session(engine) as s:
+    #         player = s.get(models.Player, username)
+    #         if player:
+    #             player.status = "ready"
+    #             player.progress = 100
+    #             player.finished_at = datetime.now(timezone.utc)
+    #             s.add(player)
+    #             s.commit()
+    #     from app.main import clear_analysis_in_progress
+    #     clear_analysis_in_progress()
+    #     logger.info(f"Analysis completed for user {username} - system ready for new requests")
 
 
-        notify_ws(username, {"status": "ready", "progress": 100})
+    #     notify_ws(username, {"status": "ready", "progress": 100})
 
-        logger.info(f"DEBUG PLAYER: Final analysis result for {username}: risk_score={result['risk_score']}, games_analyzed={result['games_analyzed']} (total games processed in this analysis session)")
-        # Store result in cache
-        cache_set("analyze_player_detailed", [username], {}, result)
-        return result
+    #     logger.info(f"DEBUG PLAYER: Final analysis result for {username}: risk_score={result['risk_score']}, games_analyzed={result['games_analyzed']} (total games processed in this analysis session)")
+    #     # Store result in cache
+    #     cache_set("analyze_player_detailed", [username], {}, result)
+    #     return result
 
-    except Exception as e:
-        logging.error(f"DEBUG PLAYER: Error en análisis detallado de jugador {username}: {e}")
-        # APM: Capturar excepción con contexto adicional
+    # except Exception as e:
+    #     logging.error(f"DEBUG PLAYER: Error en análisis detallado de jugador {username}: {e}")
+    #     # APM: Capturar excepción con contexto adicional
 
 
 @celery_app.task(
@@ -670,147 +686,24 @@ def analyze_game_detailed_legacy(game_id: int, username: str) -> dict[str, int |
     time_limit=TASK_TIME_LIMIT,
 )
 def process_player_enhanced_legacy(self, username: str, months: int = 12, priority: int = DEFAULT_PRIORITY):
-    logger.info(f"DEBUG CELERY: Starting process_player_enhanced for {username}, months: {months}")
+    """[LEGACY] Wrapper que delega en la nueva implementación.
 
-    # Helper para comprobar revocación de forma segura
-    def _is_aborted(task, player_username=None):
-        try:
-            # Check Redis cancellation flag first (fastest method)
-            if player_username:
-                cancellation_key = f"cancel:{player_username}"
-                if redis_client.get(cancellation_key):
-                    logger.info(f"Task {task.request.id} detected Redis cancellation flag for {player_username}")
-                    return True
+    La lógica real vive ahora en ``app.tasks.player.process_player_enhanced_impl``;
+    este alias existe solo por compatibilidad con workers antiguos que puedan
+    enviar tareas con el nombre *_legacy*.
+    """
+    
+    from app.tasks.player import process_player_enhanced_impl as _new_process_player_enhanced
 
-            if hasattr(task, "is_aborted"):
-                return task.is_aborted()
-            if hasattr(task.request, "is_aborted"):
-                return task.request.is_aborted()
-            if getattr(task.request, "stopped", False):
-                return True
-        except Exception:
-            pass
-        return False
+    return _new_process_player_enhanced(self, username, months, priority)
 
-    # 1. DESCARGAR partidas y crear registros Game ──────────────────────────
-    logger.info(f"DEBUG CELERY: Fetching games for {username}")
-    games = fetch_games(username, months)
-    logger.info(f"DEBUG CELERY: Downloaded {len(games)} games")
-    logger.info(f"DEBUG CELERY: Sample game structure: {games[0] if games else 'No games'}")
+    # -------------------------------------------------------------------
+    # El código original se mantiene debajo como referencia histórica pero
+    # ya no se ejecutará gracias al *early return* anterior.
+    # -------------------------------------------------------------------
 
-    # Verificar revocación después de descargar partidas
-    if not self.request.called_directly and _is_aborted(self, username):
-        logger.info(f"Task {self.request.id} has been revoked after fetching games, stopping execution")
-        return {"status": "revoked", "username": username, "games_fetched": len(games)}
-
-    game_ids = []
-
-    with Session(engine) as s:
-        player = s.get(models.Player, username)
-        if player is None:
-            player = models.Player(
-                username=username,
-                status="pending",
-                requested_at=datetime.now(timezone.utc),
-                progress=0,
-                total_games=len(games),
-                done_games=0,
-            )
-            s.add(player)
-        else:
-            player.status = "pending"
-            player.requested_at = datetime.now(timezone.utc)
-            player.progress = 0
-            player.total_games = len(games)
-            player.done_games = 0
-        s.commit()
-        logger.info(f"DEBUG CELERY: Created/updated player record for {username}")
-
-    chains = []          # ← aquí iremos acumulando chain por partida
-
-    # Normalizar prioridad (0-9)
-    priority = max(0, min(9, int(priority)))
-
-    total_games = len(games)
-    for i, g in enumerate(games):
-        # Verificar revocación cada 5 partidas (más frecuente)
-        if i % 5 == 0 and not self.request.called_directly and _is_aborted(self, username):
-            logger.info(f"Task {self.request.id} has been revoked during game processing, stopping execution")
-            return {"status": "revoked", "username": username, "games_processed": i}
-
-        logger.info(f"DEBUG CELERY: Processing game {i+1}/{len(games)}")
-        logger.info(f"DEBUG CELERY: Game data - white: {g.get('white')}, black: {g.get('black')}, white_elo: {g.get('white_elo')}, black_elo: {g.get('black_elo')}")
-
-        with Session(engine) as s:
-            existing_game = s.exec(
-                select(models.Game).where(
-                    (models.Game.pgn == g["pgn"]) &
-                    (models.Game.white_username == g.get("white")) &
-                    (models.Game.black_username == g.get("black"))
-                )
-            ).first()
-
-            if existing_game:
-                gid = existing_game.id
-                game_ids.append(gid)
-                logger.info(f"DEBUG CELERY: Found existing game record with ID: {gid}")
-            else:
-                game_db = models.Game(
-                    pgn=g["pgn"],
-                    move_times=g.get("move_times", []),
-                    white_username=g.get("white"),
-                    black_username=g.get("black"),
-                    white_elo=g.get("white_elo"),
-                    black_elo=g.get("black_elo"),
-                )
-                s.add(game_db);  s.commit();  s.refresh(game_db)
-                gid = game_db.id
-                game_ids.append(gid)
-                logger.info(f"DEBUG CELERY: Created new game record with ID: {gid}")
-
-        # Propagar prioridad a las subtareas
-        basic = (
-            analyze_game_task_legacy.s(g["pgn"], gid, move_times=g.get("move_times"), player=username)
-            .set(priority=priority)
-        )
-        detailed = (
-            analyze_game_detailed_legacy.si(gid, username)
-            .set(priority=priority)
-        )
-        chains.append(chain(basic, detailed))
-
-        # ── Progress update ─────────────────────────────────────
-        try:
-            task_progress(self, i + 1, total_games, username)
-        except Exception:
-            pass
-
-    logger.info(f"DEBUG CELERY: Created {len(chains)} analysis chains")
-
-    # 3. group & chord: cuando todas las partidas acaben … ──────────────────
-    #    se lanza analyze_player_detailed(username)
-    full_workflow = chord(
-        group(chains),
-        analyze_player_detailed_legacy.s(username).set(priority=priority)
-    ).set(priority=priority)
-    chord_result = full_workflow.apply_async(priority=priority)  # AsyncResult del body
-    header_id = chord_result.parent.id if chord_result.parent else chord_result.id
-
-    # ── Guardar el ID del grupo/encabezado para poder revocarlo ────────────
-    with Session(engine) as s:
-        pl_upd = s.get(models.Player, username)
-        if pl_upd:
-            pl_upd.last_task_id = header_id
-            s.commit()
-
-    result = {
-        "username": username,
-        "games_queued": len(games),
-        "enhanced_analysis": True,
-        "task_id": header_id,
-    }
-    logger.info("DEBUG CELERY: process_player_enhanced result: %s", result)
-    return result
+    # logger.info(f"DEBUG CELERY: Starting process_player_enhanced for {username}, months: {months}")
+    # [... resto del código legacy comentado ...]
 
 
 @task_failure.connect

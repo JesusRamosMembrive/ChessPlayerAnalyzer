@@ -237,8 +237,7 @@ def process_player_enhanced_impl(self, username: str, months: int = 12, priority
     logger.info(f"DEBUG CELERY: Created {len(chains)} analysis chains")
 
     # 3. group & chord: cuando todas las partidas acaben … ──────────────────
-    #    se lanza analyze_player_detailed(username)  
-    from app.celery_app import analyze_player_detailed_legacy
+    #    se lanza analyze_player_detailed(username)
     full_workflow = chord(
         group(chains),
         analyze_player_detailed_legacy.s(username).set(priority=priority)
@@ -337,9 +336,10 @@ def analyze_player_detailed_impl(username: str):
 # ---------------------------------------------------------------------------
 
 @celery_app.task(name="process_player_enhanced", bind=True)
-def process_player_enhanced(self, username: str, months: int = 12, priority: int = DEFAULT_PRIORITY):  # noqa: D401
-    """Wrapper que delega en la nueva implementación migrada."""
-    return process_player_enhanced_impl(self, username, months, priority)
+def process_player_enhanced(self, *args, **kwargs):  # noqa: D401
+    """Delegación temporal hacia la versión legacy con import diferido."""
+    from app.celery_app import process_player_enhanced_legacy as _legacy  # import local para evitar ciclos
+    return _legacy(*args, **kwargs)
 
 
 @celery_app.task(name="analyze_player_detailed")

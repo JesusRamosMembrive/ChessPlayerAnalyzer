@@ -20,16 +20,12 @@ from app.celery_app import (
     TASK_TIME_LIMIT,
 )
 from app.tasks.utils import safe, export_analysis_to_json
-from app.utils import cache_get, cache_set, notify_ws, fetch_games, update_progress, task_progress
+from app.utils import cache_get, cache_set, notify_ws
 from app.database import engine
 from app import models
 from app.models import GameAnalysisDetailed
-from celery import chain, group, chord
 
 logger = logging.getLogger(__name__)
-
-# Constants from celery_app
-DEFAULT_PRIORITY = 5
 
 # ---------------------------------------------------------------------------
 # Helper functions for player analysis
@@ -128,7 +124,7 @@ def _get_or_create_game_record(game_data: dict) -> int:
             )
         ).first()
 
-        if existing_game and existing_game.id is not None:
+        if existing_game:
             gid = existing_game.id
             logger.info(f"DEBUG CELERY: Found existing game record with ID: {gid}")
             return gid
@@ -144,12 +140,9 @@ def _get_or_create_game_record(game_data: dict) -> int:
             s.add(game_db)
             s.commit()
             s.refresh(game_db)
-            if game_db.id is not None:
-                gid = game_db.id
-                logger.info(f"DEBUG CELERY: Created new game record with ID: {gid}")
-                return gid
-            else:
-                raise ValueError("Failed to create game record - ID is None")
+            gid = game_db.id
+            logger.info(f"DEBUG CELERY: Created new game record with ID: {gid}")
+            return gid
 
 
 def _update_player_task_id(username: str, task_id: str) -> None:
@@ -164,100 +157,6 @@ def _update_player_task_id(username: str, task_id: str) -> None:
 # ---------------------------------------------------------------------------
 # Migrated task implementations
 # ---------------------------------------------------------------------------
-
-@celery_app.task(
-    name="process_player_enhanced_new",
-    bind=True,
-    autoretry_for=(Exception, celery_exceptions.SoftTimeLimitExceeded),
-    retry_backoff=True,
-    retry_backoff_max=600,
-    retry_jitter=True,
-    retry_kwargs={"max_retries": TASK_MAX_RETRIES},
-    soft_time_limit=TASK_SOFT_TIME_LIMIT,
-    time_limit=TASK_TIME_LIMIT,
-)
-def process_player_enhanced_impl(self, username: str, months: int = 12, priority: int = DEFAULT_PRIORITY):
-    """Process player enhanced analysis by downloading games and scheduling analysis tasks."""
-    logger.info(f"DEBUG CELERY: Starting process_player_enhanced for {username}, months: {months}")
-
-    # 1. DESCARGAR partidas y crear registros Game ──────────────────────────
-    logger.info(f"DEBUG CELERY: Fetching games for {username}")
-    games = fetch_games(username, months)
-    logger.info(f"DEBUG CELERY: Downloaded {len(games)} games")
-    logger.info(f"DEBUG CELERY: Sample game structure: {games[0] if games else 'No games'}")
-
-    # Verificar revocación después de descargar partidas
-    if not self.request.called_directly and _is_aborted(self, username):
-        logger.info(f"Task {self.request.id} has been revoked after fetching games, stopping execution")
-        return {"status": "revoked", "username": username, "games_fetched": len(games)}
-
-    # Crear o actualizar registro del jugador
-    _create_or_update_player_record(username, len(games))
-
-    game_ids = []
-    chains = []  # aquí iremos acumulando chain por partida
-
-    # Normalizar prioridad (0-9)
-    priority = max(0, min(9, int(priority)))
-
-    total_games = len(games)
-    for i, g in enumerate(games):
-        # Verificar revocación cada 5 partidas (más frecuente)
-        if i % 5 == 0 and not self.request.called_directly and _is_aborted(self, username):
-            logger.info(f"Task {self.request.id} has been revoked during game processing, stopping execution")
-            return {"status": "revoked", "username": username, "games_processed": i}
-
-        logger.info(f"DEBUG CELERY: Processing game {i+1}/{len(games)}")
-        logger.info(f"DEBUG CELERY: Game data - white: {g.get('white')}, black: {g.get('black')}, white_elo: {g.get('white_elo')}, black_elo: {g.get('black_elo')}")
-
-        # Obtener o crear registro del juego
-        gid = _get_or_create_game_record(g)
-        game_ids.append(gid)
-
-        # Importar tareas desde celery_app (evitar ciclos)
-        from app.celery_app import analyze_game_task_legacy, analyze_game_detailed_legacy
-
-        # Propagar prioridad a las subtareas
-        basic = (
-            analyze_game_task_legacy.s(g["pgn"], gid, move_times=g.get("move_times"), player=username)
-            .set(priority=priority)
-        )
-        detailed = (
-            analyze_game_detailed_legacy.si(gid, username)
-            .set(priority=priority)
-        )
-        chains.append(chain(basic, detailed))
-
-        # ── Progress update ─────────────────────────────────────
-        try:
-            task_progress(self, i + 1, total_games, username)
-        except Exception:
-            pass
-
-    logger.info(f"DEBUG CELERY: Created {len(chains)} analysis chains")
-
-    # 3. group & chord: cuando todas las partidas acaben … ──────────────────
-    #    se lanza analyze_player_detailed(username)  
-    from app.celery_app import analyze_player_detailed_legacy
-    full_workflow = chord(
-        group(chains),
-        analyze_player_detailed_legacy.s(username).set(priority=priority)
-    ).set(priority=priority)
-    chord_result = full_workflow.apply_async(priority=priority)  # AsyncResult del body
-    header_id = chord_result.parent.id if chord_result.parent else chord_result.id
-
-    # ── Guardar el ID del grupo/encabezado para poder revocarlo ────────────
-    _update_player_task_id(username, header_id)
-
-    result = {
-        "username": username,
-        "games_queued": len(games),
-        "enhanced_analysis": True,
-        "task_id": header_id,
-    }
-    logger.info("DEBUG CELERY: process_player_enhanced result: %s", result)
-    return result
-
 
 @celery_app.task(
     name="analyze_player_detailed_new",
@@ -337,9 +236,10 @@ def analyze_player_detailed_impl(username: str):
 # ---------------------------------------------------------------------------
 
 @celery_app.task(name="process_player_enhanced", bind=True)
-def process_player_enhanced(self, username: str, months: int = 12, priority: int = DEFAULT_PRIORITY):  # noqa: D401
-    """Wrapper que delega en la nueva implementación migrada."""
-    return process_player_enhanced_impl(self, username, months, priority)
+def process_player_enhanced(self, *args, **kwargs):  # noqa: D401
+    """Delegación temporal hacia la versión legacy con import diferido."""
+    from app.celery_app import process_player_enhanced_legacy as _legacy  # import local para evitar ciclos
+    return _legacy(*args, **kwargs)
 
 
 @celery_app.task(name="analyze_player_detailed")
