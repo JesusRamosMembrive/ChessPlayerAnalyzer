@@ -36,6 +36,13 @@ jobs:
           sudo apt-get install -y stockfish
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
+      - name: Initialize database
+        env:
+          DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost/testdb
+          REDIS_URL: redis://localhost:6379/0
+          STOCKFISH_PATH: /usr/games/stockfish
+          STOCKFISH_DEPTH: 1
+        run: python -m app.init_db
       - name: Run tests
         env:
           DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost/testdb
