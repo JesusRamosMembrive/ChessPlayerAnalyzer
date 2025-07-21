@@ -11,7 +11,7 @@ This document provides guidelines and information for developers working on the 
 2. **Install dependencies**:
    ```bash
    pip install -r requirements.txt
-   pip install -r backend/requirements-dev.txt  # For development/testing
+   pip install -r requirements-dev.txt  # For development/testing
    ```
 
 3. **Environment Variables**:
@@ -71,7 +71,7 @@ python -m pytest -v
 
 ### Test Configuration
 
-Tests use a separate database configuration defined in `backend/tests/conftest.py`. The default test database URL is `postgresql+psycopg://postgres:postgres@localhost/testdb`.
+Tests use a separate database configuration defined in `tests/conftest.py`. The default test database URL is `postgresql+psycopg://postgres:postgres@localhost/testdb`.
 
 Celery tasks are configured to run eagerly (synchronously) during tests using:
 ```python
@@ -80,7 +80,7 @@ celery_app.conf.update(task_always_eager=True, task_eager_propagates=True)
 
 ### Writing Tests
 
-1. **Create a new test file** in the `backend/tests` directory with a name starting with `test_`.
+1. **Create a new test file** in the `tests` directory with a name starting with `test_`.
 
 2. **Use the provided fixtures**:
    - `client`: A FastAPI TestClient instance
@@ -112,19 +112,19 @@ def test_example(client):
     assert response.headers["content-type"] == "application/json"
 ```
 
-4. **Test data**: Place test data files (like PGN files) in the `backend/tests/data` directory.
+4. **Test data**: Place test data files (like PGN files) in the `tests/data` directory.
 
 ## Development Information
 
 ### Project Structure
 
-- `backend/app/`: Main application code
+- `app/`: Main application code
   - `main.py`: FastAPI application and endpoints
   - `models.py`: SQLModel database models
   - `schemas.py`: Pydantic schemas for API requests/responses
   - `celery_app.py`: Celery configuration and tasks
   - `analysis/`: Chess analysis modules
-- `backend/tests/`: Test files
+- `tests/`: Test files
 - `docker-compose.yml`: Docker Compose configuration
 
 ### Code Style

@@ -35,11 +35,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y stockfish
           pip install -r requirements.txt
-          pip install -r backend/requirements-dev.txt
+          pip install -r requirements-dev.txt
       - name: Run tests
         env:
           DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost/testdb
           REDIS_URL: redis://localhost:6379/0
           STOCKFISH_PATH: /usr/games/stockfish
           STOCKFISH_DEPTH: 1
-        run: cd backend && pytest -vv
+        run: pytest -vv

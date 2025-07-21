@@ -1,0 +1,9 @@
+[Event "casual"]
+[Site "online"]
+[Date "2021.01.01"]
+[Round "1"]
+[White "Alice"]
+[Black "Bob"]
+[Result "1-0"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Bb3 d6 8. c3 O-O 9. h3 Nb8 10. d4 Nbd7 11. c4 c6 12. Nc3 Qc7 13. Bg5 Bb7 14. Rc1 Rfe8 15. cxb5 cxb5 16. Nxb5 Qb6 17. Nc7 Rac8 18. Nxe8 Rxe8 19. dxe5 dxe5 20. Be3 Qa5 21. Ng5 Rf8 22. Nxf7 Rxf7 23. Bxf7+ Kxf7 24. Qb3+ Kf8 25. Qxb7 Qxa2 26. Rc8+ Kf7 27. Rec1 Qa4 28. R1c7 Qxe4 29. Qxe4 Nxe4 30. Rxd7 Nf6 31. Ra7 Nd5 32. Bc5 Ke6 33. Bxe7 Nxe7 34. Re8 Kf5 35. Raxe7 g6 36. Rxe5+ Kf6 37. g4 a5 38. f4 a4 39. g5 Kg7 40. R5e7# 1-0
