@@ -6,9 +6,9 @@ Script de prueba para verificar la corrección del cálculo de performance metri
 import sys
 import os
 
-# Agregar el directorio backend al path
-backend_path = os.path.join(os.path.dirname(__file__), 'backend')
-sys.path.insert(0, backend_path)
+# sys.path.insert removed - app/ is now at root level
+# backend_path removed - app/ is now at root level
+# sys.path.insert removed - app/ is now at root level
 
 from app.analysis.longitudinal import compute_trends, roi_per_game
 from app.analysis.engine import ChessAnalysisEngine
@@ -130,4 +130,4 @@ if __name__ == "__main__":
     print("\n=== Testing current performance data ===")
     test_current_performance_data()
     
-    print("\n=== Test completed ===") 
+    print("\n=== Test completed ===")       
