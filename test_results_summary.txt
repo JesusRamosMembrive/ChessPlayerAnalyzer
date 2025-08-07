@@ -1,62 +1,32 @@
-======================================================================
+====================================================================================================
 CHESS PLAYER ANALYZER - UNIT TESTS SUMMARY
-======================================================================
-Generated: 2025-08-07 18:07:31 UTC
+====================================================================================================
+Generated: 2025-08-07 21:22:25 UTC
 
-MODULE                           TOTAL    PASSED   FAILED   SKIPPED  STATUS  
-----------------------------------------------------------------------
-QUALITY                          32       32       0        0        PASS    
-TIMING                           28       28       0        0        PASS    
-OPENINGS                         24       24       0        0        PASS    
-ENDGAME                          18       18       0        0        PASS    
-BENCHMARK                        16       16       0        0        PASS    
-LONGITUDINAL                     32       32       0        0        PASS    
-ENGINE                           20       20       0        0        PASS    
-----------------------------------------------------------------------
-TOTAL                            170      170      0        0        SUMMARY 
-======================================================================
+MODULE                              TOTAL    PASSED   FAILED   SKIPPED  STATUS  
+----------------------------------------------------------------------------------------------------
+QUALITY                             18       18       0        0        PASS    
+TIMING                              20       20       0        0        PASS    
+OPENINGS                            20       20       0        0        PASS    
+ENDGAME                             27       27       0        0        PASS    
+BENCHMARK                           21       21       0        0        PASS    
+LONGITUDINAL                        32       32       0        0        PASS    
+ENGINE                              20       20       0        0        PASS    
+----------------------------------------------------------------------------------------------------
+TOTAL                               158      158      0        0        SUMMARY 
+====================================================================================================
 Overall Status: ✅ ALL TESTS PASSED
 Success Rate: 100.0%
 
 MODULE DETAILS:
 --------------------------------------------------
-• Quality: 32/32 tests passed
-  - ACPL calculation tests (8 tests)
-  - Complexity weighted match tests (8 tests)  
-  - Precision bursts tests (8 tests)
-  - Feature aggregation tests (8 tests)
-
-• Timing: 28/28 tests passed
-  - Time statistics tests (7 tests)
-  - Time complexity correlation tests (7 tests)
-  - Lag spike detection tests (7 tests)
-  - Feature aggregation tests (7 tests)
-
-• Openings: 24/24 tests passed
-  - Shannon entropy tests (8 tests)
-  - Opening entropy tests (8 tests)
-  - Feature aggregation tests (8 tests)
-
-• Endgame: 18/18 tests passed
-  - Tablebase position tests (6 tests)
-  - Conversion efficiency tests (6 tests)
-  - Feature aggregation tests (6 tests)
-
-• Benchmark: 16/16 tests passed
-  - Percentile calculation tests (8 tests)
-  - Benchmark computation tests (8 tests)
-
+• Quality: 18/18 tests passed
+• Timing: 20/20 tests passed
+• Openings: 20/20 tests passed
+• Endgame: 27/27 tests passed
+• Benchmark: 21/21 tests passed
 • Longitudinal: 32/32 tests passed
-  - ROI per game tests (8 tests)
-  - Step function detection tests (8 tests)
-  - Trend computation tests (8 tests)
-  - Helper functions tests (8 tests)
-
 • Engine: 20/20 tests passed
-  - Safe mean function tests (6 tests)
-  - Moves dataframe preparation tests (6 tests)
-  - Chess analysis engine tests (5 tests)
-  - Edge cases tests (3 tests)
 
 ANALYSIS COVERAGE:
 --------------------------------------------------
@@ -67,39 +37,4 @@ ANALYSIS COVERAGE:
 ✓ Benchmark Analysis (percentile calculations)
 ✓ Longitudinal Analysis (trends, step functions)
 ✓ Engine Analysis (move preparation, game analysis)
-
-LOGGING FEATURES:
---------------------------------------------------
-✓ Added logging configuration to all 7 test modules
-✓ Added logging statements to key test functions
-✓ Logging shows test execution progress and results
-✓ Logging format: timestamp - module - level - message
-
-TEST DATA:
---------------------------------------------------
-✓ Extracted subset of test games from Affan_khan123.json
-✓ Created fixtures for sample data in each module
-✓ Comprehensive edge case coverage (empty data, NaN values, etc.)
-✓ Mock implementations for database-dependent components
-
-CI STATUS:
---------------------------------------------------
-✓ All CI checks passing on PR #14
-✓ Fixed backup test file issue that was causing failures
-✓ Tests isolated from database dependencies for CI compatibility
-
-======================================================================
-COMPREHENSIVE UNIT TESTING COMPLETED SUCCESSFULLY
-======================================================================
-
-This summary represents the comprehensive unit test suite created for the
-ChessPlayerAnalyzer analysis modules. All tests have been designed to verify
-the correctness of calculations and handle edge cases appropriately.
-
-The tests cover:
-- Mathematical accuracy of analysis functions
-- Proper handling of edge cases (empty data, NaN values)
-- Correct data type validation and error handling
-- Integration between different analysis components
-
-Total test coverage: 170 individual test cases across 7 analysis modules.
+====================================================================================================

@@ -50,12 +50,12 @@ class TestResultsSummary:
                     pass
 
             # Intento 1: con pytest-json-report (si está instalado)
-            cmd_base = [sys.executable, '-m', 'pytest', str(test_path), '-q']
+            cmd_base = [sys.executable, '-m', 'pytest', str(test_path), '-v', '--tb=short']
             cmd_with_json = cmd_base + ['--json-report', f'--json-report-file={report_file.as_posix()}']
             result = subprocess.run(cmd_with_json, capture_output=True, text=True, cwd=str(project_root))
 
-            # Si falla o no hay reporte, reintentar sin json-report
-            if result.returncode != 0 or not report_file.exists():
+            # Si falla por opciones no reconocidas, reintentar sin json-report
+            if result.returncode != 0 and ('unrecognized' in result.stderr.lower() or 'unknown' in result.stderr.lower()):
                 result = subprocess.run(cmd_base, capture_output=True, text=True, cwd=str(project_root))
 
             if report_file.exists():
@@ -71,24 +71,22 @@ class TestResultsSummary:
                     'status': 'PASS' if report_data.get('summary', {}).get('failed', 0) == 0 else 'FAIL'
                 }
             else:
-                import re
-                text_out = (result.stdout or '') + '\n' + (result.stderr or '')
-                # Buscar una línea con conteos tipo: "20 passed", "3 failed", "2 skipped"
-                passed = failed = skipped = 0
-                m_pass = re.search(r"(\d+)\s+passed", text_out)
-                m_fail = re.search(r"(\d+)\s+failed", text_out)
-                m_skip = re.search(r"(\d+)\s+skipped", text_out)
-                if m_pass:
-                    passed = int(m_pass.group(1))
-                if m_fail:
-                    failed = int(m_fail.group(1))
-                if m_skip:
-                    skipped = int(m_skip.group(1))
-
-                total = passed + failed + skipped
-                if total > 0 or passed > 0 or failed > 0 or skipped > 0:
+                lines = result.stdout.split('\n')
+                summary_line = [line for line in lines if 'passed' in line and ('failed' in line or 'error' in line or line.endswith('passed'))]
+                
+                if summary_line:
+                    summary = summary_line[-1]
+                    passed = failed = skipped = 0
+                    
+                    if 'passed' in summary:
+                        passed = int(summary.split('passed')[0].split()[-1])
+                    if 'failed' in summary:
+                        failed = int(summary.split('failed')[0].split()[-1])
+                    if 'skipped' in summary:
+                        skipped = int(summary.split('skipped')[0].split()[-1])
+                        
                     self.results[module_name] = {
-                        'total': total,
+                        'total': passed + failed + skipped,
                         'passed': passed,
                         'failed': failed,
                         'skipped': skipped,
