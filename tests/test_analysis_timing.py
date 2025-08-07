@@ -9,10 +9,14 @@ import pytest
 import pandas as pd
 import numpy as np
 import json
+import logging
 import sys
 import os
 from pathlib import Path
 from unittest.mock import Mock, patch
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
@@ -66,8 +70,10 @@ class TestTimeStats:
     
     def test_time_stats_normal_case(self, sample_timing_df):
         """Test time stats calculation with normal data."""
+        logger.info("Testing time_stats with normal data")
         df_with_correct_col = sample_timing_df.rename(columns={'time_taken': 'move_time'})
         result = time_stats(df_with_correct_col)
+        logger.info(f"Time stats result: {result}")
         
         # time_stats returns (mean, std, cv) tuple
         assert isinstance(result, tuple)
@@ -86,6 +92,7 @@ class TestTimeStats:
             assert abs(cv_time - expected_cv) < 1e-10
         else:
             assert np.isnan(cv_time)
+        logger.info("✓ Time stats normal case test passed")
     
     def test_time_stats_empty_dataframe(self, empty_timing_df):
         """Test time stats with empty DataFrame."""

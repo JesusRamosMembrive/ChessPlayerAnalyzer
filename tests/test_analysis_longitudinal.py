@@ -5,10 +5,14 @@ Unit tests for app.analysis.longitudinal module.
 import pytest
 import pandas as pd
 import numpy as np
+import logging
 import sys
 import os
 import importlib.util
 from datetime import datetime, timedelta
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
@@ -83,7 +87,9 @@ class TestRoiPerGame:
     
     def test_roi_per_game_normal_case(self, sample_games_df):
         """Test ROI calculation with normal data."""
+        logger.info("Testing ROI per game with normal data")
         result = roi_per_game(sample_games_df)
+        logger.info(f"ROI per game result: {result.head()}")
         
         assert isinstance(result, pd.Series)
         assert len(result) == len(sample_games_df)
@@ -92,6 +98,7 @@ class TestRoiPerGame:
         expected_first = performance_rating(sample_games_df['match_pct'].iloc[0], 
                                           sample_games_df['acpl'].iloc[0])
         assert abs(result.iloc[0] - expected_first) < 1e-10
+        logger.info("✓ ROI per game normal case test passed")
     
     def test_roi_per_game_with_explicit_columns(self, sample_games_df):
         """Test ROI calculation with explicitly specified columns."""

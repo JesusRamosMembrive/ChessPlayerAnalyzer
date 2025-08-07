@@ -9,8 +9,12 @@ import pytest
 import pandas as pd
 import numpy as np
 import json
+import logging
 from pathlib import Path
 from unittest.mock import Mock, patch
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 def acpl(df):
     """Mock implementation of ACPL calculation."""
@@ -131,15 +135,21 @@ class TestACPL:
     
     def test_acpl_normal_case(self, sample_moves_df):
         """Test ACPL calculation with normal data."""
+        logger.info("Testing ACPL with normal data")
         result = acpl(sample_moves_df)
         expected_diffs = np.abs(sample_moves_df['eval_cp_after'] - sample_moves_df['eval_cp_before'])
         expected = expected_diffs.mean()
+        logger.info(f"ACPL result: {result}, expected: {expected}")
         assert result == expected
+        logger.info("✓ ACPL normal case test passed")
     
     def test_acpl_empty_dataframe(self, empty_moves_df):
         """Test ACPL with empty DataFrame."""
+        logger.info("Testing ACPL with empty dataframe")
         result = acpl(empty_moves_df)
+        logger.info(f"ACPL empty result: {result}")
         assert pd.isna(result) or result == 0
+        logger.info("✓ ACPL empty dataframe test passed")
     
     def test_acpl_with_nan_values(self):
         """Test ACPL with NaN values in eval columns."""
@@ -258,7 +268,9 @@ class TestAggregateQualityFeatures:
     
     def test_aggregate_quality_features_normal(self, sample_moves_df):
         """Test quality features aggregation with normal data."""
+        logger.info("Testing aggregate quality features with normal data")
         result = aggregate_quality_features(sample_moves_df)
+        logger.info(f"Quality features result: {result}")
         
         assert isinstance(result, dict)
         
@@ -274,6 +286,7 @@ class TestAggregateQualityFeatures:
                     assert isinstance(value, list)  # Lists are valid (e.g., precision_bursts)
                 else:
                     assert not pd.isna(value)
+        logger.info("✓ Aggregate quality features test passed")
     
     def test_aggregate_quality_features_empty(self, empty_moves_df):
         """Test quality features aggregation with empty DataFrame."""

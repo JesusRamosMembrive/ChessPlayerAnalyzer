@@ -7,11 +7,15 @@ import pandas as pd
 import numpy as np
 import chess
 import chess.pgn
+import logging
 import sys
 import os
 import importlib.util
 from unittest.mock import Mock, patch
 import io
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
@@ -77,8 +81,11 @@ class TestIsTbPosition:
     
     def test_is_tb_position_starting_position(self, sample_board):
         """Test with starting position (32 pieces)."""
+        logger.info("Testing tablebase position check with starting position")
         result = is_tb_position(sample_board)
+        logger.info(f"Tablebase position result: {result}")
         assert result is False  # Too many pieces for tablebase
+        logger.info("✓ Tablebase position starting position test passed")
     
     def test_is_tb_position_endgame(self, endgame_board):
         """Test with endgame position (few pieces)."""

@@ -5,9 +5,13 @@ Unit tests for app.analysis.openings module.
 import pytest
 import pandas as pd
 import numpy as np
+import logging
 import sys
 import os
 import importlib.util
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
@@ -60,7 +64,9 @@ class TestShannonEntropy:
     
     def test_shannon_entropy_normal_case(self, sample_eco_series):
         """Test entropy calculation with normal data."""
+        logger.info("Testing Shannon entropy with normal ECO data")
         result = shannon_entropy(sample_eco_series)
+        logger.info(f"Shannon entropy result: {result}")
         
         assert isinstance(result, float)
         assert result >= 0.0
@@ -70,6 +76,7 @@ class TestShannonEntropy:
         expected = -(probs * np.log2(probs)).sum()
         
         assert abs(result - expected) < 1e-10
+        logger.info("✓ Shannon entropy normal case test passed")
     
     def test_shannon_entropy_empty_series(self, empty_eco_series):
         """Test with empty series."""

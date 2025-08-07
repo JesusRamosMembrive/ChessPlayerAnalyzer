@@ -1,8 +1,12 @@
 import pytest
 import pandas as pd
 import numpy as np
+import logging
 from typing import List, Dict, Any, Optional, Tuple
 from pathlib import Path
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 def _safe_mean(df: pd.DataFrame, col: str, default: float = 0.0) -> float:
     """Media que nunca devuelve None (NaN→default, col ausente→default)."""
@@ -107,9 +111,12 @@ class MockChessAnalysisEngine:
 class TestSafeMeanFunction:
     def test_safe_mean_normal_case(self):
         """Test _safe_mean with normal data."""
+        logger.info("Testing _safe_mean with normal data")
         df = pd.DataFrame({'col1': [1, 2, 3, 4, 5]})
         result = _safe_mean(df, 'col1')
+        logger.info(f"Safe mean result: {result}")
         assert result == 3.0
+        logger.info("✓ Safe mean normal case test passed")
 
     def test_safe_mean_missing_column(self):
         """Test _safe_mean with missing column."""
@@ -282,14 +289,17 @@ class TestChessAnalysisEngineMock:
 
     def test_analyze_game_basic(self):
         """Test basic analyze_game functionality."""
+        logger.info("Testing basic analyze_game functionality")
         engine = MockChessAnalysisEngine()
         result = engine.analyze_game_mock(1, 'player1')
+        logger.info(f"Analyze game result keys: {list(result.keys())}")
         
         assert 'game_data' in result
         assert 'metrics' in result
         assert 'moves_df' in result
         
         metrics = result['metrics']
+        logger.info(f"Game metrics: {metrics}")
         assert 'acpl' in metrics
         assert 'match_pct' in metrics
         assert 'avg_time' in metrics
@@ -300,6 +310,7 @@ class TestChessAnalysisEngineMock:
         assert 'player_move' in df.columns
         assert df.iloc[0]['player_move'] == True  # White's first move
         assert df.iloc[1]['player_move'] == False  # Black's move
+        logger.info("✓ Analyze game basic test passed")
 
     def test_analyze_game_game_not_found(self):
         """Test analyze_game with non-existent game."""

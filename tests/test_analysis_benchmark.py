@@ -5,9 +5,13 @@ Unit tests for app.analysis.benchmark module.
 import pytest
 import pandas as pd
 import numpy as np
+import logging
 import sys
 import os
 import importlib.util
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
@@ -84,7 +88,9 @@ class TestComputeBenchmark:
     
     def test_compute_benchmark_normal_case(self):
         """Test with normal values and existing ELO bucket."""
+        logger.info("Testing benchmark computation with normal values")
         result = compute_benchmark(avg_acpl=1500, mean_entropy=4.0, player_elo=1600)
+        logger.info(f"Benchmark result: {result}")
         
         assert isinstance(result, dict)
         assert "percentile_acpl" in result
@@ -94,6 +100,7 @@ class TestComputeBenchmark:
         assert isinstance(result["percentile_entropy"], int)
         assert 0 <= result["percentile_acpl"] <= 100
         assert 0 <= result["percentile_entropy"] <= 100
+        logger.info("✓ Benchmark normal case test passed")
     
     def test_compute_benchmark_exact_elo_buckets(self):
         """Test with exact ELO bucket values."""

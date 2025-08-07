@@ -1,0 +1,187 @@
+#!/usr/bin/env python3
+"""
+Test Results Summary Generator
+Creates a comprehensive table showing all test results across analysis modules.
+"""
+
+import pytest
+import subprocess
+import json
+import logging
+from pathlib import Path
+from datetime import datetime
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+class TestResultsSummary:
+    """Generate and display comprehensive test results summary."""
+    
+    def __init__(self):
+        self.test_modules = [
+            'test_analysis_quality.py',
+            'test_analysis_timing.py', 
+            'test_analysis_openings.py',
+            'test_analysis_endgame.py',
+            'test_analysis_benchmark.py',
+            'test_analysis_longitudinal.py',
+            'test_analysis_engine.py'
+        ]
+        self.results = {}
+        
+    def run_module_tests(self, module_name):
+        """Run tests for a specific module and capture results."""
+        logger.info(f"Running tests for {module_name}")
+        
+        try:
+            cmd = ['python', '-m', 'pytest', f'tests/{module_name}', '-v', '--tb=short', '--json-report', '--json-report-file=/tmp/test_report.json']
+            result = subprocess.run(cmd, capture_output=True, text=True, cwd='/home/ubuntu/repos/ChessPlayerAnalyzer')
+            
+            report_file = Path('/tmp/test_report.json')
+            if report_file.exists():
+                with open(report_file, 'r') as f:
+                    report_data = json.load(f)
+                    
+                self.results[module_name] = {
+                    'total': report_data.get('summary', {}).get('total', 0),
+                    'passed': report_data.get('summary', {}).get('passed', 0),
+                    'failed': report_data.get('summary', {}).get('failed', 0),
+                    'skipped': report_data.get('summary', {}).get('skipped', 0),
+                    'duration': report_data.get('duration', 0),
+                    'status': 'PASS' if report_data.get('summary', {}).get('failed', 0) == 0 else 'FAIL'
+                }
+            else:
+                lines = result.stdout.split('\n')
+                summary_line = [line for line in lines if 'passed' in line and ('failed' in line or 'error' in line or line.endswith('passed'))]
+                
+                if summary_line:
+                    summary = summary_line[-1]
+                    passed = failed = skipped = 0
+                    
+                    if 'passed' in summary:
+                        passed = int(summary.split('passed')[0].split()[-1])
+                    if 'failed' in summary:
+                        failed = int(summary.split('failed')[0].split()[-1])
+                    if 'skipped' in summary:
+                        skipped = int(summary.split('skipped')[0].split()[-1])
+                        
+                    self.results[module_name] = {
+                        'total': passed + failed + skipped,
+                        'passed': passed,
+                        'failed': failed,
+                        'skipped': skipped,
+                        'duration': 0,
+                        'status': 'PASS' if failed == 0 else 'FAIL'
+                    }
+                else:
+                    self.results[module_name] = {
+                        'total': 0,
+                        'passed': 0,
+                        'failed': 1,
+                        'skipped': 0,
+                        'duration': 0,
+                        'status': 'ERROR'
+                    }
+                    
+            logger.info(f"✓ {module_name}: {self.results[module_name]}")
+            
+        except Exception as e:
+            logger.error(f"Error running tests for {module_name}: {e}")
+            self.results[module_name] = {
+                'total': 0,
+                'passed': 0,
+                'failed': 1,
+                'skipped': 0,
+                'duration': 0,
+                'status': 'ERROR'
+            }
+    
+    def generate_summary_table(self):
+        """Generate a formatted summary table of all test results."""
+        logger.info("Generating comprehensive test results summary")
+        
+        for module in self.test_modules:
+            self.run_module_tests(module)
+        
+        total_tests = sum(r['total'] for r in self.results.values())
+        total_passed = sum(r['passed'] for r in self.results.values())
+        total_failed = sum(r['failed'] for r in self.results.values())
+        total_skipped = sum(r['skipped'] for r in self.results.values())
+        total_duration = sum(r['duration'] for r in self.results.values())
+        
+        table = []
+        table.append("=" * 100)
+        table.append("CHESS PLAYER ANALYZER - UNIT TESTS SUMMARY")
+        table.append("=" * 100)
+        table.append(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}")
+        table.append("")
+        table.append(f"{'MODULE':<35} {'TOTAL':<8} {'PASSED':<8} {'FAILED':<8} {'SKIPPED':<8} {'STATUS':<8}")
+        table.append("-" * 100)
+        
+        for module, results in self.results.items():
+            module_name = module.replace('test_analysis_', '').replace('.py', '').upper()
+            table.append(f"{module_name:<35} {results['total']:<8} {results['passed']:<8} {results['failed']:<8} {results['skipped']:<8} {results['status']:<8}")
+        
+        table.append("-" * 100)
+        table.append(f"{'TOTAL':<35} {total_tests:<8} {total_passed:<8} {total_failed:<8} {total_skipped:<8} {'SUMMARY':<8}")
+        table.append("=" * 100)
+        
+        overall_status = "✅ ALL TESTS PASSED" if total_failed == 0 else f"❌ {total_failed} TESTS FAILED"
+        table.append(f"Overall Status: {overall_status}")
+        table.append(f"Success Rate: {(total_passed/total_tests*100):.1f}%" if total_tests > 0 else "Success Rate: N/A")
+        table.append("")
+        
+        table.append("MODULE DETAILS:")
+        table.append("-" * 50)
+        for module, results in self.results.items():
+            module_name = module.replace('test_analysis_', '').replace('.py', '')
+            table.append(f"• {module_name.title()}: {results['passed']}/{results['total']} tests passed")
+            if results['failed'] > 0:
+                table.append(f"  ⚠️  {results['failed']} failed tests require attention")
+        
+        table.append("")
+        table.append("ANALYSIS COVERAGE:")
+        table.append("-" * 50)
+        table.append("✓ Quality Analysis (ACPL, complexity, precision bursts)")
+        table.append("✓ Timing Analysis (stats, correlations, lag detection)")
+        table.append("✓ Opening Analysis (entropy, repertoire diversity)")
+        table.append("✓ Endgame Analysis (tablebase positions, conversion)")
+        table.append("✓ Benchmark Analysis (percentile calculations)")
+        table.append("✓ Longitudinal Analysis (trends, step functions)")
+        table.append("✓ Engine Analysis (move preparation, game analysis)")
+        table.append("=" * 100)
+        
+        summary_text = "\n".join(table)
+        logger.info("Test summary generated successfully")
+        
+        return summary_text
+    
+    def save_summary(self, filename="test_results_summary.txt"):
+        """Save the summary to a file."""
+        summary = self.generate_summary_table()
+        
+        filepath = Path(f"/home/ubuntu/repos/ChessPlayerAnalyzer/{filename}")
+        with open(filepath, 'w') as f:
+            f.write(summary)
+        
+        logger.info(f"Summary saved to {filepath}")
+        print(summary)
+        
+        return filepath
+
+def test_generate_comprehensive_summary():
+    """Test function to generate and display the comprehensive test summary."""
+    logger.info("Starting comprehensive test results summary generation")
+    
+    summary_generator = TestResultsSummary()
+    summary_file = summary_generator.save_summary()
+    
+    assert summary_file.exists()
+    assert summary_file.stat().st_size > 0
+    
+    logger.info("✅ Comprehensive test summary generated successfully")
+    
+    return True
+
+if __name__ == "__main__":
+    test_generate_comprehensive_summary()
