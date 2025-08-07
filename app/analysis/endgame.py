@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 def is_tb_position(board: chess.Board, max_pieces: int = 7) -> bool:
     """True si la posición puede estar en las tablebases N‑piece."""    
-    return board.piece_count() <= max_pieces and not board.is_variant_end()
+    return len(board.piece_map()) <= max_pieces and not board.is_variant_end()
 
 def result_sign(board: chess.Board) -> int:
     """
