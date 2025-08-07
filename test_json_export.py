@@ -7,7 +7,7 @@ import sys
 import os
 from pathlib import Path
 
-sys.path.insert(0, '/app')
+# sys.path.insert removed - app/ is now at root level
 
 from app.database import engine
 from app.models import Player, GameAnalysisDetailed, PlayerAnalysisDetailed

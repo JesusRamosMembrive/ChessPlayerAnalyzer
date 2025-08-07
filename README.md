@@ -76,21 +76,22 @@ Este flujo garantiza que varias peticiones simultáneas al mismo jugador no gene
 
 ## CLI y utilidades
 
-- `backend/player_cli.py` ofrece una interfaz básica por línea de comandos para solicitar el análisis de un jugador y mostrar el progreso.
-- `backend/player_analyze_cli.py` incorpora una visualización más rica con colores y tablas.
+- `player_cli.py` ofrece una interfaz básica por línea de comandos para solicitar el análisis de un jugador y mostrar el progreso.
+- `player_analyze_cli.py` incorpora una visualización más rica con colores y tablas.
 - `bulk_upload.py` permite encolar múltiples partidas desde un archivo JSON a través del endpoint `/analyze`.
 
 ## Estructura del repositorio
 
 ```
-backend/
+app/
 ├── app/                 Código de la API y lógica de análisis
 │   ├── analysis/        Módulos de métricas (quality, timing, openings…)
 │   ├── celery_app.py    Definición de tareas Celery
 │   ├── main.py          Entrypoint FastAPI
 │   ├── models.py        Modelos SQLModel
 │   └── utils.py         Utilidades y helpers
-├── migrations/          Archivos de migración (alembic)
+alembic/                 Archivos de migración (alembic)
+migrations/              Archivos de migración adicionales
 ├── player_cli.py        CLI sencillo de ejemplo
 └── player_analyze_cli.py CLI avanzado con colores y tablas
 ```

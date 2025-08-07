@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 import json
 import math
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'backend'))
+# sys.path.insert removed - app/ is now at root level
 
 def test_nan_handling():
     """Test that longitudinal calculations don't produce NaN values."""

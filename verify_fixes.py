@@ -6,7 +6,7 @@ Tests the example player "Affan_khan123" mentioned by the user.
 
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), 'backend'))
+# sys.path.append removed - app/ is now at root level
 
 from app.database import engine
 from sqlmodel import Session, select

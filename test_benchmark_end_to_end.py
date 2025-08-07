@@ -10,7 +10,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'backend'))
+# sys.path.insert removed - app/ is now at root level
 
 def test_benchmark_end_to_end():
     """Test benchmark calculation with the exact scenario from user's API response."""

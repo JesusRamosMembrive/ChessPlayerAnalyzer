@@ -6,7 +6,7 @@ This script is designed to run inside the Docker container.
 
 import sys
 import os
-sys.path.append('/app')
+# sys.path.append removed - app/ is now at root level
 
 from app.database import engine
 from sqlmodel import Session, select
