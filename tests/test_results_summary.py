@@ -160,7 +160,7 @@ class TestResultsSummary:
         """Save the summary to a file."""
         summary = self.generate_summary_table()
         
-        filepath = Path(f"/home/ubuntu/repos/ChessPlayerAnalyzer/{filename}")
+        filepath = Path(filename)
         with open(filepath, 'w') as f:
             f.write(summary)
         
