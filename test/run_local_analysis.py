@@ -184,6 +184,10 @@ def per_game_features(mv_df: pd.DataFrame, meta: dict, username: str | None):
     except Exception as e:
         feats_q_user = feats_q_user or {"_quality_error": str(e)}
     try:
+        if "best_rank" not in mv_df.columns:
+            mv_df = mv_df.assign(best_rank=np.nan)
+        if "delta_eval" not in mv_df.columns:
+            mv_df = mv_df.assign(delta_eval=np.nan)
         one_games_df = pd.DataFrame(
             [
                 {
