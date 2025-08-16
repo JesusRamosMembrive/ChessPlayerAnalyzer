@@ -240,6 +240,21 @@ def analyze_input_file(path: Path, username: str | None, reconstruct_clock: bool
         )
     games_df = pd.DataFrame(per_for_long) if per_for_long else pd.DataFrame()
     aggregates = {}
+
+    opening_top3 = []
+    opening_focus_top3_pct = float("nan")
+    try:
+        if not games_df.empty and "eco_code" in games_df.columns:
+            eco_counts = games_df["eco_code"].value_counts(dropna=True)
+            top3 = eco_counts.head(3)
+            total = int(eco_counts.sum()) if eco_counts.size else 0
+            opening_top3 = [{"eco_code": str(k), "count": int(v)} for k, v in top3.items()]
+            opening_focus_top3_pct = float(top3.sum() / total) if total > 0 else float("nan")
+    except Exception as e:
+        aggregates["_opening_agg_error"] = str(e)
+    aggregates["opening_top3"] = opening_top3
+    aggregates["opening_focus_top3_pct"] = opening_focus_top3_pct
+
     try:
         if not games_df.empty:
             aggregates.update(longitudinal.aggregate_longitudinal_features(games_df) or {})
