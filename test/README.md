@@ -49,11 +49,17 @@ Analizar un archivo con varias partidas (chunk):
 Procesar en lote todos los JSON de una carpeta:
 - python3 test/run_local_analysis.py --input-dir test/out/per_game --pattern "*.json"
 
+Usar perspectiva del usuario (si coincide con White/Black del PGN):
+- python3 test/run_local_analysis.py --input test/out/per_game/game_00001.json --username tuUsuarioChessCom
+
 Reconstruir reloj del jugador (si el PGN tiene TimeControl):
 - python3 test/run_local_analysis.py --input test/out/per_game/game_00001.json --reconstruct-clock
 
 Directorio de resultados:
 - test/out/results/<nombre_entrada>.results.json
+
+Desactivar resumen por color en consola:
+- python3 test/run_local_analysis.py --input test/out/chunks_10/chunk_00001.json --no-color-summary
 
 Notas:
 - Se usa “best effort”: si faltan campos opcionales (por ejemplo evaluaciones de motor), las métricas correspondientes aparecerán como NaN y el resto se calcularán.
@@ -65,3 +71,37 @@ Notas:
 - Resultados de análisis: test/out/results/<archivo>.results.json
 
 Los objetos se preservan tal cual, sin modificaciones.
+## Perspectiva de color y métricas ampliadas
+
+- El script calcula métricas de calidad desde la perspectiva de:
+  - blancas: claves white_*
+  - negras: claves black_*
+  - usuario: claves user_* si proporcionas --username y coincide con White/Black del PGN
+- Esto asegura que las métricas sensibles al signo (por ejemplo, evaluaciones del motor) se interpreten correctamente para cada color.
+
+Métricas incluidas por partida:
+- Timing:
+  - mean_move_time, time_variance
+  - time_complexity_corr
+  - lag_spike_count
+  - uniformity_score
+  - clutch_accuracy_diff (si hay player_clock_before reconstruido o presente)
+  - timing_score
+- Quality por color (white_*, black_* y user_* si aplica):
+  - acpl
+  - match_rate
+  - weighted_match_rate
+  - ipr
+  - ipr_z_score (0.0 si no hay ELO)
+  - quality_score
+  - precision_burst_count
+- Openings:
+  - second_choice_rate y otros campos que devuelva openings.aggregate_opening_features
+- Longitudinal y agregados por archivo:
+  - aggregate_longitudinal_features(games_df)
+  - aggregate_tactical_trends(games_df)
+  - aggregate_clutch_accuracy(games_df)
+
+Resumen por consola:
+- Imprime medias de: mean_move_time, acpl, weighted_match_rate, ipr, quality_score, time_complexity_corr y el total de lag_spikes.
+- Por defecto prioriza la perspectiva del usuario si has pasado --username; si no, usa la de blancas.
