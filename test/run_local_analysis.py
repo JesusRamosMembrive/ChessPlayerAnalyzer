@@ -3,7 +3,7 @@ import argparse
 import json
 import io
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 import sys
 import importlib.util
 import numpy as np
@@ -251,7 +251,7 @@ def analyze_input_file(path: Path, username: str | None, reconstruct_clock: bool
         aggregates["_clutch_error"] = str(e)
     out = {
         "input_file": str(path),
-        "processed_at": datetime.utcnow().isoformat() + "Z",
+        "processed_at": datetime.now(timezone.utc).isoformat(),
         "games_count": len(games),
         "per_game": per,
         "aggregates": aggregates,
