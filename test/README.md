@@ -49,6 +49,14 @@ Analizar un archivo con varias partidas (chunk):
 Procesar en lote todos los JSON de una carpeta:
 - python3 test/run_local_analysis.py --input-dir test/out/per_game --pattern "*.json"
 
+Exportación a CSV de resultados por partida:
+- Un archivo: python3 test/run_local_analysis.py --input test/out/per_game/game_00001.json --out-dir test/out/results --csv
+  - CSV por defecto: test/out/results/game_00001.per_game.csv
+- Un chunk: python3 test/run_local_analysis.py --input test/out/chunks_10/chunk_00001.json --out-dir test/out/results --csv
+  - CSV por defecto: test/out/results/chunk_00001.per_game.csv
+- Carpeta completa: python3 test/run_local_analysis.py --input-dir test/out/per_game --out-dir test/out/results --csv
+- Ruta personalizada: añade --csv-path path/a/archivo.csv
+
 Usar perspectiva del usuario (si coincide con White/Black del PGN):
 - python3 test/run_local_analysis.py --input test/out/per_game/game_00001.json --username tuUsuarioChessCom
 

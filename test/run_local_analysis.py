@@ -289,6 +289,8 @@ def main():
     ap.add_argument("--summary-only", action="store_true")
     ap.add_argument("--verbose", action="store_true")
     ap.add_argument("--no-color-summary", action="store_true")
+    ap.add_argument("--csv", action="store_true", help="Export per-game rows to CSV")
+    ap.add_argument("--csv-path", help="Custom CSV path; defaults to <out-dir>/<basename>.per_game.csv")
     args = ap.parse_args()
 
     out_dir = Path(args.out_dir)
@@ -312,6 +314,14 @@ def main():
         out_path.write_text(json.dumps(res, ensure_ascii=False, indent=2, default=_to_native), encoding="utf-8")
         per = res.get("per_game", [])
         n = len(per)
+
+        if args.csv:
+            try:
+                df = pd.DataFrame(per)
+                csv_path = Path(args.csv_path) if args.csv_path else (out_dir / (t.stem + ".per_game.csv"))
+                df.to_csv(csv_path, index=False)
+            except Exception as e:
+                print(f"[WARN] CSV export failed for {t.name}: {e}")
 
         def _clean(vals):
             out = []
