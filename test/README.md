@@ -105,3 +105,8 @@ Métricas incluidas por partida:
 Resumen por consola:
 - Imprime medias de: mean_move_time, acpl, weighted_match_rate, ipr, quality_score, time_complexity_corr y el total de lag_spikes.
 - Por defecto prioriza la perspectiva del usuario si has pasado --username; si no, usa la de blancas.
+
+Agregados de salida (aggregates) por archivo:
+- Longitudinal: aggregate_longitudinal_features(games_df)
+- Calidad: aggregate_tactical_trends(games_df), aggregate_clutch_accuracy(games_df)
+- Aperturas: opening_top3 (top 3 ECO con conteo) y opening_focus_top3_pct (porcentaje de partidas cubiertas por las 3 aperturas más frecuentes)
