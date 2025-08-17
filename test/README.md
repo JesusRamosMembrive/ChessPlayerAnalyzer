@@ -57,6 +57,24 @@ Exportación a CSV de resultados por partida:
 - Carpeta completa: python3 test/run_local_analysis.py --input-dir test/out/per_game --out-dir test/out/results --csv
 - Ruta personalizada: añade --csv-path path/a/archivo.csv
 
+Activar evaluaciones por jugada con motor (Stockfish):
+- Requisitos:
+  - Tener Stockfish instalado.
+  - Si el binario no está en PATH, indica la ruta con --engine-path o variable de entorno STOCKFISH_PATH.
+  - El script intenta auto-detectar rutas comunes: Linux (/usr/games/stockfish, /usr/local/bin/stockfish), macOS (/opt/homebrew/bin/stockfish), Windows ("C:\Program Files\Stockfish\stockfish.exe", etc.).
+- Flags:
+  - --engine-enable: activa el análisis local con motor
+  - --engine-path: ruta al binario UCI (por defecto "stockfish" o $STOCKFISH_PATH; se intenta auto-detectar)
+  - --engine-depth: profundidad de análisis (por defecto $STOCKFISH_DEPTH o 12)
+  - --engine-multipv: número de PVs a considerar (por defecto 3)
+- Ejemplos:
+  - Linux (apt): python3 test/run_local_analysis.py --input test/out/chunks_10/chunk_00001.json --out-dir test/out/results --username TuUsuario --engine-enable --engine-path /usr/games/stockfish
+  - macOS (homebrew): python3 test/run_local_analysis.py --input test/out/per_game/game_00001.json --out-dir test/out/results --engine-enable --engine-path /opt/homebrew/bin/stockfish --engine-depth 12 --engine-multipv 3
+  - Windows: python test\run_local_analysis.py --input test\out\chunks_10\chunk_00001.json --out-dir test\out\results --engine-enable --engine-path "C:\Program Files\Stockfish\stockfish.exe"
+- Notas:
+  - Con --engine-enable, se calculan eval_cp_before/after, best_rank, cp_loss y se habilitan métricas ACPL/IPR/quality_score y match_rate sin NaN.
+  - La perspectiva de color se maneja automáticamente (white_*, black_* y user_* si pasas --username).
+
 Usar perspectiva del usuario (si coincide con White/Black del PGN):
 - python3 test/run_local_analysis.py --input test/out/per_game/game_00001.json --username tuUsuarioChessCom
 
