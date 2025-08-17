@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 import chess.pgn
 import chess.engine
+import shutil
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -351,6 +352,84 @@ def analyze_input_file(path: Path, username: str | None, reconstruct_clock: bool
     }
     return out
 
+def _resolve_engine_path(path_hint: str | None) -> str | None:
+    if path_hint:
+        w = shutil.which(path_hint)
+        if w:
+            return w
+        if os.path.isabs(path_hint) and Path(path_hint).exists():
+            return path_hint
+    candidates = [
+        os.environ.get("STOCKFISH_PATH"),
+        "/usr/games/stockfish",
+        "/usr/local/bin/stockfish",
+        "/usr/bin/stockfish",
+        "/opt/homebrew/bin/stockfish",
+        "C:\\Program Files\\Stockfish\\stockfish.exe",
+        "C:\\Program Files (x86)\\Stockfish\\stockfish.exe",
+        str(Path.home() / "AppData/Local/Programs/stockfish/stockfish.exe"),
+    ]
+    for p in candidates:
+        if not p:
+            continue
+        if os.path.isabs(p) and Path(p).exists():
+            return p
+        w = shutil.which(p)
+        if w:
+            return w
+    return path_hint
+def _resolve_engine_path(path_hint: str | None) -> str | None:
+    if path_hint:
+        w = shutil.which(path_hint)
+        if w:
+            return w
+        if os.path.isabs(path_hint) and Path(path_hint).exists():
+            return path_hint
+    candidates = [
+        os.environ.get("STOCKFISH_PATH"),
+        "/usr/games/stockfish",
+        "/usr/local/bin/stockfish",
+        "/usr/bin/stockfish",
+        "/opt/homebrew/bin/stockfish",
+        "C:\\Program Files\\Stockfish\\stockfish.exe",
+        "C:\\Program Files (x86)\\Stockfish\\stockfish.exe",
+        str(Path.home() / "AppData/Local/Programs/stockfish/stockfish.exe"),
+    ]
+    for p in candidates:
+        if not p:
+            continue
+        if os.path.isabs(p) and Path(p).exists():
+            return p
+        w = shutil.which(p)
+        if w:
+            return w
+    return path_hint
+def _resolve_engine_path(path_hint: str | None) -> str | None:
+    if path_hint:
+        w = shutil.which(path_hint)
+        if w:
+            return w
+        if os.path.isabs(path_hint) and Path(path_hint).exists():
+            return path_hint
+    candidates = [
+        os.environ.get("STOCKFISH_PATH"),
+        "/usr/games/stockfish",
+        "/usr/local/bin/stockfish",
+        "/usr/bin/stockfish",
+        "/opt/homebrew/bin/stockfish",
+        "C:\\Program Files\\Stockfish\\stockfish.exe",
+        "C:\\Program Files (x86)\\Stockfish\\stockfish.exe",
+        str(Path.home() / "AppData/Local/Programs/stockfish/stockfish.exe"),
+    ]
+    for p in candidates:
+        if not p:
+            continue
+        if os.path.isabs(p) and Path(p).exists():
+            return p
+        w = shutil.which(p)
+        if w:
+            return w
+    return path_hint
 
 def main():
     ap = argparse.ArgumentParser(description="Run local analysis without DB/Celery")
@@ -390,9 +469,10 @@ def main():
 
     engine_cfg = None
     if args.engine_enable:
+        resolved_path = _resolve_engine_path(args.engine_path)
         engine_cfg = {
             "enable": True,
-            "path": args.engine_path,
+            "path": resolved_path,
             "depth": int(args.engine_depth),
             "multipv": int(args.engine_multipv),
         }
