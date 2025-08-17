@@ -326,7 +326,11 @@ def analyze_input_file(path: Path, username: str | None, reconstruct_clock: bool
             opening_top3 = [{"eco_code": str(k), "count": int(v)} for k, v in top3.items()]
             opening_focus_top3_pct = float(top3.sum() / total) if total > 0 else float("nan")
     except Exception as e:
-        aggregates["_opening_agg_error"] = str(e)
+        opening_top3 = []
+        opening_top3 = []
+        opening_focus_top3_pct = float("nan")
+        aggregates["_opening_aggregate_error"] = str(e)
+
     aggregates["opening_top3"] = opening_top3
     aggregates["opening_focus_top3_pct"] = opening_focus_top3_pct
 
@@ -343,6 +347,7 @@ def analyze_input_file(path: Path, username: str | None, reconstruct_clock: bool
         aggregates.update(quality.aggregate_clutch_accuracy(games_df) or {})
     except Exception as e:
         aggregates["_clutch_error"] = str(e)
+
     out = {
         "input_file": str(path),
         "processed_at": datetime.now(timezone.utc).isoformat(),
@@ -378,58 +383,35 @@ def _resolve_engine_path(path_hint: str | None) -> str | None:
         if w:
             return w
     return path_hint
-def _resolve_engine_path(path_hint: str | None) -> str | None:
-    if path_hint:
-        w = shutil.which(path_hint)
-        if w:
-            return w
-        if os.path.isabs(path_hint) and Path(path_hint).exists():
-            return path_hint
-    candidates = [
-        os.environ.get("STOCKFISH_PATH"),
-        "/usr/games/stockfish",
-        "/usr/local/bin/stockfish",
-        "/usr/bin/stockfish",
-        "/opt/homebrew/bin/stockfish",
-        "C:\\Program Files\\Stockfish\\stockfish.exe",
-        "C:\\Program Files (x86)\\Stockfish\\stockfish.exe",
-        str(Path.home() / "AppData/Local/Programs/stockfish/stockfish.exe"),
-    ]
-    for p in candidates:
-        if not p:
-            continue
-        if os.path.isabs(p) and Path(p).exists():
-            return p
-        w = shutil.which(p)
-        if w:
-            return w
-    return path_hint
-def _resolve_engine_path(path_hint: str | None) -> str | None:
-    if path_hint:
-        w = shutil.which(path_hint)
-        if w:
-            return w
-        if os.path.isabs(path_hint) and Path(path_hint).exists():
-            return path_hint
-    candidates = [
-        os.environ.get("STOCKFISH_PATH"),
-        "/usr/games/stockfish",
-        "/usr/local/bin/stockfish",
-        "/usr/bin/stockfish",
-        "/opt/homebrew/bin/stockfish",
-        "C:\\Program Files\\Stockfish\\stockfish.exe",
-        "C:\\Program Files (x86)\\Stockfish\\stockfish.exe",
-        str(Path.home() / "AppData/Local/Programs/stockfish/stockfish.exe"),
-    ]
-    for p in candidates:
-        if not p:
-            continue
-        if os.path.isabs(p) and Path(p).exists():
-            return p
-        w = shutil.which(p)
-        if w:
-            return w
-    return path_hint
+
+        opening_focus_top3_pct = float("nan")
+        aggregates["_opening_aggregate_error"] = str(e)
+
+    aggregates["opening_top3"] = opening_top3
+    aggregates["opening_focus_top3_pct"] = opening_focus_top3_pct
+
+    try:
+        if not games_df.empty:
+            aggregates.update(longitudinal.aggregate_longitudinal_features(games_df) or {})
+    except Exception as e:
+        aggregates["_longitudinal_error"] = str(e)
+    try:
+        aggregates.update(quality.aggregate_tactical_trends(games_df) or {})
+    except Exception as e:
+        aggregates["_tactical_error"] = str(e)
+    try:
+        aggregates.update(quality.aggregate_clutch_accuracy(games_df) or {})
+    except Exception as e:
+        aggregates["_clutch_error"] = str(e)
+
+    out = {
+        "input_file": str(path),
+        "processed_at": datetime.now(timezone.utc).isoformat(),
+        "games_count": len(games),
+        "per_game": per,
+        "aggregates": aggregates,
+    }
+    return out
 
 def main():
     ap = argparse.ArgumentParser(description="Run local analysis without DB/Celery")
