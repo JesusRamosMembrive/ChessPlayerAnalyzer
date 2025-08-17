@@ -2,6 +2,7 @@
 import argparse
 import json
 import io
+import os
 from pathlib import Path
 from datetime import datetime, timezone
 import sys
@@ -9,6 +10,7 @@ import importlib.util
 import numpy as np
 import pandas as pd
 import chess.pgn
+import chess.engine
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -114,7 +116,7 @@ def reconstruct_player_clock(times: list[float], time_control: str | None) -> li
     return clocks
 
 
-def moves_df_from_game_object(game_obj: dict, reconstruct_clock: bool = False) -> tuple[pd.DataFrame, dict]:
+def moves_df_from_game_object(game_obj: dict, reconstruct_clock: bool = False, engine_cfg: dict | None = None) -> tuple[pd.DataFrame, dict]:
     pgn_text = game_obj.get("pgn", "") or ""
     move_times = game_obj.get("move_times") or []
     times = [abs(float(x)) if x is not None else np.nan for x in move_times]
@@ -124,12 +126,10 @@ def moves_df_from_game_object(game_obj: dict, reconstruct_clock: bool = False) -
     )
     board = pgn_game.board()
     rows = []
-    san_list = []
     legal_counts = []
     for i, move in enumerate(pgn_game.mainline_moves()):
         legal_counts.append(board.legal_moves.count())
         san = board.san(move)
-        san_list.append(san)
         t_spent = times[i] if i < len(times) else np.nan
         rows.append(
             {
@@ -140,15 +140,35 @@ def moves_df_from_game_object(game_obj: dict, reconstruct_clock: bool = False) -
             }
         )
         board.push(move)
-    df = pd.DataFrame(rows)
+    base_df = pd.DataFrame(rows)
+    if "legal_moves" not in base_df:
+        base_df = base_df.assign(legal_moves=0)
+    if "move_time" not in base_df:
+        base_df = base_df.assign(move_time=np.nan)
+    base_df = label_phases(base_df)
+    if reconstruct_clock and len(times) == len(base_df):
+        clocks = reconstruct_player_clock(times, time_control)
+        base_df["player_clock_before"] = clocks
+    df = base_df
+    if engine_cfg and engine_cfg.get("enable"):
+        try:
+            eng_df = enrich_with_engine_evals(pgn_text, times, engine_cfg["path"], engine_cfg["depth"], engine_cfg["multipv"])
+            df = eng_df
+            if "player_clock_before" in base_df.columns and "player_clock_before" not in df.columns:
+                df = df.merge(base_df[["move_number", "player_clock_before"]], on="move_number", how="left")
+        except Exception as e:
+            df = base_df.assign(_engine_error=str(e))
     if "legal_moves" not in df:
         df = df.assign(legal_moves=0)
     if "move_time" not in df:
         df = df.assign(move_time=np.nan)
-    df = label_phases(df)
-    if reconstruct_clock and len(times) == len(df):
-        clocks = reconstruct_player_clock(times, time_control)
-        df["player_clock_before"] = clocks
+    if "best_rank" not in df:
+        df = df.assign(best_rank=np.nan)
+    if "delta_eval" not in df:
+        if {"eval_cp_before", "eval_cp_after"}.issubset(df.columns):
+            df["delta_eval"] = (df.eval_cp_before - df.eval_cp_after).abs()
+        else:
+            df["delta_eval"] = np.nan
     meta = {
         "eco_code": eco_code,
         "result": result,
@@ -158,6 +178,60 @@ def moves_df_from_game_object(game_obj: dict, reconstruct_clock: bool = False) -
         "opening_key": derive_opening_key_from_moves(df),
     }
     return df, meta
+def enrich_with_engine_evals(pgn_text: str, times: list[float], engine_path: str, depth: int, multipv: int) -> pd.DataFrame:
+    game = chess.pgn.read_game(io.StringIO(pgn_text or ""))
+    board = game.board()
+    engine_sf = chess.engine.SimpleEngine.popen_uci(engine_path)
+    try:
+        rows = []
+        times_iter = iter(times or [])
+        for idx, move in enumerate(game.mainline_moves(), start=1):
+            legal_cnt = board.legal_moves.count()
+            infos = engine_sf.analyse(board, chess.engine.Limit(depth=depth), multipv=multipv)
+            eval_before = infos[0]["score"].white().score(mate_score=100000) or 0
+            pv0 = infos[0].get("pv", [])
+            best_move = pv0[0] if pv0 else move
+            best_san = board.san(best_move)
+            board.push(move)
+            info_after = engine_sf.analyse(board, chess.engine.Limit(depth=depth))
+            eval_after = info_after["score"].white().score(mate_score=100000) or 0
+            board.pop()
+            try:
+                rank = next((i for i, pv in enumerate(infos) if pv.get("pv") and pv["pv"][0] == move), multipv)
+            except Exception:
+                rank = multipv
+            cp_loss = abs(eval_before - eval_after)
+            played_san = board.san(move)
+            time_spent = next(times_iter, None)
+            rows.append({
+                "move_number": idx,
+                "played": played_san,
+                "best": best_san,
+                "best_rank": rank,
+                "cp_loss": cp_loss,
+                "eval_cp_before": eval_before,
+                "eval_cp_after": eval_after,
+                "legal_moves": int(legal_cnt),
+                "move_time": float(time_spent) if time_spent is not None else np.nan,
+                "is_engine_best": rank == 0,
+            })
+            board.push(move)
+        df = pd.DataFrame(rows)
+        if "delta_eval" not in df.columns:
+            if "cp_loss" in df.columns:
+                df["delta_eval"] = df["cp_loss"]
+            elif {"eval_cp_before", "eval_cp_after"}.issubset(df.columns):
+                df["delta_eval"] = (df.eval_cp_before - df.eval_cp_after).abs()
+            else:
+                df["delta_eval"] = np.nan
+        df = label_phases(df)
+        return df
+    finally:
+        try:
+            engine_sf.quit()
+        except Exception:
+            pass
+
 
 
 def per_game_features(mv_df: pd.DataFrame, meta: dict, username: str | None):
@@ -215,12 +289,12 @@ def per_game_features(mv_df: pd.DataFrame, meta: dict, username: str | None):
     return out
 
 
-def analyze_input_file(path: Path, username: str | None, reconstruct_clock: bool):
+def analyze_input_file(path: Path, username: str | None, reconstruct_clock: bool, engine_cfg: dict | None):
     games = load_json_any(path)
     per = []
     per_for_long = []
     for g in games:
-        mv_df, meta = moves_df_from_game_object(g, reconstruct_clock=reconstruct_clock)
+        mv_df, meta = moves_df_from_game_object(g, reconstruct_clock=reconstruct_clock, engine_cfg=engine_cfg)
         feats = per_game_features(mv_df, meta, username)
         per.append(feats)
         per_for_long.append(
@@ -292,6 +366,10 @@ def main():
     ap.add_argument("--csv", action="store_true", help="Export per-game rows to CSV")
     ap.add_argument("--csv-path", help="Custom CSV path; defaults to <out-dir>/<basename>.per_game.csv")
     ap.add_argument("--suppress-warnings", action="store_true", help="Suppress runtime warnings (e.g., NaN means)")
+    ap.add_argument("--engine-enable", action="store_true", help="Enable local engine analysis to compute per-move evaluations")
+    ap.add_argument("--engine-path", default=os.environ.get("STOCKFISH_PATH", "stockfish"))
+    ap.add_argument("--engine-depth", type=int, default=int(os.environ.get("STOCKFISH_DEPTH", "12")))
+    ap.add_argument("--engine-multipv", type=int, default=3)
     args = ap.parse_args()
 
     if args.suppress_warnings:
@@ -310,9 +388,18 @@ def main():
     else:
         ap.error("Provide --input or --input-dir")
 
+    engine_cfg = None
+    if args.engine_enable:
+        engine_cfg = {
+            "enable": True,
+            "path": args.engine_path,
+            "depth": int(args.engine_depth),
+            "multipv": int(args.engine_multipv),
+        }
+
     for t in targets:
         try:
-            res = analyze_input_file(t, args.username, args.reconstruct_clock)
+            res = analyze_input_file(t, args.username, args.reconstruct_clock, engine_cfg)
         except Exception as e:
             print(f"[ERROR] {t.name}: {e}")
             continue

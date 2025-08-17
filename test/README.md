@@ -57,6 +57,34 @@ Exportación a CSV de resultados por partida:
 - Carpeta completa: python3 test/run_local_analysis.py --input-dir test/out/per_game --out-dir test/out/results --csv
 - Ruta personalizada: añade --csv-path path/a/archivo.csv
 
+Activar evaluaciones por jugada con motor (Stockfish):
+- Requisitos: tener Stockfish instalado o indicar la ruta con --engine-path (o variable de entorno STOCKFISH_PATH).
+- Flags:
+  - --engine-enable: activa el análisis local con motor
+  - --engine-path: ruta al binario UCI (por defecto "stockfish" o $STOCKFISH_PATH)
+  - --engine-depth: profundidad de análisis (por defecto $STOCKFISH_DEPTH o 12)
+  - --engine-multipv: número de PVs a considerar (por defecto 3)
+- Ejemplos:
+  - python3 test/run_local_analysis.py --input test/out/chunks_10/chunk_00001.json --out-dir test/out/results --username TuUsuario --engine-enable
+  - python3 test/run_local_analysis.py --input test/out/per_game/game_00001.json --out-dir test/out/results --engine-enable --engine-depth 12 --engine-multipv 3
+- Notas:
+  - Con --engine-enable, se calculan eval_cp_before/after, best_rank, cp_loss y se habilitan métricas ACPL/IPR/quality_score y match_rate sin NaN.
+  - La perspectiva de color se maneja automáticamente (white_*, black_* y user_* si pasas --username).
+
+Activar evaluaciones por jugada con motor (Stockfish):
+- Requisitos: tener Stockfish instalado o indicar la ruta con --engine-path (o variable de entorno STOCKFISH_PATH).
+- Flags:
+  - --engine-enable: activa el análisis local con motor
+  - --engine-path: ruta al binario UCI (por defecto "stockfish" o $STOCKFISH_PATH)
+  - --engine-depth: profundidad de análisis (por defecto $STOCKFISH_DEPTH o 12)
+  - --engine-multipv: número de PVs a considerar (por defecto 3)
+- Ejemplos:
+  - python3 test/run_local_analysis.py --input test/out/chunks_10/chunk_00001.json --out-dir test/out/results --username TuUsuario --engine-enable
+  - python3 test/run_local_analysis.py --input test/out/per_game/game_00001.json --out-dir test/out/results --engine-enable --engine-depth 12 --engine-multipv 3
+- Notas:
+  - Con --engine-enable, se calculan eval_cp_before/after, best_rank, cp_loss y se habilitan métricas ACPL/IPR/quality_score y match_rate sin NaN.
+  - La perspectiva de color se maneja automáticamente (white_*, black_* y user_* si pasas --username).
+
 Usar perspectiva del usuario (si coincide con White/Black del PGN):
 - python3 test/run_local_analysis.py --input test/out/per_game/game_00001.json --username tuUsuarioChessCom
 
