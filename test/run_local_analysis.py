@@ -327,7 +327,6 @@ def analyze_input_file(path: Path, username: str | None, reconstruct_clock: bool
             opening_focus_top3_pct = float(top3.sum() / total) if total > 0 else float("nan")
     except Exception as e:
         opening_top3 = []
-        opening_top3 = []
         opening_focus_top3_pct = float("nan")
         aggregates["_opening_aggregate_error"] = str(e)
 
@@ -384,34 +383,6 @@ def _resolve_engine_path(path_hint: str | None) -> str | None:
             return w
     return path_hint
 
-        opening_focus_top3_pct = float("nan")
-        aggregates["_opening_aggregate_error"] = str(e)
-
-    aggregates["opening_top3"] = opening_top3
-    aggregates["opening_focus_top3_pct"] = opening_focus_top3_pct
-
-    try:
-        if not games_df.empty:
-            aggregates.update(longitudinal.aggregate_longitudinal_features(games_df) or {})
-    except Exception as e:
-        aggregates["_longitudinal_error"] = str(e)
-    try:
-        aggregates.update(quality.aggregate_tactical_trends(games_df) or {})
-    except Exception as e:
-        aggregates["_tactical_error"] = str(e)
-    try:
-        aggregates.update(quality.aggregate_clutch_accuracy(games_df) or {})
-    except Exception as e:
-        aggregates["_clutch_error"] = str(e)
-
-    out = {
-        "input_file": str(path),
-        "processed_at": datetime.now(timezone.utc).isoformat(),
-        "games_count": len(games),
-        "per_game": per,
-        "aggregates": aggregates,
-    }
-    return out
 
 def main():
     ap = argparse.ArgumentParser(description="Run local analysis without DB/Celery")
