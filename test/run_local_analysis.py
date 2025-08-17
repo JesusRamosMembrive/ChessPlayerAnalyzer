@@ -291,7 +291,13 @@ def main():
     ap.add_argument("--no-color-summary", action="store_true")
     ap.add_argument("--csv", action="store_true", help="Export per-game rows to CSV")
     ap.add_argument("--csv-path", help="Custom CSV path; defaults to <out-dir>/<basename>.per_game.csv")
+    ap.add_argument("--suppress-warnings", action="store_true", help="Suppress runtime warnings (e.g., NaN means)")
     args = ap.parse_args()
+
+    if args.suppress_warnings:
+        import warnings
+        warnings.simplefilter("ignore", RuntimeWarning)
+        warnings.simplefilter("ignore", FutureWarning)
 
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)

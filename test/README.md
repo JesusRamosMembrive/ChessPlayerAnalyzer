@@ -69,6 +69,9 @@ Directorio de resultados:
 Desactivar resumen por color en consola:
 - python3 test/run_local_analysis.py --input test/out/chunks_10/chunk_00001.json --no-color-summary
 
+Silenciar warnings (útil si no hay evals de motor y aparecen NaN):
+- python3 test/run_local_analysis.py --input test/out/chunks_10/chunk_00001.json --suppress-warnings
+
 Notas:
 - Se usa “best effort”: si faltan campos opcionales (por ejemplo evaluaciones de motor), las métricas correspondientes aparecerán como NaN y el resto se calcularán.
 - No se requiere Docker, base de datos ni Celery.
