@@ -119,7 +119,7 @@ def clutch_accuracy(game_df: pd.DataFrame,
     Valor **positivo** ⇒ juega MEJOR con poco tiempo → atípico.
     """
     if 'player_clock_before' not in game_df.columns:
-        return np.nan
+        return 0.0
 
     clutch_mask = game_df.player_clock_before < clutch_threshold
     non_mask    = ~clutch_mask
@@ -146,7 +146,7 @@ def uniformity_score(game_df: pd.DataFrame) -> float:
     """
     times = game_df.move_time.clip(lower=1e-3)       # evita ceros para log
     if len(times) < 5:
-        return np.nan
+        return 0.0
     shape, loc, scale = lognorm.fit(times, floc=0)   # f‑loc=0   (≥scipy 1.12)
     cdf = lambda x: lognorm.cdf(x, shape, loc=loc, scale=scale)
     ks_stat, _ = kstest(times, cdf)

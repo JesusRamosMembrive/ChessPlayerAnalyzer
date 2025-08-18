@@ -137,6 +137,10 @@ def precision_bursts(game_df: pd.DataFrame,
 
     Ideal para encontrar momentos donde el jugador parece 'consultar' motor.
     """
+    required_cols = {"eval_cp_before", "eval_cp_after"}
+    if not required_cols.issubset(game_df.columns):
+        return []  # Return empty list when engine data is missing
+    
     diffs = np.abs(game_df["eval_cp_after"] - game_df["eval_cp_before"]).values
     bursts = []
     for i in range(len(diffs) - window_size + 1):

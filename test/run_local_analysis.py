@@ -188,20 +188,29 @@ def enrich_with_engine_evals(pgn_text: str, times: list[float], engine_path: str
         times_iter = iter(times or [])
         for idx, move in enumerate(game.mainline_moves(), start=1):
             legal_cnt = board.legal_moves.count()
-            infos = engine_sf.analyse(board, chess.engine.Limit(depth=depth), multipv=multipv)
-            eval_before = infos[0]["score"].white().score(mate_score=100000) or 0
-            pv0 = infos[0].get("pv", [])
-            best_move = pv0[0] if pv0 else move
-            best_san = board.san(best_move)
-            board.push(move)
-            info_after = engine_sf.analyse(board, chess.engine.Limit(depth=depth))
-            eval_after = info_after["score"].white().score(mate_score=100000) or 0
-            board.pop()
             try:
-                rank = next((i for i, pv in enumerate(infos) if pv.get("pv") and pv["pv"][0] == move), multipv)
-            except Exception:
+                infos = engine_sf.analyse(board, chess.engine.Limit(depth=depth, time=5.0), multipv=multipv)
+                eval_before = infos[0]["score"].white().score(mate_score=100000) or 0
+                pv0 = infos[0].get("pv", [])
+                best_move = pv0[0] if pv0 else move
+                best_san = board.san(best_move)
+                board.push(move)
+                info_after = engine_sf.analyse(board, chess.engine.Limit(depth=depth, time=5.0))
+                eval_after = info_after["score"].white().score(mate_score=100000) or 0
+                board.pop()
+                try:
+                    rank = next((i for i, pv in enumerate(infos) if pv.get("pv") and pv["pv"][0] == move), multipv)
+                except Exception:
+                    rank = multipv
+                cp_loss = abs(eval_before - eval_after)
+            except Exception as e:
+                print(f"[WARNING] Engine analysis failed for move {idx}: {e}")
+                eval_before = 0
+                eval_after = 0
+                best_san = board.san(move)
                 rank = multipv
-            cp_loss = abs(eval_before - eval_after)
+                cp_loss = 0
+            
             played_san = board.san(move)
             time_spent = next(times_iter, None)
             rows.append({
@@ -257,7 +266,10 @@ def per_game_features(mv_df: pd.DataFrame, meta: dict, username: str | None):
         feats_q_white = quality.aggregate_quality_features(mv_df, player_color="white")
         feats_q_black = quality.aggregate_quality_features(mv_df, player_color="black")
     except Exception as e:
+        print(f"[DEBUG] Quality analysis failed: {e}")
         feats_q_user = feats_q_user or {"_quality_error": str(e)}
+        feats_q_white = feats_q_white or {"_quality_error": str(e)}
+        feats_q_black = feats_q_black or {"_quality_error": str(e)}
     try:
         if "best_rank" not in mv_df.columns:
             mv_df = mv_df.assign(best_rank=np.nan)
@@ -385,7 +397,7 @@ def _resolve_engine_path(path_hint: str | None) -> str | None:
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Run local analysis without DB/Celery")
+    ap = argparse.ArgumentParser(description="Run local analysis without DB/Celery (engine analysis enabled by default)")
     ap.add_argument("--input", "-i")
     ap.add_argument("--input-dir", "-d")
     ap.add_argument("--pattern", "-p", default="*.json")
@@ -398,7 +410,8 @@ def main():
     ap.add_argument("--csv", action="store_true", help="Export per-game rows to CSV")
     ap.add_argument("--csv-path", help="Custom CSV path; defaults to <out-dir>/<basename>.per_game.csv")
     ap.add_argument("--suppress-warnings", action="store_true", help="Suppress runtime warnings (e.g., NaN means)")
-    ap.add_argument("--engine-enable", action="store_true", help="Enable local engine analysis to compute per-move evaluations")
+    ap.add_argument("--engine-disable", action="store_true", help="Disable local engine analysis (quality metrics will return fallback values)")
+    ap.add_argument("--engine-enable", action="store_true", help="Enable local engine analysis (DEFAULT behavior)")
     ap.add_argument("--engine-path", default=os.environ.get("STOCKFISH_PATH", "stockfish"))
     ap.add_argument("--engine-depth", type=int, default=int(os.environ.get("STOCKFISH_DEPTH", "12")))
     ap.add_argument("--engine-multipv", type=int, default=3)
@@ -421,8 +434,11 @@ def main():
         ap.error("Provide --input or --input-dir")
 
     engine_cfg = None
-    if args.engine_enable:
+    if not args.engine_disable:
         resolved_path = _resolve_engine_path(args.engine_path)
+        if resolved_path is None:
+            print(f"[WARNING] Stockfish not found at '{args.engine_path}'. Quality metrics (ACPL, match rates, IPR) will use fallback values.")
+            print("Install Stockfish or use --engine-path to specify location. Use --engine-disable to suppress this warning.")
         engine_cfg = {
             "enable": True,
             "path": resolved_path,
@@ -431,6 +447,13 @@ def main():
         }
 
     for t in targets:
+        if engine_cfg and engine_cfg.get("path") is None:
+            print(f"[INFO] Processing {t.name} without engine analysis - quality metrics will use fallback values")
+        elif not engine_cfg:
+            print(f"[INFO] Processing {t.name} with engine analysis disabled - quality metrics will use fallback values")
+        else:
+            print(f"[INFO] Processing {t.name} with Stockfish engine analysis")
+            
         try:
             res = analyze_input_file(t, args.username, args.reconstruct_clock, engine_cfg)
         except Exception as e:
