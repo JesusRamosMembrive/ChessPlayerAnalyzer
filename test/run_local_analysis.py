@@ -28,6 +28,10 @@ timing = _load_module("timing", "app/analysis/timing.py")
 quality = _load_module("quality", "app/analysis/quality.py")
 openings = _load_module("openings", "app/analysis/openings.py")
 longitudinal = _load_module("longitudinal", "app/analysis/longitudinal.py")
+benchmark = _load_module("benchmark", "app/analysis/benchmark.py")
+endgame = _load_module("endgame", "app/analysis/endgame.py")
+eco_table = _load_module("eco_table", "app/analysis/eco_table.py")
+utils_sanitize = _load_module("utils_sanitize", "app/utils_sanitize.py")
 def _to_native(obj):
     if isinstance(obj, (np.generic,)):
         return obj.item()
@@ -306,8 +310,26 @@ def analyze_input_file(path: Path, username: str | None, reconstruct_clock: bool
     games = load_json_any(path)
     per = []
     per_for_long = []
+    moves_dfs = []
+    
     for g in games:
         mv_df, meta = moves_df_from_game_object(g, reconstruct_clock=reconstruct_clock, engine_cfg=engine_cfg)
+        
+        total_plies = len(mv_df)
+        opening_cut = int(total_plies * 0.25)  # 0–25% → opening
+        endgame_cut = int(total_plies * 0.80)  # 80–100% → endgame
+        
+        mv_df["phase"] = np.select(
+            [
+                mv_df.index <= opening_cut,
+                mv_df.index >= endgame_cut,
+            ],
+            ["opening", "endgame"],
+            default="middlegame",
+        )
+        
+        moves_dfs.append(mv_df)
+        
         feats = per_game_features(mv_df, meta, username)
         per.append(feats)
         per_for_long.append(
@@ -323,6 +345,7 @@ def analyze_input_file(path: Path, username: str | None, reconstruct_clock: bool
                 "opening_key": feats.get("opening_key"),
                 "precision_burst_count": feats.get("user_precision_burst_count") if "user_precision_burst_count" in feats else feats.get("white_precision_burst_count"),
                 "second_choice_rate": feats.get("second_choice_rate"),
+                "created_at": meta.get("date") or datetime.now(timezone.utc).isoformat(),
             }
         )
     games_df = pd.DataFrame(per_for_long) if per_for_long else pd.DataFrame()
@@ -358,6 +381,118 @@ def analyze_input_file(path: Path, username: str | None, reconstruct_clock: bool
         aggregates.update(quality.aggregate_clutch_accuracy(games_df) or {})
     except Exception as e:
         aggregates["_clutch_error"] = str(e)
+
+    try:
+        if moves_dfs:
+            phase_feats = quality.compute_phase_quality(moves_dfs)
+            aggregates.update({"phase_quality": phase_feats})
+    except Exception as e:
+        aggregates["_phase_quality_error"] = str(e)
+
+    try:
+        if not games_df.empty and moves_dfs:
+            opening_feats = openings.aggregate_player_opening_patterns(games_df, moves_dfs)
+            opening_feats = utils_sanitize.clean_json_numbers(opening_feats)
+            aggregates.update({"opening_patterns": opening_feats})
+    except Exception as e:
+        aggregates["_opening_patterns_error"] = str(e)
+
+    try:
+        if moves_dfs:
+            time_feats = timing.aggregate_time_management(moves_dfs)
+            aggregates.update({"time_management": time_feats})
+    except Exception as e:
+        aggregates["_time_management_error"] = str(e)
+
+    try:
+        if not games_df.empty:
+            endgame_feats = endgame.aggregate_endgame_efficiency(games_df)
+            aggregates.update({"endgame": endgame_feats})
+    except Exception as e:
+        aggregates["_endgame_error"] = str(e)
+
+    try:
+        if not games_df.empty:
+            complex_corr = timing.aggregate_time_complexity_corr(games_df)
+            aggregates.update({"time_complexity": complex_corr})
+    except Exception as e:
+        aggregates["_time_complexity_error"] = str(e)
+
+    try:
+        if not games_df.empty and "opening_patterns" in aggregates:
+            avg_acpl = games_df["acpl"].mean() if "acpl" in games_df else 0.0
+            mean_entropy = aggregates.get("opening_patterns", {}).get("mean_entropy", 0.0)
+            player_elo = None
+            
+            benchmark_feats = benchmark.compute_benchmark(avg_acpl, mean_entropy, player_elo)
+            aggregates.update({"benchmark": benchmark_feats})
+    except Exception as e:
+        aggregates["_benchmark_error"] = str(e)
+
+    try:
+        if not games_df.empty and "created_at" in games_df:
+            roi_series = longitudinal.roi_per_game(games_df)
+            games_df_for_trends = games_df.copy()
+            games_df_for_trends['roi'] = roi_series
+            games_df_for_trends = games_df_for_trends.rename(columns={'created_at': 'date'})
+            
+            trend_feats = longitudinal.compute_trends(games_df_for_trends)
+            aggregates.update({"performance": trend_feats})
+    except Exception as e:
+        aggregates["_performance_error"] = str(e)
+
+    try:
+        if not games_df.empty and "eco_code" in games_df.columns:
+            eco_counts = games_df["eco_code"].value_counts().head(5)
+            favorite_openings = [
+                {
+                    "eco_code": str(eco_code),
+                    "name": eco_table.ECO_NAMES.get(str(eco_code), "Unknown"),
+                    "count": int(count),
+                }
+                for eco_code, count in eco_counts.items()
+            ]
+            aggregates["favorite_openings"] = favorite_openings
+    except Exception as e:
+        aggregates["_favorite_openings_error"] = str(e)
+
+    try:
+        if not games_df.empty:
+            risk_factors = {}
+            risk_score = 0
+            
+            avg_acpl = games_df['acpl'].mean() if 'acpl' in games_df else float('inf')
+            if avg_acpl < 25:
+                risk_factors['low_acpl'] = True
+                risk_score += 20
+            
+            roi_mean = aggregates.get('roi_mean', 0)
+            if roi_mean > 2.0:
+                risk_factors['high_roi'] = True
+                risk_score += 25
+            
+            step_detected = aggregates.get('step_acpl_flag', False)
+            if step_detected:
+                risk_factors['step_function'] = True
+                risk_score += 20
+            
+            longest_streak = aggregates.get('longest_streak', 0)
+            if longest_streak >= 8:
+                risk_factors['long_streak'] = True
+                risk_score += 15
+            
+            timing_corr = games_df['time_complexity_corr'].mean() if 'time_complexity_corr' in games_df else 1.0
+            if timing_corr < 0.1:
+                risk_factors['abnormal_timing'] = True
+                risk_score += 20
+            
+            final_risk_score = min(risk_score, 100)
+            aggregates.update({
+                "risk_score": final_risk_score,
+                "risk_factors": risk_factors
+            })
+    except Exception as e:
+        aggregates["_risk_score_error"] = str(e)
 
     out = {
         "input_file": str(path),
@@ -527,6 +662,40 @@ def main():
             f"w_match={mwmatch} ipr={mipr} qscore={mqscore} "
             f"t_complexity_corr={mtcc} lag_spikes={sum_lags}"
         )
+
+        aggs = res.get("aggregates", {})
+        
+        roi_mean = aggs.get("roi_mean")
+        if roi_mean is not None:
+            msg += f" roi_mean={roi_mean:.2f}"
+        
+        phase_quality = aggs.get("phase_quality", {})
+        if phase_quality:
+            opening_acpl = phase_quality.get("opening_acpl")
+            endgame_acpl = phase_quality.get("endgame_acpl")
+            if opening_acpl is not None:
+                msg += f" opening_acpl={opening_acpl:.1f}"
+            if endgame_acpl is not None:
+                msg += f" endgame_acpl={endgame_acpl:.1f}"
+        
+        opening_patterns = aggs.get("opening_patterns", {})
+        if opening_patterns:
+            entropy = opening_patterns.get("mean_entropy")
+            breadth = opening_patterns.get("opening_breadth")
+            if entropy is not None:
+                msg += f" entropy={entropy:.2f}"
+            if breadth is not None:
+                msg += f" breadth={breadth}"
+        
+        benchmark = aggs.get("benchmark", {})
+        if benchmark:
+            acpl_pct = benchmark.get("percentile_acpl")
+            if acpl_pct is not None:
+                msg += f" acpl_pct={acpl_pct}"
+        
+        risk_score = aggs.get("risk_score")
+        if risk_score is not None:
+            msg += f" risk_score={risk_score}"
 
         if not args.no_color_summary:
             w_acpl_s = "NaN" if not w_acpl_vals else f"{w_acpl:.1f}"
