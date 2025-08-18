@@ -244,7 +244,7 @@ def per_game_features(mv_df: pd.DataFrame, meta: dict, username: str | None):
     try:
         feats_t = timing.aggregate_time_features(mv_df)
     except Exception as e:
-        feats_t = {"_timing_error": str(e)}
+        feats_t = {"mean_move_time": 0.0, "time_variance": 0.0, "time_complexity_corr": 0.0, "lag_spike_count": 0, "uniformity_score": 0.0, "timing_score": 0.0, "_timing_error": str(e)}
     user_color = None
     if username:
         if meta.get("white") and str(meta.get("white")).lower() == str(username).lower():

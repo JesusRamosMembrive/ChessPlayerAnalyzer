@@ -55,13 +55,25 @@ def time_complexity_correlation(game_df: pd.DataFrame,
     if "move_time" not in game_df or "legal_moves" not in game_df:
         return 0.0
 
-    if method == "spearman":
-        if np.std(game_df.move_time) == 0 or np.std(game_df.legal_moves) == 0:
-            return 0.0
-        corr, _ = spearmanr(game_df.move_time, game_df.legal_moves)
-        return corr
+    move_times = game_df.move_time.dropna()
+    legal_moves = game_df.legal_moves.dropna()
+    
+    if len(move_times) == 0 or len(legal_moves) == 0:
+        return 0.0
+    
+    if not (np.isfinite(move_times).all() and np.isfinite(legal_moves).all()):
+        return 0.0
 
-    return game_df.move_time.corr(game_df.legal_moves, method=method)
+    if method == "spearman":
+        if np.std(move_times) == 0 or np.std(legal_moves) == 0:
+            return 0.0
+        try:
+            corr, _ = spearmanr(move_times, legal_moves)
+            return corr if np.isfinite(corr) else 0.0
+        except Exception:
+            return 0.0
+
+    return game_df.move_time.corr(game_df.legal_moves, method=method) or 0.0
 
 # --------------------------------------------------------------------------- #
 # 3.  ‘Lag spikes’ (pausa + ráfaga perfecta)                                  #
@@ -180,7 +192,8 @@ def aggregate_time_features(game_df: pd.DataFrame) -> dict:
 
     uniform = uniformity_score(game_df) if len(game_df) >= 5 else 0.0
     uniform = max(0.0, min(1.0, uniform)) if not np.isnan(uniform) else 0.0
-    score   = 50 * uniform + 50 * max(corr, 0)
+    corr_safe = corr if (corr is not None and not np.isnan(corr)) else 0.0
+    score   = 50 * uniform + 50 * max(corr_safe, 0)
 
     clutch_acc = clutch_accuracy(game_df) if 'player_clock_before' in game_df.columns else None
     logger.info(f"DEBUG TIMING: Clutch accuracy: {clutch_acc}")

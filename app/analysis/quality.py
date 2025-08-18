@@ -29,7 +29,7 @@ def acpl(game_df: pd.DataFrame, player_color: str = 'white') -> float:
     """
     required_cols = {"eval_cp_before", "eval_cp_after"}
     if not required_cols.issubset(game_df.columns):
-        return np.nan  # o 0.0 según prefieras
+        return 0.0
 
     eval_before = game_df["eval_cp_before"]
     eval_after = game_df["eval_cp_after"]
@@ -39,7 +39,7 @@ def acpl(game_df: pd.DataFrame, player_color: str = 'white') -> float:
         eval_after = -eval_after
 
     diffs = np.abs(eval_after - eval_before)
-    return diffs.mean() if len(diffs) else np.nan
+    return diffs.mean() if len(diffs) else 0.0
 
 
 ###############################################################################
@@ -111,7 +111,7 @@ def complexity_weighted_match(game_df: pd.DataFrame,
     ZeroDivisionError.
     """
     if "is_engine_best" not in game_df.columns:
-        return np.nan
+        return 0.0
 
     # Peso inverso a la complejidad: +difícil ⇒ +peso si acierta
     weights = np.log1p(max_moves_cap - game_df.legal_moves.clip(0, max_moves_cap)

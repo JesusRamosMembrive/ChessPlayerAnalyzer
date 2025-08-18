@@ -56,11 +56,15 @@ def roi_per_game(games_df: pd.DataFrame,
     )
 
     if match_col is None or acpl_col is None:
-        # No data → devolvemos serie vacía para no romper el flujo
-        return pd.Series(dtype=float)
+        return pd.Series([2000.0] * len(games_df), dtype=float)
 
-    pr = performance_rating(games_df[match_col], games_df[acpl_col])
-    return pr
+    pr_values = []
+    for _, row in games_df.iterrows():
+        match_val = row[match_col] if not pd.isna(row[match_col]) else 0.0
+        acpl_val = row[acpl_col] if not pd.isna(row[acpl_col]) else 0.0
+        pr_values.append(performance_rating(match_val, acpl_val))
+    
+    return pd.Series(pr_values, dtype=float)
 
 def aggregate_roi(games_df: pd.DataFrame) -> Dict[str, float]:
     roi_series = roi_per_game(games_df)
