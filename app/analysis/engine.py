@@ -14,7 +14,15 @@ from pathlib import Path
 
 from app.models import Game, GameAnalysisDetailed, PlayerAnalysisDetailed
 from app.database import engine as db_engine
-from app.utils_debugging.tracer import trace
+try:
+    from app.utils_debugging.tracer import trace
+except Exception:
+    def trace(func=None, *targs, **tkwargs):
+        if func is None:
+            def _decorator(f):
+                return f
+            return _decorator
+        return func
 from sqlmodel import Session, select
 
 # Importar módulos de análisis
@@ -47,8 +55,19 @@ from app.analysis.timing import (
 )
 from app.utils_sanitize import clean_json_numbers
 
-
 logger = logging.getLogger(__name__)
+
+
+import sys
+from pathlib import Path
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+# Ensure repository root is on the Python path so imports like ``app.*`` work
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from app.utils_debugging.tracer import trace
+
 
 @trace
 def prepare_moves_dataframe(game: models.Game, username: Optional[str] = None) -> pd.DataFrame:

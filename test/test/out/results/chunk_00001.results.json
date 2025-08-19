@@ -1,6 +1,6 @@
 {
   "input_file": "chunks_10\\chunk_00001.json",
-  "processed_at": "2025-08-18T17:19:42.300736+00:00",
+  "processed_at": "2025-08-19T20:28:56.255947+00:00",
   "games_count": 10,
   "per_game": [
     {
@@ -452,8 +452,8 @@
     "step_acpl_index": -1,
     "step_acpl_flag": false,
     "selectivity_pct": 0.0,
-    "first_game_date": "2025-08-18T17:19:42.136564+00:00",
-    "last_game_date": "2025-08-18T17:19:42.273202+00:00",
+    "first_game_date": "2025-08-19T20:28:54.104566+00:00",
+    "last_game_date": "2025-08-19T20:28:55.789828+00:00",
     "precision_burst_count": 0,
     "second_choice_rate": 0.0,
     "phase_quality": {
