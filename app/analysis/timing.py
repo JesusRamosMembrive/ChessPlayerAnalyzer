@@ -5,7 +5,7 @@ import numpy as np
 from typing import List, Tuple, Any
 from scipy.stats import spearmanr, lognorm, kstest
 import logging
-
+from app.utils_debugging.tracer import trace
 logger = logging.getLogger(__name__)
 
 ###############################################################################
@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 # --------------------------------------------------------------------------- #
 # 1.  Estadística básica de tiempos                                           #
 # --------------------------------------------------------------------------- #
+@trace
 def time_stats(game_df: pd.DataFrame) -> Tuple[float, float, float]:
     """Devuelve media, desviación típica y coef. de variación del tiempo por jugada."""
     times = game_df.move_time.to_numpy()
@@ -31,7 +32,7 @@ def time_stats(game_df: pd.DataFrame) -> Tuple[float, float, float]:
     cv   = std / mean if mean else np.nan
     return mean, std, cv
 
-
+@trace
 def low_variance_flag(game_df: pd.DataFrame, threshold_std: float = 1.5) -> bool:
     """
     Señal ‘varianza baja’: std < threshold_std segundos (p.ej. 1,5 s en blitz).
@@ -44,6 +45,7 @@ def low_variance_flag(game_df: pd.DataFrame, threshold_std: float = 1.5) -> bool
 # --------------------------------------------------------------------------- #
 # 2.  Correlación tiempo-complejidad                                          #
 # --------------------------------------------------------------------------- #
+@trace
 def time_complexity_correlation(game_df: pd.DataFrame,
                                 method: str = "spearman") -> float | None | Any:
     """
@@ -78,6 +80,7 @@ def time_complexity_correlation(game_df: pd.DataFrame,
 # --------------------------------------------------------------------------- #
 # 3.  ‘Lag spikes’ (pausa + ráfaga perfecta)                                  #
 # --------------------------------------------------------------------------- #
+@trace
 def detect_lag_spikes(game_df: pd.DataFrame,
                       pause_sec: Tuple[float, float] = (5.0, 12.0),
                       rapid_thresh: float      = 2.0,
@@ -109,6 +112,7 @@ def detect_lag_spikes(game_df: pd.DataFrame,
 # --------------------------------------------------------------------------- #
 # 4.  Exactitud bajo presión (“clutch accuracy”)                              #
 # --------------------------------------------------------------------------- #
+@trace
 def clutch_accuracy(game_df: pd.DataFrame,
                     clutch_threshold: float = 30.0
                    ) -> float:
@@ -139,6 +143,7 @@ def clutch_accuracy(game_df: pd.DataFrame,
 # --------------------------------------------------------------------------- #
 # 5.  Forma de la distribución de tiempos                                     #
 # --------------------------------------------------------------------------- #
+@trace
 def uniformity_score(game_df: pd.DataFrame) -> float:
     """
     Kolmogorov–Smirnov contra log‑normal ajustada.
@@ -156,6 +161,7 @@ def uniformity_score(game_df: pd.DataFrame) -> float:
 # --------------------------------------------------------------------------- #
 # 6.  Agregador cómodo para ML / scoring                                      #
 # --------------------------------------------------------------------------- #
+@trace
 def aggregate_time_features(game_df: pd.DataFrame) -> dict:
     logger.info("DEBUG TIMING: Starting timing features calculation")
     logger.info(f"DEBUG TIMING: Input DataFrame shape: {game_df.shape}")
@@ -210,7 +216,7 @@ def aggregate_time_features(game_df: pd.DataFrame) -> dict:
     
     logger.info(f"DEBUG TIMING: Final timing features: {result}")
     return result
-
+@trace
 def aggregate_time_management(moves_dfs):
     if not moves_dfs:
         return {}
@@ -228,7 +234,7 @@ def aggregate_time_management(moves_dfs):
         "uniformity_score": round(uniformity, 3),
         "lag_spike_count": int(spikes),
     }
-
+@trace
 def aggregate_time_complexity_corr(games_df: pd.DataFrame) -> dict:
     if games_df.empty or "time_complexity_corr" not in games_df:
         return {}

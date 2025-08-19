@@ -5,13 +5,13 @@ import numpy as np
 from sklearn.linear_model import HuberRegressor
 from typing import Tuple, List
 import logging
-
+from app.utils_debugging.tracer import trace
 logger = logging.getLogger(__name__)
 
 ###############################################################################
 # 1.  Average Centipawn Loss (ACPL)   #########################################
 ###############################################################################
-
+@trace
 def acpl(game_df: pd.DataFrame, player_color: str = 'white') -> float:
     """
     Calcula el Average Centipawn Loss de un jugador en una partida.
@@ -45,7 +45,7 @@ def acpl(game_df: pd.DataFrame, player_color: str = 'white') -> float:
 ###############################################################################
 # 2.  ACPL ajustado al rating  #################################################
 ###############################################################################
-
+@trace
 class ACPLModel:
     """
     Ajusta una curva de referencia ACPL_expected(ELO) con un robust regressor
@@ -76,7 +76,7 @@ class ACPLModel:
 ###############################################################################
 # 3.  Intrinsic Performance Rating (IPR) ######################################
 ###############################################################################
-
+@trace
 def intrinsic_performance_rating(match_pct: float, acpl: float,
                                  coef_match: float = 800,
                                  coef_acpl: float = -0.5) -> float:
@@ -90,7 +90,7 @@ def intrinsic_performance_rating(match_pct: float, acpl: float,
     """
     return coef_match * match_pct + coef_acpl * acpl + 2000  # offset base
 
-
+@trace
 def ipr_z_score(ipr: float, elo: float, sigma: float = 60) -> float:
     """
     Desviación típica (~60 ELO) tomada de los papers de Regan.
@@ -101,7 +101,7 @@ def ipr_z_score(ipr: float, elo: float, sigma: float = 60) -> float:
 ###############################################################################
 # 4.  Coincidencia ponderada por complejidad ##################################
 ###############################################################################
-
+@trace
 def complexity_weighted_match(game_df: pd.DataFrame,
                               max_moves_cap: int = 50) -> float:
     """
@@ -127,7 +127,7 @@ def complexity_weighted_match(game_df: pd.DataFrame,
 ###############################################################################
 # 5.  Detección de rachas de precisión ########################################
 ###############################################################################
-
+@trace
 def precision_bursts(game_df: pd.DataFrame,
                      threshold_cp: int = 25,
                      window_size: int = 5) -> List[Tuple[int, int]]:
@@ -151,7 +151,7 @@ def precision_bursts(game_df: pd.DataFrame,
 
 
 BLUNDER_THRESHOLD = 300  # cp
-
+@trace
 def compute_phase_quality(moves_df_list: list[pd.DataFrame]) -> dict:
     """
     Agrega calidad por fase a nivel jugador.
@@ -184,7 +184,7 @@ def compute_phase_quality(moves_df_list: list[pd.DataFrame]) -> dict:
         "endgame_acpl": float(phase_acpl.get("endgame", np.nan)),
         "blunder_rate": float(blunder_rate) if blunder_rate is not None else None,
     }
-
+@trace
 def aggregate_clutch_accuracy(games_df):
     if "clutch_accuracy_diff" not in games_df:
         return {}
@@ -200,7 +200,7 @@ def aggregate_clutch_accuracy(games_df):
         "avg_clutch_diff": round(avg_diff, 1),
         "clutch_games_pct": round(pct_good, 3),
     }
-
+@trace
 def aggregate_tactical_trends(games_df: pd.DataFrame) -> dict:
     # Si no hay ninguna de las dos columnas, devolver dict vacío
     if all(col not in games_df for col in ["precision_burst_count", "second_choice_rate"]):
@@ -221,7 +221,7 @@ def aggregate_tactical_trends(games_df: pd.DataFrame) -> dict:
     }
 
 BLUNDER = 300  # cp
-
+@trace
 def aggregate_blunders_by_phase(moves_dfs: list[pd.DataFrame]) -> dict:
 
     if not moves_dfs:
@@ -246,28 +246,10 @@ def aggregate_blunders_by_phase(moves_dfs: list[pd.DataFrame]) -> dict:
         "blunder_rate":           float(df["is_blunder"].mean()),
     }
 
-###############################################################################
-# 6.  Uso de ejemplo ##########################################################
-###############################################################################
-
-if __name__ == "__main__":
-    # ── Ejemplo mínimo con un DataFrame ficticio ──────────────────────────
-    df_moves = pd.DataFrame({
-        'move_number': np.arange(1, 41),
-        'eval_cp_before': np.random.randint(-200, 200, 40),
-        'eval_cp_after': np.random.randint(-200, 200, 40),
-        'legal_moves': np.random.randint(5, 40, 40),
-        'is_engine_best': np.random.rand(40) < 0.35,
-    })
-
-    logger.info("ACPL partida: %s", acpl(df_moves))
-    logger.info("Match ponderado: %s", complexity_weighted_match(df_moves))
-    logger.info("Bursts: %s", precision_bursts(df_moves))
-
-
 # ─────────────────────────────────────────────────────────────────────────
 #  🔗  AGGREGATOR
 # ------------------------------------------------------------------------
+@trace
 def aggregate_quality_features(game_df, elo: int | None = None, player_color: str = 'white') -> dict:
     logger.info("DEBUG QUALITY: Starting quality features calculation")
     logger.info(f"DEBUG QUALITY: Input DataFrame shape: {game_df.shape}")
@@ -319,6 +301,24 @@ def aggregate_quality_features(game_df, elo: int | None = None, player_color: st
     
     logger.info(f"DEBUG QUALITY: Final quality features: {feats}")
     return feats
+
+###############################################################################
+# 6.  Uso de ejemplo ##########################################################
+###############################################################################
+
+if __name__ == "__main__":
+    # ── Ejemplo mínimo con un DataFrame ficticio ──────────────────────────
+    df_moves = pd.DataFrame({
+        'move_number': np.arange(1, 41),
+        'eval_cp_before': np.random.randint(-200, 200, 40),
+        'eval_cp_after': np.random.randint(-200, 200, 40),
+        'legal_moves': np.random.randint(5, 40, 40),
+        'is_engine_best': np.random.rand(40) < 0.35,
+    })
+
+    logger.info("ACPL partida: %s", acpl(df_moves))
+    logger.info("Match ponderado: %s", complexity_weighted_match(df_moves))
+    logger.info("Bursts: %s", precision_bursts(df_moves))
 
 # How to implement
 # Group by player and calculate

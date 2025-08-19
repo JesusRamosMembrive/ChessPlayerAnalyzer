@@ -25,7 +25,7 @@ def setup_logging() -> None:
     • Nivel configurable con ``LOG_LEVEL``.
     • No desactiva loggers existentes, simplemente unifica formato.
     """
-    log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+    log_level = os.getenv("LOG_LEVEL", "DEBUG").upper()
 
     logging_config: Dict[str, Any] = {
         "version": 1,

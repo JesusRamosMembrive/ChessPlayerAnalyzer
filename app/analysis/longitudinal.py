@@ -5,6 +5,7 @@ import numpy as np
 from typing import Dict, Tuple
 import logging
 from scipy.stats import linregress
+from app.utils_debugging.tracer import trace
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,8 @@ MATCH_SD_BY_ELO = {
        1200: 7.5, 1600: 7.0, 2000: 6.5, 2400: 5.5, 2800: 5.0
 }
 
+
+@trace
 def interp_sd(elo: float, sd_dict: dict) -> float:
     xs, ys = zip(*sorted(sd_dict.items()))
     return np.interp(elo, xs, ys)
@@ -36,7 +39,7 @@ def performance_rating(match_pct: float, acpl: float,
     Misma fórmula simplificada que en quality_metrics.intrinsic_performance_rating.
     """
     return coef_m * match_pct + coef_a * acpl + 2000
-
+@trace
 def roi_per_game(games_df: pd.DataFrame,
                  match_col: str | None = None,
                  acpl_col: str | None = None) -> pd.Series:
@@ -87,7 +90,7 @@ def aggregate_roi(games_df: pd.DataFrame) -> Dict[str, float]:
 # 2.  STEP‑FUNCTION GAINS #####################################################
 ###############################################################################
 
-
+@trace
 def detect_step_function(
     games_df: pd.DataFrame,
     *,
@@ -166,7 +169,7 @@ def detect_step_function(
 ###############################################################################
 # 3.  SELECTIVITY SCORE (varianza intra‑jugador) ##############################
 ###############################################################################
-
+@trace
 def selectivity_score(
     games_df: pd.DataFrame,
     *,
@@ -187,7 +190,7 @@ def selectivity_score(
 ###############################################################################
 # 4.  PEER‑GROUP DELTA ########################################################
 ###############################################################################
-
+@trace
 def peer_group_delta(games_df: pd.DataFrame,
                      reference_df: pd.DataFrame,
                      elo_col: str = "elo",
@@ -218,7 +221,7 @@ def peer_group_delta(games_df: pd.DataFrame,
 ###############################################################################
 # 5.  STREAKS DE ALTO RENDIMIENTO ############################################
 ###############################################################################
-
+@trace
 def longest_streak(roi_series: pd.Series,
                    threshold: float = 2.75
                   ) -> int:
@@ -232,7 +235,7 @@ def longest_streak(roi_series: pd.Series,
     return int(max_streak) if not pd.isna(max_streak) and not np.isnan(max_streak) else 0
 
 
-
+@trace
 def compute_trends(games_df: pd.DataFrame) -> dict:
     """
     Devuelve dict acorde a PerformanceTrendsOut:
@@ -265,7 +268,7 @@ def compute_trends(games_df: pd.DataFrame) -> dict:
     # --- 3. ROI curve (últimos 24 meses)
     roi_curve = (
         df.set_index("date")
-          .groupby(pd.Grouper(freq="M"))["roi"]
+          .groupby(pd.Grouper(freq="ME"))["roi"]
           .mean()
           .tail(24)
           .round(2)
@@ -283,7 +286,7 @@ def compute_trends(games_df: pd.DataFrame) -> dict:
 ###############################################################################
 # 6.  AGREGADOR PRINCIPAL #####################################################
 ###############################################################################
-
+@trace
 def aggregate_longitudinal_features(
         games_df: pd.DataFrame,
         reference_df: pd.DataFrame | None = None
