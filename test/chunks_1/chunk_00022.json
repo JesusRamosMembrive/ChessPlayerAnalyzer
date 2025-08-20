@@ -1,0 +1,27 @@
+[
+  {
+    "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2024.02.16\"]\n[Round \"-\"]\n[White \"Affan_khan123\"]\n[Black \"PapyDy38\"]\n[Result \"0-1\"]\n[CurrentPosition \"r2qkb1r/2pbn1pp/p1np1p2/3Bp3/1p1PP3/5N2/PPP1NPPP/R1BQ1RK1 w kq -\"]\n[Timezone \"UTC\"]\n[ECO \"C23\"]\n[ECOUrl \"https://www.chess.com/openings/Vienna-Game-Max-Lange-Fyfe-Gambit\"]\n[UTCDate \"2024.02.16\"]\n[UTCTime \"13:01:17\"]\n[WhiteElo \"282\"]\n[BlackElo \"317\"]\n[TimeControl \"600\"]\n[Termination \"PapyDy38 won - game abandoned\"]\n[StartTime \"13:01:17\"]\n[EndDate \"2024.02.16\"]\n[EndTime \"13:05:32\"]\n[Link \"https://www.chess.com/game/live/101289151070\"]\n\n1. e4 {[%clk 0:09:51.3]} 1... e5 {[%clk 0:09:55.5]} 2. Nc3 {[%clk 0:09:47.2]} 2... Nc6 {[%clk 0:09:51.7]} 3. d4 {[%clk 0:09:37.5]} 3... f6 {[%clk 0:09:47.7]} 4. Nf3 {[%clk 0:09:35.3]} 4... d6 {[%clk 0:09:44.5]} 5. Bb5 {[%clk 0:09:20.8]} 5... Bd7 {[%clk 0:09:26.7]} 6. O-O {[%clk 0:08:55.3]} 6... a6 {[%clk 0:09:22.4]} 7. Bc4 {[%clk 0:08:47.2]} 7... b5 {[%clk 0:09:11.5]} 8. Bd5 {[%clk 0:08:29.5]} 8... b4 {[%clk 0:08:58.5]} 9. Ne2 {[%clk 0:08:08.4]} 9... Nge7 {[%clk 0:08:40.8]} 0-1\n",
+    "move_times": [
+      -4,
+      8,
+      -4,
+      14,
+      -10,
+      12,
+      -9,
+      24,
+      -6,
+      31,
+      -27,
+      35,
+      -24,
+      42,
+      -29,
+      50,
+      -32
+    ],
+    "white": "Affan_khan123",
+    "black": "PapyDy38",
+    "end_time": "2024-02-16T13:05:32+00:00"
+  }
+]

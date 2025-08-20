@@ -1,0 +1,22 @@
+[
+  {
+    "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2024.04.11\"]\n[Round \"-\"]\n[White \"Affan_khan123\"]\n[Black \"sebastianvasquez10\"]\n[Result \"1-0\"]\n[CurrentPosition \"r1bqk1nr/pppp1Qpp/2n5/b3N3/2B1P3/8/PPPP1PPP/R1B1K2R b KQkq -\"]\n[Timezone \"UTC\"]\n[ECO \"C00\"]\n[ECOUrl \"https://www.chess.com/openings/French-Defense-Knight-Variation\"]\n[UTCDate \"2024.04.11\"]\n[UTCTime \"11:11:41\"]\n[WhiteElo \"369\"]\n[BlackElo \"342\"]\n[TimeControl \"600\"]\n[Termination \"Affan_khan123 won by checkmate\"]\n[StartTime \"11:11:41\"]\n[EndDate \"2024.04.11\"]\n[EndTime \"11:12:48\"]\n[Link \"https://www.chess.com/game/live/104988142908\"]\n\n1. e4 {[%clk 0:09:49.4]} 1... e6 {[%clk 0:09:58.8]} 2. Nf3 {[%clk 0:09:46.5]} 2... Nc6 {[%clk 0:09:56.7]} 3. Nc3 {[%clk 0:09:30.3]} 3... e5 {[%clk 0:09:54.9]} 4. Bc4 {[%clk 0:09:24.5]} 4... Bb4 {[%clk 0:09:51.9]} 5. Nxe5 {[%clk 0:09:21.3]} 5... Bxc3 {[%clk 0:09:49.2]} 6. Qf3 {[%clk 0:09:17]} 6... Ba5 {[%clk 0:09:45.4]} 7. Qxf7# {[%clk 0:09:15.1]} 1-0\n",
+    "move_times": [
+      -9,
+      12,
+      -10,
+      26,
+      -24,
+      30,
+      -27,
+      30,
+      -28,
+      32,
+      -28,
+      30
+    ],
+    "white": "Affan_khan123",
+    "black": "sebastianvasquez10",
+    "end_time": "2024-04-11T11:12:48+00:00"
+  }
+]

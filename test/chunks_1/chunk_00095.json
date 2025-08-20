@@ -1,0 +1,15 @@
+[
+  {
+    "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2024.04.08\"]\n[Round \"-\"]\n[White \"Affan_khan123\"]\n[Black \"an7urag\"]\n[Result \"1-0\"]\n[CurrentPosition \"r1bqkbnr/ppp2ppp/2np4/4p3/4P3/2N2N2/PPPP1PPP/R1BQKB1R w KQkq -\"]\n[Timezone \"UTC\"]\n[ECO \"C46\"]\n[ECOUrl \"https://www.chess.com/openings/Three-Knights-Opening-3...d6\"]\n[UTCDate \"2024.04.08\"]\n[UTCTime \"17:42:04\"]\n[WhiteElo \"239\"]\n[BlackElo \"214\"]\n[TimeControl \"600\"]\n[Termination \"Affan_khan123 won by resignation\"]\n[StartTime \"17:42:04\"]\n[EndDate \"2024.04.08\"]\n[EndTime \"17:42:33\"]\n[Link \"https://www.chess.com/game/live/104966015676\"]\n\n1. e4 {[%clk 0:09:59.2]} 1... e5 {[%clk 0:09:58.2]} 2. Nf3 {[%clk 0:09:56.4]} 2... Nc6 {[%clk 0:09:54.9]} 3. Nc3 {[%clk 0:09:53.7]} 3... d6 {[%clk 0:09:48.9]} 1-0\n",
+    "move_times": [
+      1,
+      2,
+      2,
+      1,
+      5
+    ],
+    "white": "Affan_khan123",
+    "black": "an7urag",
+    "end_time": "2024-04-08T17:42:33+00:00"
+  }
+]

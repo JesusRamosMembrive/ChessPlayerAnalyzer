@@ -1,0 +1,14 @@
+[
+  {
+    "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2024.04.01\"]\n[Round \"-\"]\n[White \"rodrigcastell\"]\n[Black \"Affan_khan123\"]\n[Result \"1-0\"]\n[CurrentPosition \"rnbqkb1r/pppp1ppp/5n2/4p3/2PPP3/8/PP3PPP/RNBQKBNR b KQkq c3\"]\n[Timezone \"UTC\"]\n[ECO \"C21\"]\n[ECOUrl \"https://www.chess.com/openings/Center-Game\"]\n[UTCDate \"2024.04.01\"]\n[UTCTime \"01:00:09\"]\n[WhiteElo \"195\"]\n[BlackElo \"173\"]\n[TimeControl \"600\"]\n[Termination \"rodrigcastell won - game abandoned\"]\n[StartTime \"01:00:09\"]\n[EndDate \"2024.04.01\"]\n[EndTime \"01:01:37\"]\n[Link \"https://www.chess.com/game/live/104904187850\"]\n\n1. e4 {[%clk 0:09:59.4]} 1... e5 {[%clk 0:09:57.8]} 2. d4 {[%clk 0:09:58.2]} 2... Nf6 {[%clk 0:09:53.8]} 3. c4 {[%clk 0:09:46.5]} 1-0\n",
+    "move_times": [
+      2,
+      -1,
+      5,
+      7
+    ],
+    "white": "rodrigcastell",
+    "black": "Affan_khan123",
+    "end_time": "2024-04-01T01:01:37+00:00"
+  }
+]

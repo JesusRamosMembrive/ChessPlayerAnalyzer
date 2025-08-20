@@ -1,0 +1,9 @@
+[
+  {
+    "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2024.04.08\"]\n[Round \"-\"]\n[White \"sergeixmarie\"]\n[Black \"Affan_khan123\"]\n[Result \"1/2-1/2\"]\n[CurrentPosition \"rnbqkbnr/pppppppp/8/8/8/7N/PPPPPPPP/RNBQKB1R b KQkq -\"]\n[Timezone \"UTC\"]\n[ECO \"A00\"]\n[ECOUrl \"https://www.chess.com/openings/Undefined\"]\n[UTCDate \"2024.04.08\"]\n[UTCTime \"18:15:50\"]\n[WhiteElo \"229\"]\n[BlackElo \"233\"]\n[TimeControl \"600\"]\n[Termination \"Game drawn by agreement\"]\n[StartTime \"18:15:50\"]\n[EndDate \"2024.04.08\"]\n[EndTime \"18:16:11\"]\n[Link \"https://www.chess.com/game/live/104966269016\"]\n\n1. Nh3 {[%clk 0:09:57]} 1/2-1/2\n",
+    "move_times": [],
+    "white": "sergeixmarie",
+    "black": "Affan_khan123",
+    "end_time": "2024-04-08T18:16:11+00:00"
+  }
+]

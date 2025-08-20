@@ -1,0 +1,21 @@
+[
+  {
+    "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2024.05.30\"]\n[Round \"-\"]\n[White \"SofiBotti\"]\n[Black \"Affan_khan123\"]\n[Result \"0-1\"]\n[CurrentPosition \"r3kbnr/ppp1pppp/3q4/3p1b2/3P4/P1N1P3/1PnBKPPP/R2Q1BNR w kq -\"]\n[Timezone \"UTC\"]\n[ECO \"D00\"]\n[ECOUrl \"https://www.chess.com/openings/Queens-Pawn-Opening-1...d5-2.e3\"]\n[UTCDate \"2024.05.30\"]\n[UTCTime \"12:41:22\"]\n[WhiteElo \"321\"]\n[BlackElo \"341\"]\n[TimeControl \"600\"]\n[Termination \"Affan_khan123 won by resignation\"]\n[StartTime \"12:41:22\"]\n[EndDate \"2024.05.30\"]\n[EndTime \"12:42:48\"]\n[Link \"https://www.chess.com/game/live/107512733668\"]\n\n1. d4 {[%clk 0:09:56.9]} 1... d5 {[%clk 0:09:58.8]} 2. e3 {[%clk 0:09:54.8]} 2... Nc6 {[%clk 0:09:55.8]} 3. Bd2 {[%clk 0:09:53.3]} 3... Bf5 {[%clk 0:09:50.7]} 4. Nc3 {[%clk 0:09:49.4]} 4... Nb4 {[%clk 0:09:48.2]} 5. a3 {[%clk 0:09:42]} 5... Nxc2+ {[%clk 0:09:43.5]} 6. Ke2 {[%clk 0:09:32.9]} 6... Qd6 {[%clk 0:09:31]} 0-1\n",
+    "move_times": [
+      -2,
+      4,
+      -1,
+      2,
+      3,
+      1,
+      1,
+      6,
+      -1,
+      11,
+      1
+    ],
+    "white": "SofiBotti",
+    "black": "Affan_khan123",
+    "end_time": "2024-05-30T12:42:48+00:00"
+  }
+]

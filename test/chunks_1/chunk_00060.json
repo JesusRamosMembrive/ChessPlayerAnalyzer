@@ -1,0 +1,23 @@
+[
+  {
+    "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2024.03.31\"]\n[Round \"-\"]\n[White \"Affan_khan123\"]\n[Black \"yellowennn\"]\n[Result \"0-1\"]\n[CurrentPosition \"rnb4r/ppppkBpp/5n2/2b1N3/4P3/8/PPPP1qPP/RNBQ1K1R w - -\"]\n[Timezone \"UTC\"]\n[ECO \"A04\"]\n[ECOUrl \"https://www.chess.com/openings/Reti-Opening\"]\n[UTCDate \"2024.03.31\"]\n[UTCTime \"21:05:25\"]\n[WhiteElo \"181\"]\n[BlackElo \"240\"]\n[TimeControl \"600\"]\n[Termination \"yellowennn won by checkmate\"]\n[StartTime \"21:05:25\"]\n[EndDate \"2024.03.31\"]\n[EndTime \"21:07:51\"]\n[Link \"https://www.chess.com/game/live/104902973086\"]\n\n1. Nf3 {[%clk 0:09:53.8]} 1... e5 {[%clk 0:09:54.6]} 2. Nxe5 {[%clk 0:09:49.7]} 2... Bb4 {[%clk 0:09:52.8]} 3. e4 {[%clk 0:09:35.8]} 3... Qh4 {[%clk 0:09:47.2]} 4. Bc4 {[%clk 0:09:17.9]} 4... Bc5 {[%clk 0:09:36]} 5. Bxf7+ {[%clk 0:09:10.1]} 5... Ke7 {[%clk 0:09:29.9]} 6. Ke2 {[%clk 0:08:54.8]} 6... Nf6 {[%clk 0:08:58.3]} 7. Kf1 {[%clk 0:08:48.5]} 7... Qxf2# {[%clk 0:08:54]} 0-1\n",
+    "move_times": [
+      -1,
+      5,
+      -3,
+      17,
+      -12,
+      30,
+      -19,
+      26,
+      -19,
+      35,
+      -4,
+      10,
+      -6
+    ],
+    "white": "Affan_khan123",
+    "black": "yellowennn",
+    "end_time": "2024-03-31T21:07:51+00:00"
+  }
+]

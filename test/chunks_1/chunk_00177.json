@@ -1,0 +1,19 @@
+[
+  {
+    "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2024.05.21\"]\n[Round \"-\"]\n[White \"Affan_khan123\"]\n[Black \"sedat68\"]\n[Result \"0-1\"]\n[CurrentPosition \"rn2kbnr/ppp1pppp/8/4q3/2B1p1b1/8/PPPP1PPP/RNB1K2R w KQkq -\"]\n[Timezone \"UTC\"]\n[ECO \"B01\"]\n[ECOUrl \"https://www.chess.com/openings/Scandinavian-Defense\"]\n[UTCDate \"2024.05.21\"]\n[UTCTime \"20:08:06\"]\n[WhiteElo \"318\"]\n[BlackElo \"339\"]\n[TimeControl \"600\"]\n[Termination \"sedat68 won - game abandoned\"]\n[StartTime \"20:08:06\"]\n[EndDate \"2024.05.21\"]\n[EndTime \"20:09:01\"]\n[Link \"https://www.chess.com/game/live/107374262896\"]\n\n1. e4 {[%clk 0:09:57.5]} 1... d5 {[%clk 0:09:58.4]} 2. Nf3 {[%clk 0:09:53.6]} 2... dxe4 {[%clk 0:09:56.7]} 3. Ne5 {[%clk 0:09:51.7]} 3... Qd6 {[%clk 0:09:52.9]} 4. Bc4 {[%clk 0:09:45.7]} 4... Qxe5 {[%clk 0:09:47.5]} 5. Qg4 {[%clk 0:09:45]} 5... Bxg4 {[%clk 0:09:44.7]} 0-1\n",
+    "move_times": [
+      -1,
+      5,
+      -3,
+      5,
+      -1,
+      7,
+      -2,
+      2,
+      1
+    ],
+    "white": "Affan_khan123",
+    "black": "sedat68",
+    "end_time": "2024-05-21T20:09:01+00:00"
+  }
+]

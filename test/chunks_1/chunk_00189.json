@@ -1,0 +1,41 @@
+[
+  {
+    "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2024.05.31\"]\n[Round \"-\"]\n[White \"ray47yan\"]\n[Black \"Affan_khan123\"]\n[Result \"0-1\"]\n[CurrentPosition \"r3k2r/pp3ppp/2p5/3P4/1bPp1Pq1/3P3N/P3K1PP/1RB2B1n w kq -\"]\n[Timezone \"UTC\"]\n[ECO \"C26\"]\n[ECOUrl \"https://www.chess.com/openings/Vienna-Game-Falkbeer-Variation\"]\n[UTCDate \"2024.05.31\"]\n[UTCTime \"14:12:22\"]\n[WhiteElo \"263\"]\n[BlackElo \"339\"]\n[TimeControl \"600\"]\n[Termination \"Affan_khan123 won by checkmate\"]\n[StartTime \"14:12:22\"]\n[EndDate \"2024.05.31\"]\n[EndTime \"14:16:50\"]\n[Link \"https://www.chess.com/game/live/110903523633\"]\n\n1. e4 {[%clk 0:10:00]} 1... e5 {[%clk 0:10:00]} 2. Nc3 {[%clk 0:09:53.3]} 2... Nf6 {[%clk 0:09:52.7]} 3. d3 {[%clk 0:09:35.9]} 3... d6 {[%clk 0:09:48.6]} 4. Nh3 {[%clk 0:09:22.5]} 4... Bg4 {[%clk 0:09:45.9]} 5. f4 {[%clk 0:09:14.9]} 5... Bxd1 {[%clk 0:09:42.4]} 6. Kxd1 {[%clk 0:09:11.3]} 6... Ng4 {[%clk 0:09:36.4]} 7. Be2 {[%clk 0:09:03.3]} 7... Nf2+ {[%clk 0:09:32.4]} 8. Kd2 {[%clk 0:08:56.2]} 8... Nxh1 {[%clk 0:09:30.5]} 9. Bf1 {[%clk 0:08:52]} 9... Qh4 {[%clk 0:09:26.4]} 10. b4 {[%clk 0:08:42.3]} 10... Nc6 {[%clk 0:09:20.1]} 11. Nb5 {[%clk 0:08:26.5]} 11... Nd4 {[%clk 0:09:19]} 12. Nxd4 {[%clk 0:08:20.7]} 12... exd4 {[%clk 0:08:37.9]} 13. Ke2 {[%clk 0:08:15.8]} 13... d5 {[%clk 0:08:34]} 14. exd5 {[%clk 0:08:10.6]} 14... c6 {[%clk 0:08:32.5]} 15. c4 {[%clk 0:08:01.9]} 15... Bxb4 {[%clk 0:08:06.1]} 16. Rb1 {[%clk 0:07:47.6]} 16... Qg4# {[%clk 0:08:04.4]} 0-1\n",
+    "move_times": [
+      0,
+      7,
+      1,
+      17,
+      -13,
+      26,
+      -23,
+      31,
+      -28,
+      31,
+      -25,
+      33,
+      -29,
+      36,
+      -34,
+      38,
+      -34,
+      44,
+      -38,
+      54,
+      -53,
+      59,
+      -17,
+      22,
+      -19,
+      24,
+      -22,
+      31,
+      -5,
+      19,
+      -17
+    ],
+    "white": "ray47yan",
+    "black": "Affan_khan123",
+    "end_time": "2024-05-31T14:16:50+00:00"
+  }
+]
