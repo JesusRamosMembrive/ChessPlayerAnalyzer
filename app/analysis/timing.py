@@ -103,6 +103,7 @@ def detect_lag_spikes(game_df: pd.DataFrame,
     """
     Devuelve los índices de movimiento donde hay pausa seguida de jugadas rápidas y precisas.
     """
+    logger.info(f"DEBUG TIMING: detect_lag_spikes params pause_sec={pause_sec}, rapid_thresh={rapid_thresh}, rapid_window={rapid_window}, accuracy_required={accuracy_required}")
     idx: List[int] = []
     t_series = pd.to_numeric(game_df.get("move_time", pd.Series(dtype=float)), errors="coerce")
     t = t_series.fillna(np.inf).to_numpy()
@@ -135,6 +136,7 @@ def clutch_accuracy(game_df: pd.DataFrame,
     Diferencia de precisión entre fase con < clutch_threshold s en reloj y el resto.
     Usa delta_eval si existe; si no, swing de evaluación; si no, % de coincidencia.
     """
+    logger.info(f"DEBUG TIMING: clutch_accuracy threshold={clutch_threshold}")
     if 'player_clock_before' not in game_df.columns:
         return 0.0
 
@@ -147,6 +149,7 @@ def clutch_accuracy(game_df: pd.DataFrame,
         clutch = d[clutch_mask].mean(skipna=True) if clutch_mask.any() else np.nan
         normal = d[non_mask].mean(skipna=True)    if non_mask.any()    else np.nan
         diff = (normal - clutch) if np.isfinite(normal) and np.isfinite(clutch) else 0.0
+        logger.info(f"DEBUG TIMING: clutch_accuracy using delta_eval: normal={normal}, clutch={clutch}, diff={diff}")
         return float(diff)
 
     if {'eval_cp_before', 'eval_cp_after'} <= set(game_df.columns):
@@ -156,13 +159,16 @@ def clutch_accuracy(game_df: pd.DataFrame,
         clutch = diffs[clutch_mask].mean(skipna=True) if clutch_mask.any() else np.nan
         normal = diffs[non_mask].mean(skipna=True)    if non_mask.any()    else np.nan
         diff = (normal - clutch) if np.isfinite(normal) and np.isfinite(clutch) else 0.0
+        logger.info(f"DEBUG TIMING: clutch_accuracy using eval swing: normal={normal}, clutch={clutch}, diff={diff}")
         return float(diff)
 
     if "is_engine_best" in game_df.columns:
         clutch = game_df["is_engine_best"][clutch_mask].mean() if clutch_mask.any() else np.nan
         normal = game_df["is_engine_best"][non_mask].mean()    if non_mask.any()    else np.nan
         if pd.notna(clutch) and pd.notna(normal):
-            return float(clutch - normal)
+            diff = float(clutch - normal)
+            logger.info(f"DEBUG TIMING: clutch_accuracy using is_engine_best: normal={normal}, clutch={clutch}, diff={diff}")
+            return diff
     return 0.0
 
 
@@ -225,7 +231,26 @@ def aggregate_time_features(game_df: pd.DataFrame) -> dict:
     var_t  = float(mt.var(skipna=True))
     valid_time = int(mt.notna().sum())
     logger.info(f"DEBUG TIMING: Mean move time: {mean_t}, Variance: {var_t}, valid_time_rows={valid_time}")
-    
+
+    try:
+        q10 = float(mt.quantile(0.10, interpolation="linear"))
+        q50 = float(mt.quantile(0.50, interpolation="linear"))
+        q90 = float(mt.quantile(0.90, interpolation="linear"))
+        logger.info(f"DEBUG TIMING: move_time quantiles p10={q10}, p50={q50}, p90={q90}")
+    except Exception:
+        logger.info("DEBUG TIMING: move_time quantiles unavailable")
+
+    if "delta_eval" in df.columns:
+        de = pd.to_numeric(df["delta_eval"], errors="coerce").abs()
+        if de.notna().any():
+            try:
+                de_q10 = float(de.quantile(0.10, interpolation="linear"))
+                de_q50 = float(de.quantile(0.50, interpolation="linear"))
+                de_q90 = float(de.quantile(0.90, interpolation="linear"))
+                logger.info(f"DEBUG TIMING: delta_eval(abs) quantiles p10={de_q10}, p50={de_q50}, p90={de_q90}")
+            except Exception:
+                logger.info("DEBUG TIMING: delta_eval quantiles unavailable")
+
     corr = time_complexity_correlation(df)
     logger.info(f"DEBUG TIMING: Time-complexity correlation: {corr}")
 
