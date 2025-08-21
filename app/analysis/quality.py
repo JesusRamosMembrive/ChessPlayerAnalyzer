@@ -267,6 +267,40 @@ def aggregate_blunders_by_phase(moves_dfs: list[pd.DataFrame]) -> dict:
 #  🔗  AGGREGATOR
 # ------------------------------------------------------------------------
 @trace
+def phase_acpl_single(game_df: pd.DataFrame, cap_cp: int | None = 1500) -> dict:
+    if "phase" not in game_df.columns or "delta_eval" not in game_df.columns:
+        return {}
+    vals = pd.to_numeric(game_df["delta_eval"], errors="coerce").abs()
+    if cap_cp is not None:
+        vals = vals.clip(upper=cap_cp)
+    tmp = pd.DataFrame({"phase": game_df["phase"], "delta": vals}).dropna()
+    if tmp.empty:
+        return {}
+    grp = tmp.groupby("phase")["delta"].mean()
+    return {
+        "opening_acpl": float(grp.get("opening", np.nan)),
+        "middlegame_acpl": float(grp.get("middlegame", np.nan)),
+        "endgame_acpl": float(grp.get("endgame", np.nan)),
+    }
+
+@trace
+def phase_acpl_single(game_df: pd.DataFrame, cap_cp: int | None = 1500) -> dict:
+    if "phase" not in game_df.columns or "delta_eval" not in game_df.columns:
+        return {}
+    vals = pd.to_numeric(game_df["delta_eval"], errors="coerce").abs()
+    if cap_cp is not None:
+        vals = vals.clip(upper=cap_cp)
+    tmp = pd.DataFrame({"phase": game_df["phase"], "delta": vals}).dropna()
+    if tmp.empty:
+        return {}
+    grp = tmp.groupby("phase")["delta"].mean()
+    return {
+        "opening_acpl": float(grp.get("opening", np.nan)),
+        "middlegame_acpl": float(grp.get("middlegame", np.nan)),
+        "endgame_acpl": float(grp.get("endgame", np.nan)),
+    }
+
+@trace
 def aggregate_quality_features(game_df, elo: int | None = None, player_color: str = 'white') -> dict:
     logger.info("DEBUG QUALITY: Starting quality features calculation")
     logger.info(f"DEBUG QUALITY: Input DataFrame shape: {game_df.shape}")
@@ -316,6 +350,12 @@ def aggregate_quality_features(game_df, elo: int | None = None, player_color: st
     burst_count = len(precision_bursts(game_df))
     feats["precision_burst_count"] = burst_count
     logger.info(f"DEBUG QUALITY: Precision burst count: {burst_count}")
+    
+    if "phase" in game_df.columns and "delta_eval" in game_df.columns:
+        pacpl = phase_acpl_single(game_df)
+        if pacpl:
+            feats.update(pacpl)
+            logger.info(f"DEBUG QUALITY: Phase ACPL added: {pacpl}")
     
     logger.info(f"DEBUG QUALITY: Final quality features: {feats}")
     return feats
