@@ -11,17 +11,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-try:
-    from app.utils_debugging.tracer import trace
-    logger.info("DEBUG TIMING: Tracer imported")
-except Exception:
-    def trace(func=None, *targs, **tkwargs):
-        # Fallback no-op decorator if tracer is unavailable
-        if func is None:
-            def _decorator(f):
-                return f
-            return _decorator
-        return func
+from app.utils_debugging.tracer import trace
 
 # Pre-computed reference table (Elo band → percentiles)
 # Example structure: rows per Elo bucket every 200 Elo
