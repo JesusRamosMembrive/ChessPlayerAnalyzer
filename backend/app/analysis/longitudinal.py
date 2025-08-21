@@ -68,10 +68,11 @@ def aggregate_roi(games_df: pd.DataFrame) -> Dict[str, float]:
         return {
             'roi_mean': 0.0,
             'roi_max': 0.0,
-            'roi_std': 0.0,
+            # Use consistent key name regardless of data availability
+            'roi_sd': 0.0,
             'roi_games>2': 0
         }
-    
+
     return {
         'roi_mean': roi_series.mean() if not roi_series.isna().all() else 0.0,
         'roi_max': roi_series.max() if not roi_series.isna().all() else 0.0,
