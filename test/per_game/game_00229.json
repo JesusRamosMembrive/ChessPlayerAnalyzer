@@ -1,0 +1,16 @@
+{
+  "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2025.03.14\"]\n[Round \"-\"]\n[White \"Navega9\"]\n[Black \"Affan_khan123\"]\n[Result \"1-0\"]\n[CurrentPosition \"r1bqk1nr/ppp2Qpp/2n5/3pN3/1b2P3/8/PPPP1PPP/RNB1KB1R b KQkq -\"]\n[Timezone \"UTC\"]\n[ECO \"C20\"]\n[ECOUrl \"https://www.chess.com/openings/Kings-Pawn-Opening-1...e5\"]\n[UTCDate \"2025.03.14\"]\n[UTCTime \"11:01:37\"]\n[WhiteElo \"381\"]\n[BlackElo \"369\"]\n[TimeControl \"600\"]\n[Termination \"Navega9 won by checkmate\"]\n[StartTime \"11:01:37\"]\n[EndDate \"2025.03.14\"]\n[EndTime \"11:02:27\"]\n[Link \"https://www.chess.com/game/live/136250414336\"]\n\n1. e4 {[%clk 0:09:59.7]} 1... e5 {[%clk 0:09:57.7]} 2. Qh5 {[%clk 0:09:58.8]} 2... Bb4 {[%clk 0:09:53]} 3. Nf3 {[%clk 0:09:49]} 3... d5 {[%clk 0:09:50.4]} 4. Nxe5 {[%clk 0:09:46.3]} 4... Nc6 {[%clk 0:09:29]} 5. Qxf7# {[%clk 0:09:43.6]} 1-0\n",
+  "move_times": [
+    2,
+    -1,
+    5,
+    4,
+    -1,
+    4,
+    17,
+    -14
+  ],
+  "white": "Navega9",
+  "black": "Affan_khan123",
+  "end_time": "2025-03-14T11:02:27+00:00"
+}

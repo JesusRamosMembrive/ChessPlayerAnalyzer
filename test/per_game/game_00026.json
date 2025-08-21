@@ -1,0 +1,15 @@
+{
+  "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2024.03.01\"]\n[Round \"-\"]\n[White \"trevii1\"]\n[Black \"Affan_khan123\"]\n[Result \"0-1\"]\n[CurrentPosition \"rnb1k1nr/pppp1ppp/8/2b1N3/2P3P1/8/PP1PPq1P/RNBQKB1R w KQkq -\"]\n[Timezone \"UTC\"]\n[ECO \"A04\"]\n[ECOUrl \"https://www.chess.com/openings/Reti-Opening\"]\n[UTCDate \"2024.03.01\"]\n[UTCTime \"13:48:32\"]\n[WhiteElo \"203\"]\n[BlackElo \"232\"]\n[TimeControl \"600\"]\n[Termination \"Affan_khan123 won by checkmate\"]\n[StartTime \"13:48:32\"]\n[EndDate \"2024.03.01\"]\n[EndTime \"13:49:20\"]\n[Link \"https://www.chess.com/game/live/101407903998\"]\n\n1. Nf3 {[%clk 0:09:55.3]} 1... e5 {[%clk 0:09:56.7]} 2. Nxe5 {[%clk 0:09:51.7]} 2... Bc5 {[%clk 0:09:53.3]} 3. c4 {[%clk 0:09:40.1]} 3... Qh4 {[%clk 0:09:49.7]} 4. g4 {[%clk 0:09:31.3]} 4... Qxf2# {[%clk 0:09:42.9]} 0-1\n",
+  "move_times": [
+    -1,
+    5,
+    -2,
+    13,
+    -9,
+    18,
+    -11
+  ],
+  "white": "trevii1",
+  "black": "Affan_khan123",
+  "end_time": "2024-03-01T13:49:20+00:00"
+}

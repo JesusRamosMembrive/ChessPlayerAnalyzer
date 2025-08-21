@@ -1,0 +1,20 @@
+{
+  "pgn": "[Event \"Let's Play!\"]\n[Site \"Chess.com\"]\n[Date \"2024.06.08\"]\n[Round \"-\"]\n[White \"CookieCan21\"]\n[Black \"Affan_khan123\"]\n[Result \"1-0\"]\n[CurrentPosition \"rn2kbn1/pppqpp2/3p3p/5b1p/3PP3/2N2N1P/PPP2PP1/R2QKB1R b KQq - 0 7\"]\n[Timezone \"UTC\"]\n[ECO \"A41\"]\n[ECOUrl \"https://www.chess.com/openings/Queens-Pawn-Opening-1...d6\"]\n[UTCDate \"2024.06.08\"]\n[UTCTime \"19:27:41\"]\n[WhiteElo \"756\"]\n[BlackElo \"755\"]\n[TimeControl \"1/259200\"]\n[Termination \"CookieCan21 won on time\"]\n[StartTime \"19:27:41\"]\n[EndDate \"2024.06.11\"]\n[EndTime \"20:56:25\"]\n[Link \"https://www.chess.com/game/daily/666343231\"]\n\n1. d4 {[%clk 0:00:06.4]} 1... d6 {[%clk 0:00:02.6]} 2. h3 {[%clk 0:00:11.4]} 2... h5 {[%clk 0:00:04.6]} 3. Nf3 {[%clk 0:00:02.1]} 3... Rh6 {[%clk 0:00:03.2]} 4. Bxh6 {[%clk 0:00:01.7]} 4... gxh6 {[%clk 0:00:06.7]} 5. e3 {[%clk 0:00:21.1]} 5... Bf5 {[%clk 0:00:08]} 6. Nc3 {[%clk 0:00:08.7]} 6... Qd7 {[%clk 0:00:04.9]} 7. e4 {[%clk 0:07:23.6]} 1-0\n",
+  "move_times": [
+    4,
+    -9,
+    7,
+    2,
+    -1,
+    2,
+    -5,
+    -15,
+    13,
+    0,
+    4,
+    -439
+  ],
+  "white": "CookieCan21",
+  "black": "Affan_khan123",
+  "end_time": "2024-06-11T20:56:25+00:00"
+}

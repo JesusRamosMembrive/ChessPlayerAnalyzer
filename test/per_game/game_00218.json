@@ -1,0 +1,24 @@
+{
+  "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2024.06.09\"]\n[Round \"-\"]\n[White \"Affan_khan123\"]\n[Black \"ray47yan\"]\n[Result \"1-0\"]\n[CurrentPosition \"r1bqkb1r/p2ppQpp/n1p2p2/1p2N3/8/1B1P4/PPP2PPP/RNB1K2R b KQkq -\"]\n[Timezone \"UTC\"]\n[ECO \"B02\"]\n[ECOUrl \"https://www.chess.com/openings/Alekhines-Defense\"]\n[UTCDate \"2024.06.09\"]\n[UTCTime \"08:50:32\"]\n[WhiteElo \"388\"]\n[BlackElo \"100\"]\n[TimeControl \"1800\"]\n[Termination \"Affan_khan123 won by checkmate\"]\n[StartTime \"08:50:32\"]\n[EndDate \"2024.06.09\"]\n[EndTime \"08:52:25\"]\n[Link \"https://www.chess.com/game/live/111661970467\"]\n\n1. e4 {[%clk 0:30:00]} 1... Nf6 {[%clk 0:30:00]} 2. Nf3 {[%clk 0:29:59.2]} 2... Nxe4 {[%clk 0:29:58.1]} 3. Ne5 {[%clk 0:29:56.5]} 3... Nd6 {[%clk 0:29:56.1]} 4. Qf3 {[%clk 0:29:55.3]} 4... f6 {[%clk 0:29:52.4]} 5. Bc4 {[%clk 0:29:52.1]} 5... c6 {[%clk 0:29:46.9]} 6. Bb3 {[%clk 0:29:43.1]} 6... b5 {[%clk 0:29:38.3]} 7. d3 {[%clk 0:29:41.2]} 7... Na6 {[%clk 0:29:17.8]} 8. Qh5+ {[%clk 0:29:38.4]} 8... Nf7 {[%clk 0:29:09.3]} 9. Qxf7# {[%clk 0:29:26.1]} 1-0\n",
+  "move_times": [
+    0,
+    1,
+    1,
+    2,
+    0,
+    1,
+    3,
+    0,
+    6,
+    3,
+    5,
+    -3,
+    24,
+    -21,
+    29,
+    -17
+  ],
+  "white": "Affan_khan123",
+  "black": "ray47yan",
+  "end_time": "2024-06-09T08:52:25+00:00"
+}

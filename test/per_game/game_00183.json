@@ -1,0 +1,7 @@
+{
+  "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2024.05.29\"]\n[Round \"-\"]\n[White \"Affan_khan123\"]\n[Black \"KrrishKarn24\"]\n[Result \"1-0\"]\n[CurrentPosition \"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -\"]\n[Timezone \"UTC\"]\n[ECO \"A00\"]\n[ECOUrl \"https://www.chess.com/openings/Undefined\"]\n[UTCDate \"2024.05.29\"]\n[UTCTime \"16:11:08\"]\n[WhiteElo \"325\"]\n[BlackElo \"310\"]\n[TimeControl \"600\"]\n[Termination \"Affan_khan123 won by resignation\"]\n[StartTime \"16:11:08\"]\n[EndDate \"2024.05.29\"]\n[EndTime \"16:11:13\"]\n[Link \"https://www.chess.com/game/live/107499434952\"]\n\n1-0\n",
+  "move_times": [],
+  "white": "Affan_khan123",
+  "black": "KrrishKarn24",
+  "end_time": "2024-05-29T16:11:13+00:00"
+}

@@ -1,0 +1,18 @@
+{
+  "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2024.04.14\"]\n[Round \"-\"]\n[White \"Lebaa2\"]\n[Black \"Affan_khan123\"]\n[Result \"1-0\"]\n[CurrentPosition \"r1bBkbnr/ppp2ppp/8/3pp3/3P4/2P2N2/PPQ1PPPP/RN2KB1R b KQkq -\"]\n[Timezone \"UTC\"]\n[ECO \"D02\"]\n[ECOUrl \"https://www.chess.com/openings/Queens-Pawn-Opening-Zukertort-Chigorin-Variation\"]\n[UTCDate \"2024.04.14\"]\n[UTCTime \"16:35:18\"]\n[WhiteElo \"359\"]\n[BlackElo \"353\"]\n[TimeControl \"600\"]\n[Termination \"Lebaa2 won by resignation\"]\n[StartTime \"16:35:18\"]\n[EndDate \"2024.04.14\"]\n[EndTime \"16:36:35\"]\n[Link \"https://www.chess.com/game/live/105014645142\"]\n\n1. d4 {[%clk 0:09:59.9]} 1... d5 {[%clk 0:09:56.1]} 2. Nf3 {[%clk 0:09:59]} 2... Nc6 {[%clk 0:09:44.9]} 3. Bg5 {[%clk 0:09:53.9]} 3... Nb4 {[%clk 0:09:42.4]} 4. c3 {[%clk 0:09:44.3]} 4... Nc2+ {[%clk 0:09:31.5]} 5. Qxc2 {[%clk 0:09:39.9]} 5... e5 {[%clk 0:09:22.1]} 6. Bxd8 {[%clk 0:09:33.2]} 1-0\n",
+  "move_times": [
+    3,
+    -3,
+    15,
+    -9,
+    11,
+    -2,
+    13,
+    -8,
+    17,
+    -11
+  ],
+  "white": "Lebaa2",
+  "black": "Affan_khan123",
+  "end_time": "2024-04-14T16:36:35+00:00"
+}

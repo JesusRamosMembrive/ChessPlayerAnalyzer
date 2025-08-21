@@ -1,0 +1,32 @@
+{
+  "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2023.04.22\"]\n[Round \"-\"]\n[White \"recepgor\"]\n[Black \"Affan_khan123\"]\n[Result \"1-0\"]\n[CurrentPosition \"Q1k2bnr/1ppr2pp/5p2/3N4/2P5/8/PP1P1PPP/n1B1K2R b K -\"]\n[Timezone \"UTC\"]\n[ECO \"C23\"]\n[ECOUrl \"https://www.chess.com/openings/Bishops-Opening\"]\n[UTCDate \"2023.04.22\"]\n[UTCTime \"11:55:15\"]\n[WhiteElo \"418\"]\n[BlackElo \"308\"]\n[TimeControl \"900+10\"]\n[Termination \"recepgor won by checkmate\"]\n[StartTime \"11:55:15\"]\n[EndDate \"2023.04.22\"]\n[EndTime \"11:58:07\"]\n[Link \"https://www.chess.com/game/live/75903633925\"]\n\n1. e4 {[%clk 0:15:10]} 1... e5 {[%clk 0:14:53.3]} 2. Bc4 {[%clk 0:15:18.4]} 2... d5 {[%clk 0:14:41]} 3. Bb3 {[%clk 0:15:26]} 3... Be6 {[%clk 0:14:48.1]} 4. Nf3 {[%clk 0:15:34.5]} 4... Nc6 {[%clk 0:14:53.9]} 5. Nc3 {[%clk 0:15:42.3]} 5... Na5 {[%clk 0:15:01]} 6. exd5 {[%clk 0:15:49.7]} 6... Bxd5 {[%clk 0:14:59]} 7. Nxd5 {[%clk 0:15:54]} 7... Nxb3 {[%clk 0:15:05.6]} 8. c4 {[%clk 0:15:45.8]} 8... Nxa1 {[%clk 0:15:10.3]} 9. Nxe5 {[%clk 0:15:43.6]} 9... f6 {[%clk 0:15:15.5]} 10. Qa4+ {[%clk 0:15:50.3]} 10... Qd7 {[%clk 0:15:12.5]} 11. Nxd7 {[%clk 0:15:57.6]} 11... O-O-O {[%clk 0:15:17.1]} 12. Qxa7 {[%clk 0:15:56.3]} 12... Rxd7 {[%clk 0:15:20.2]} 13. Qa8# {[%clk 0:16:04.1]} 1-0\n",
+  "move_times": [
+    17,
+    -25,
+    37,
+    -45,
+    38,
+    -46,
+    41,
+    -49,
+    41,
+    -48,
+    50,
+    -55,
+    49,
+    -40,
+    35,
+    -33,
+    28,
+    -35,
+    38,
+    -45,
+    40,
+    -39,
+    36,
+    -44
+  ],
+  "white": "recepgor",
+  "black": "Affan_khan123",
+  "end_time": "2023-04-22T11:58:07+00:00"
+}
