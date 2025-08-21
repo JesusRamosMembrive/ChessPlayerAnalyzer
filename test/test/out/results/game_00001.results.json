@@ -1,6 +1,6 @@
 {
   "input_file": "per_game\\game_00001.json",
-  "processed_at": "2025-08-21T14:09:31.268223+00:00",
+  "processed_at": "2025-08-21T15:15:29.550610+00:00",
   "games_count": 1,
   "per_game": [
     {
@@ -78,8 +78,8 @@
     "step_acpl_index": -1,
     "step_acpl_flag": false,
     "selectivity_pct": 0.0,
-    "first_game_date": "2025-08-21T14:09:31.082832+00:00",
-    "last_game_date": "2025-08-21T14:09:31.082832+00:00",
+    "first_game_date": "2025-08-21T15:15:29.402381+00:00",
+    "last_game_date": "2025-08-21T15:15:29.402381+00:00",
     "precision_burst_count": 3,
     "second_choice_rate": 0.21739130434782608,
     "phase_quality": {
