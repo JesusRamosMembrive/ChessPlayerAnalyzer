@@ -1,3 +1,21 @@
+[UPDATE — 2025-08-21]
+The following fixes have been implemented on branch fix_calculations (app/analysis):
+- quality.py
+  - ACPL now prioritizes delta_eval with a configurable cap (default 1500 cp) to prevent mate-driven outliers.
+  - Fallback to color-adjusted eval swing when delta_eval is not present.
+  - quality_score normalizes ACPL contribution via acpl_scaled in [0,1].
+  - Optional per-phase ACPL: opening_acpl, middlegame_acpl, endgame_acpl when phase+delta_eval exist.
+  - Removed duplicate phase_acpl_single definition.
+- timing.py
+  - Hardened calculations across functions: numeric coercion, NaN/finite filtering, and valid-row counters.
+  - clutch_accuracy now prefers delta_eval with safe fallbacks.
+  - aggregate_time_features returns meta fields (timing_rows_total, timing_rows_valid_time, timing_rows_valid_corr) and logs quantiles.
+- longitudinal.py
+  - compute_trends().slope() now filters NaN/Inf, requires ≥2 points with nonzero variance, and wraps np.polyfit in try/except returning 0.0 on failure.
+  - This removes the prior NumPy warning and LAPACK DLASCLS error on single-game runs.
+
+The remainder of this document serves as historical context and rationale for the fixes now in place.
+
 # Errors and fixes (focused on app/analysis)
 
 This document enumerates the issues found in calculations/methodology and proposes concrete, implementation-ready fixes, prioritizing changes in `app/analysis/*`. Only mention `test/run_local_analysis.py` if there is an intrinsic defect in that script; otherwise keep all proposals centered on `app/analysis`.

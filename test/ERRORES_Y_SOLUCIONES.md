@@ -1,3 +1,21 @@
+[ACTUALIZACIÓN — 2025-08-21]
+Se han implementado las siguientes correcciones en la rama fix_calculations (app/analysis):
+- quality.py
+  - ACPL prioriza delta_eval con cap configurable (por defecto 1500 cp) para evitar outliers de mates.
+  - Fallback al swing eval_cp_after - eval_cp_before ajustado por color cuando no existe delta_eval.
+  - quality_score normaliza la contribución de ACPL (acpl_scaled en [0,1]).
+  - ACPL por fase opcional: opening_acpl, middlegame_acpl, endgame_acpl cuando existen phase+delta_eval.
+  - Limpieza de duplicado accidental en phase_acpl_single.
+- timing.py
+  - Robustez en todas las métricas: coerción numérica, filtrado de NaN/no finitos, y contadores de filas válidas.
+  - clutch_accuracy ahora prioriza delta_eval con fallbacks razonables.
+  - aggregate_time_features añade meta-información: timing_rows_total, timing_rows_valid_time, timing_rows_valid_corr y logs de cuantiles.
+- longitudinal.py
+  - compute_trends().slope() ahora filtra NaN/Inf, requiere ≥2 puntos con varianza > 0, y envuelve np.polyfit en try/except devolviendo 0.0 si no es fiable.
+  - Con esto desaparecen los warnings de NumPy y el error LAPACK al analizar un único juego.
+
+El resto del documento permanece como contexto histórico y justificación de las soluciones implementadas.
+
 # Informe de errores y soluciones (centrado en app/analysis)
 
 Este documento resume los problemas detectados en los cálculos/metodología y propone soluciones concretas priorizando cambios en `app/analysis/*`. Solo se sugiere tocar `test/run_local_analysis.py` si hay fallos intrínsecos en sí mismo, pero el foco está en `app/analysis`.

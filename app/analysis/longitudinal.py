@@ -264,10 +264,19 @@ def compute_trends(games_df: pd.DataFrame) -> dict:
 
     # --- 2. Tendencia lineal (polyfit grado 1)
     def slope(col: str) -> float | None:
-        if df[col].isna().all():
+        y_raw = pd.to_numeric(df[col], errors="coerce")
+        x_all = x
+        mask = y_raw.notna() & np.isfinite(y_raw)
+        x_valid = x_all[mask]
+        y = y_raw[mask]
+        if len(y) < 2 or float(np.nanstd(y)) == 0.0 or float(np.nanstd(x_valid)) == 0.0:
             return 0.0
-        m, _ = np.polyfit(x, df[col].fillna(df[col].median()), 1)
-        return float(m) if not np.isnan(float(m)) else 0.0
+        try:
+            m, _ = np.polyfit(x_valid, y.fillna(np.nanmedian(y)), 1)
+            m = float(m)
+            return m if not np.isnan(m) else 0.0
+        except Exception:
+            return 0.0
 
     trend_acpl = slope("acpl")
     trend_match = slope("match_rate")

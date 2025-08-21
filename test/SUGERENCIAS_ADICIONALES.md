@@ -1,3 +1,8 @@
+[ACTUALIZACIÓN — 2025-08-21]
+Estado de sugerencias tras los últimos cambios:
+- Ya implementado (no repetir aquí): ACPL robusto con cap en quality.py; trazabilidad/metadatos y robustez en timing.py; guardas en longitudinal.py para evitar inestabilidades con una sola partida.
+- Sugerencias que siguen vigentes (a continuación) permanecen como mejoras futuras opcionales.
+
 # Sugerencias adicionales (no críticas, positivas para el proyecto)
 
 Estas propuestas no corrigen “errores” pero mejoran la calidad, interpretabilidad y estabilidad de los cálculos en `app/analysis/*`.

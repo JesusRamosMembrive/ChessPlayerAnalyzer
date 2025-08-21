@@ -21,34 +21,42 @@ from app.utils_debugging.tracer import trace
 # 1.  Average Centipawn Loss (ACPL)   #########################################
 ###############################################################################
 @trace
-def acpl(game_df: pd.DataFrame, player_color: str = 'white') -> float:
+def acpl(game_df: pd.DataFrame, player_color: str = 'white', cap_cp: int | None = 1500) -> float:
     """
-    Calcula el Average Centipawn Loss de un jugador en una partida.
+    Calcula el Average Centipawn Loss (pérdida respecto a la mejor jugada) cuando esté disponible.
+    Si el DataFrame no trae 'delta_eval', hace fallback al swing de evaluación
+    |eval_cp_after - eval_cp_before| ajustado por color.
 
-    Espera un DataFrame con columnas:
-    ─ 'eval_cp_before'  -> evaluación (centipawns) justo ANTES del movimiento,
-    ─ 'eval_cp_after'   -> evaluación tras el movimiento,
-    ─ 'player_color'    -> 'white'/'black' para ajustar perspectiva.
-
-    ACPL = mean(|eval_cp_after - eval_cp_before|)  (solo lances del jugador)
-    
     Args:
-        game_df: DataFrame with move analysis
-        player_color: 'white' or 'black' - perspective for evaluation adjustment
+        game_df: DataFrame con análisis de jugadas
+        player_color: 'white' o 'black' para el fallback basado en eval_before/after
+        cap_cp: límite superior opcional aplicado a valores extremos (p.ej. mates) cuando se usa delta_eval
     """
+    if "delta_eval" in game_df.columns:
+        vals = pd.to_numeric(game_df["delta_eval"], errors="coerce").abs()
+        vals = vals.dropna()
+        if cap_cp is not None:
+            vals = vals.clip(upper=cap_cp)
+        result = float(vals.mean()) if not vals.empty else 0.0
+        logger.info(f"DEBUG QUALITY: ACPL using delta_eval with cap={cap_cp}: count={len(vals)}, mean={result}")
+        return result
+
     required_cols = {"eval_cp_before", "eval_cp_after"}
     if not required_cols.issubset(game_df.columns):
+        logger.info("DEBUG QUALITY: ACPL fallback unavailable (missing eval columns); returning 0.0")
         return 0.0
 
-    eval_before = game_df["eval_cp_before"]
-    eval_after = game_df["eval_cp_after"]
-    
+    eval_before = pd.to_numeric(game_df["eval_cp_before"], errors="coerce")
+    eval_after = pd.to_numeric(game_df["eval_cp_after"], errors="coerce")
+
     if player_color == 'black':
         eval_before = -eval_before
         eval_after = -eval_after
 
-    diffs = np.abs(eval_after - eval_before)
-    return diffs.mean() if len(diffs) else 0.0
+    diffs = (eval_after - eval_before).abs().dropna()
+    result = float(diffs.mean()) if not diffs.empty else 0.0
+    logger.info(f"DEBUG QUALITY: ACPL using fallback eval swing: count={len(diffs)}, mean={result}")
+    return result
 
 
 ###############################################################################
@@ -259,6 +267,23 @@ def aggregate_blunders_by_phase(moves_dfs: list[pd.DataFrame]) -> dict:
 #  🔗  AGGREGATOR
 # ------------------------------------------------------------------------
 @trace
+def phase_acpl_single(game_df: pd.DataFrame, cap_cp: int | None = 1500) -> dict:
+    if "phase" not in game_df.columns or "delta_eval" not in game_df.columns:
+        return {}
+    vals = pd.to_numeric(game_df["delta_eval"], errors="coerce").abs()
+    if cap_cp is not None:
+        vals = vals.clip(upper=cap_cp)
+    tmp = pd.DataFrame({"phase": game_df["phase"], "delta": vals}).dropna()
+    if tmp.empty:
+        return {}
+    grp = tmp.groupby("phase")["delta"].mean()
+    return {
+        "opening_acpl": float(grp.get("opening", np.nan)),
+        "middlegame_acpl": float(grp.get("middlegame", np.nan)),
+        "endgame_acpl": float(grp.get("endgame", np.nan)),
+    }
+
+@trace
 def aggregate_quality_features(game_df, elo: int | None = None, player_color: str = 'white') -> dict:
     logger.info("DEBUG QUALITY: Starting quality features calculation")
     logger.info(f"DEBUG QUALITY: Input DataFrame shape: {game_df.shape}")
@@ -296,17 +321,24 @@ def aggregate_quality_features(game_df, elo: int | None = None, player_color: st
         logger.info("DEBUG QUALITY: No ELO provided, IPR Z-score remains 0.0")
 
     # Nuevo score sintético: 40 % ACPL, 30 % match_rate, 30 % weighted_match_rate
+    acpl_scaled = 1 - min(max(acpl_val, 0), 100) / 100
     quality_score = (
-            40 * (1 - acpl_val / 100) +  # menos ACPL ⇒ mejor
-            30 * match_rate +  # jugadas exactas
-            30 * weighted_match  # precisión ponderada por complejidad
+            40 * acpl_scaled +  # menos ACPL ⇒ mejor
+            30 * match_rate +   # jugadas exactas
+            30 * weighted_match # precisión ponderada por complejidad
     )
     feats["quality_score"] = quality_score
-    logger.info(f"DEBUG QUALITY: Quality score: {quality_score}")
+    logger.info(f"DEBUG QUALITY: Quality score (acpl_scaled={acpl_scaled}): {quality_score}")
 
     burst_count = len(precision_bursts(game_df))
     feats["precision_burst_count"] = burst_count
     logger.info(f"DEBUG QUALITY: Precision burst count: {burst_count}")
+    
+    if "phase" in game_df.columns and "delta_eval" in game_df.columns:
+        pacpl = phase_acpl_single(game_df)
+        if pacpl:
+            feats.update(pacpl)
+            logger.info(f"DEBUG QUALITY: Phase ACPL added: {pacpl}")
     
     logger.info(f"DEBUG QUALITY: Final quality features: {feats}")
     return feats
