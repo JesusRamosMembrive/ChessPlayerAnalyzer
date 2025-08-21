@@ -1,3 +1,8 @@
+[UPDATE — 2025-08-21]
+Suggestion status after recent changes:
+- Already implemented (not restated here): robust, capped ACPL in quality.py; timing robustness/traceability with meta fields; longitudinal slope guards to avoid polyfit issues on single-game inputs.
+- The remaining suggestions below are still valid as future, optional enhancements.
+
 # Additional improvement suggestions (non-critical, positive for the project)
 
 These are enhancements to strengthen interpretability, stability, and auditability of metrics in `app/analysis/*`. They are not direct bug fixes.
