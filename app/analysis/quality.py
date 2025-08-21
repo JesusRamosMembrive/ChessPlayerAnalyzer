@@ -21,26 +21,24 @@ from app.utils_debugging.tracer import trace
 # 1.  Average Centipawn Loss (ACPL)   #########################################
 ###############################################################################
 @trace
-def acpl(game_df: pd.DataFrame, player_color: str = 'white', cap_cp: int | None = 1500) -> float:
+def acpl(game_df: pd.DataFrame, player_color: str = 'white') -> float:
     """
     Calcula el Average Centipawn Loss (pérdida respecto a la mejor jugada) cuando esté disponible.
     Si el DataFrame no trae 'delta_eval', hace fallback al swing de evaluación
     |eval_cp_after - eval_cp_before| ajustado por color.
 
     Args:
-        game_df: DataFrame con análisis de jugadas
-        player_color: 'white' o 'black' para el fallback basado en eval_before/after
-        cap_cp: límite superior opcional aplicado a valores extremos (p.ej. mates) cuando se usa delta_eval
+        game_df: DataFrame con análisis de jugadas. Se espera `delta_eval` para el cálculo primario.
+        player_color: 'white' o 'black' para el fallback basado en eval_before/after.
     """
     if "delta_eval" in game_df.columns:
-        vals = pd.to_numeric(game_df["delta_eval"], errors="coerce").abs()
-        vals = vals.dropna()
-        if cap_cp is not None:
-            vals = vals.clip(upper=cap_cp)
+        # Usar la pérdida vs. la mejor jugada del motor directamente
+        vals = pd.to_numeric(game_df["delta_eval"], errors="coerce").abs().dropna()
         result = float(vals.mean()) if not vals.empty else 0.0
-        logger.info(f"DEBUG QUALITY: ACPL using delta_eval with cap={cap_cp}: count={len(vals)}, mean={result}")
+        logger.info(f"DEBUG QUALITY: ACPL calculated from 'delta_eval' (L1 loss): mean={result:.2f} over {len(vals)} moves.")
         return result
 
+    # --- Fallback si 'delta_eval' no está ---
     required_cols = {"eval_cp_before", "eval_cp_after"}
     if not required_cols.issubset(game_df.columns):
         logger.info("DEBUG QUALITY: ACPL fallback unavailable (missing eval columns); returning 0.0")
@@ -101,7 +99,7 @@ def intrinsic_performance_rating(match_pct: float, acpl: float,
     Aproximación lineal al modelo de Regan.
     – match_pct: % de jugadas que coinciden con la 1ª línea del motor (0‑1).
     – acpl: Average Centipawn Loss.
-    
+
     Devuelve un rating ELO estimado que explicaría esa precisión.
     Los coeficientes se obtienen calibrando sobre tu base de datos de referencia.
     """
@@ -157,7 +155,7 @@ def precision_bursts(game_df: pd.DataFrame,
     required_cols = {"eval_cp_before", "eval_cp_after"}
     if not required_cols.issubset(game_df.columns):
         return []  # Return empty list when engine data is missing
-    
+
     diffs = np.abs(game_df["eval_cp_after"] - game_df["eval_cp_before"]).values
     bursts = []
     for i in range(len(diffs) - window_size + 1):
@@ -289,18 +287,18 @@ def aggregate_quality_features(game_df, elo: int | None = None, player_color: st
     logger.info(f"DEBUG QUALITY: Input DataFrame shape: {game_df.shape}")
     logger.info(f"DEBUG QUALITY: Input DataFrame columns: {list(game_df.columns)}")
     logger.info(f"DEBUG QUALITY: ELO parameter: {elo}")
-    
+
     match_rate = (
         game_df["is_engine_best"].mean() if "is_engine_best" in game_df else 0.0
     )
     logger.info(f"DEBUG QUALITY: Match rate: {match_rate}")
-    
+
     acpl_val = acpl(game_df, player_color)
     logger.info(f"DEBUG QUALITY: ACPL value: {acpl_val}")
-    
+
     weighted_match = complexity_weighted_match(game_df)
     logger.info(f"DEBUG QUALITY: Weighted match rate: {weighted_match}")
-    
+
     ipr_val = intrinsic_performance_rating(match_rate, acpl_val)
     logger.info(f"DEBUG QUALITY: IPR value: {ipr_val}")
 
@@ -333,13 +331,13 @@ def aggregate_quality_features(game_df, elo: int | None = None, player_color: st
     burst_count = len(precision_bursts(game_df))
     feats["precision_burst_count"] = burst_count
     logger.info(f"DEBUG QUALITY: Precision burst count: {burst_count}")
-    
+
     if "phase" in game_df.columns and "delta_eval" in game_df.columns:
         pacpl = phase_acpl_single(game_df)
         if pacpl:
             feats.update(pacpl)
             logger.info(f"DEBUG QUALITY: Phase ACPL added: {pacpl}")
-    
+
     logger.info(f"DEBUG QUALITY: Final quality features: {feats}")
     return feats
 
@@ -381,4 +379,3 @@ if __name__ == "__main__":
 #     player_stats['match_w'], player_stats['acpl']
 # )
 # player_stats['ipr_z'] = ipr_z_score(player_stats['ipr'], player_stats['elo'])
-
