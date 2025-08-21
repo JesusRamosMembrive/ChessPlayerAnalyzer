@@ -6,19 +6,33 @@ import chess
 import chess.pgn
 from chess.syzygy import Tablebase
 from pathlib import Path
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Any
 import logging
 
+from pandas import Index
+
 logger = logging.getLogger(__name__)
+
+
+import sys
+from pathlib import Path
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+# Ensure repository root is on the Python path so imports like ``app.*`` work
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+from app.utils_debugging.tracer import trace
 
 ###############################################################################
 # 0.  UTILIDADES GENERALES ####################################################
 ###############################################################################
 
+@trace
 def is_tb_position(board: chess.Board, max_pieces: int = 7) -> bool:
     """True si la posición puede estar en las tablebases N‑piece."""    
     return board.piece_count() <= max_pieces and not board.is_variant_end()
 
+@trace
 def result_sign(board: chess.Board) -> int:
     """
     WDL ganador/perdedor relativo al side‑to‑move:
@@ -34,6 +48,7 @@ def result_sign(board: chess.Board) -> int:
 # 1.  TABLEBASE MATCH‑RATE ####################################################
 ###############################################################################
 
+@trace
 def tablebase_match_rate(game: chess.pgn.Game,
                          tb: Tablebase,
                          multipv: int = 1
@@ -65,7 +80,7 @@ def tablebase_match_rate(game: chess.pgn.Game,
 ###############################################################################
 # 2.  DTM / DTZ DEVIATION #####################################################
 ###############################################################################
-
+@trace
 def dtz_deviation(game: chess.pgn.Game,
                   tb: Tablebase,
                   max_pieces: int = 7
@@ -91,7 +106,7 @@ def dtz_deviation(game: chess.pgn.Game,
 ###############################################################################
 # 3.  CONVERSION EFFICIENCY (de ventaja a mate) ###############################
 ###############################################################################
-
+@trace
 def find_first_significant_advantage(eval_series: pd.Series,
                                      threshold_cp: int = 500
                                     ) -> int | None:
@@ -104,11 +119,11 @@ def find_first_significant_advantage(eval_series: pd.Series,
             return idx
     return None
 
-
+@trace
 def conversion_efficiency(game_df: pd.DataFrame,
                           eval_col: str = "eval_cp_after",
                           threshold_cp: int = 500
-                         ) -> int | None:
+                         ) -> Index[Any] | None:
     """
     game_df: una fila por jugada (tras la jugada del eventual ganador).
     Devuelve nº de jugadas entre:
@@ -128,7 +143,7 @@ def conversion_efficiency(game_df: pd.DataFrame,
 # 4.  AGREGADOR DE FEATURES ENDGAME ###########################################
 ###############################################################################
 
-
+@trace
 def aggregate_endgame_features(
         game: chess.pgn.Game,
         moves_df: pd.DataFrame,
@@ -187,7 +202,7 @@ def aggregate_endgame_features(
     logger.info(f"DEBUG ENDGAME: Final endgame features: {result}")
     return result
 
-
+@trace
 def aggregate_endgame_efficiency(games_df: pd.DataFrame) -> dict:
     required = {"conversion_efficiency", "tb_match_rate", "dtz_deviation"}
     if required.isdisjoint(games_df.columns):

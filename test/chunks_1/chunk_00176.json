@@ -1,0 +1,16 @@
+[
+  {
+    "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2024.05.21\"]\n[Round \"-\"]\n[White \"anjali1022\"]\n[Black \"Affan_khan123\"]\n[Result \"1-0\"]\n[CurrentPosition \"rnbqk2r/pppp1Qpp/5n2/2b1p3/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq -\"]\n[Timezone \"UTC\"]\n[ECO \"C20\"]\n[ECOUrl \"https://www.chess.com/openings/Bishops-Opening-Boi-Variation\"]\n[UTCDate \"2024.05.21\"]\n[UTCTime \"20:05:03\"]\n[WhiteElo \"326\"]\n[BlackElo \"326\"]\n[TimeControl \"600\"]\n[Termination \"anjali1022 won by checkmate\"]\n[StartTime \"20:05:03\"]\n[EndDate \"2024.05.21\"]\n[EndTime \"20:06:14\"]\n[Link \"https://www.chess.com/game/live/107374221236\"]\n\n1. e4 {[%clk 0:09:59.9]} 1... e5 {[%clk 0:09:49.4]} 2. Bc4 {[%clk 0:09:50.7]} 2... Bc5 {[%clk 0:09:29.6]} 3. Qh5 {[%clk 0:09:38.5]} 3... Nf6 {[%clk 0:09:28.5]} 4. Qxf7# {[%clk 0:09:25.8]} 1-0\n",
+    "move_times": [
+      10,
+      -1,
+      21,
+      -9,
+      10,
+      3
+    ],
+    "white": "anjali1022",
+    "black": "Affan_khan123",
+    "end_time": "2024-05-21T20:06:14+00:00"
+  }
+]

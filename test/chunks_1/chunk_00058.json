@@ -1,0 +1,21 @@
+[
+  {
+    "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2024.03.31\"]\n[Round \"-\"]\n[White \"Affan_khan123\"]\n[Black \"abo_tiiba\"]\n[Result \"0-1\"]\n[CurrentPosition \"rn2k1nr/ppp2ppp/3p4/2b1p3/2B1P3/3P1q1P/PPP2P1P/RNB1K2R w KQkq -\"]\n[Timezone \"UTC\"]\n[ECO \"C20\"]\n[ECOUrl \"https://www.chess.com/openings/Bishops-Opening-Boi-Variation\"]\n[UTCDate \"2024.03.31\"]\n[UTCTime \"21:02:11\"]\n[WhiteElo \"198\"]\n[BlackElo \"229\"]\n[TimeControl \"600\"]\n[Termination \"abo_tiiba won by resignation\"]\n[StartTime \"21:02:11\"]\n[EndDate \"2024.03.31\"]\n[EndTime \"21:04:06\"]\n[Link \"https://www.chess.com/game/live/104902952974\"]\n\n1. e4 {[%clk 0:09:55.9]} 1... e5 {[%clk 0:09:58.8]} 2. Bc4 {[%clk 0:09:50.2]} 2... Bc5 {[%clk 0:09:37.7]} 3. Qf3 {[%clk 0:09:45.7]} 3... Qf6 {[%clk 0:09:29.9]} 4. Nh3 {[%clk 0:09:32.7]} 4... d6 {[%clk 0:09:07.1]} 5. d3 {[%clk 0:09:30.5]} 5... Bxh3 {[%clk 0:08:59.8]} 6. gxh3 {[%clk 0:09:28.1]} 6... Qxf3 {[%clk 0:08:53.9]} 0-1\n",
+    "move_times": [
+      -3,
+      8,
+      13,
+      -8,
+      16,
+      -3,
+      25,
+      -23,
+      31,
+      -29,
+      35
+    ],
+    "white": "Affan_khan123",
+    "black": "abo_tiiba",
+    "end_time": "2024-03-31T21:04:06+00:00"
+  }
+]

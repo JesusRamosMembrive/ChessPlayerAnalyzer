@@ -1,0 +1,12 @@
+{
+  "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2023.12.31\"]\n[Round \"-\"]\n[White \"Affan_khan123\"]\n[Black \"aanyaayy\"]\n[Result \"1-0\"]\n[CurrentPosition \"rnb1kbnr/pppp1ppp/5q2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq -\"]\n[Timezone \"UTC\"]\n[ECO \"C40\"]\n[ECOUrl \"https://www.chess.com/openings/Kings-Pawn-Opening-Kings-Knight-Variation\"]\n[UTCDate \"2023.12.31\"]\n[UTCTime \"11:27:46\"]\n[WhiteElo \"309\"]\n[BlackElo \"235\"]\n[TimeControl \"600\"]\n[Termination \"Affan_khan123 won - game abandoned\"]\n[StartTime \"11:27:46\"]\n[EndDate \"2023.12.31\"]\n[EndTime \"11:29:42\"]\n[Link \"https://www.chess.com/game/live/95864067172\"]\n\n1. e4 {[%clk 0:09:51.2]} 1... e5 {[%clk 0:09:56.5]} 2. Nf3 {[%clk 0:09:44.7]} 2... Qf6 {[%clk 0:09:54.3]} 3. Bc4 {[%clk 0:09:20.5]} 1-0\n",
+  "move_times": [
+    -5,
+    12,
+    -10,
+    34
+  ],
+  "white": "Affan_khan123",
+  "black": "aanyaayy",
+  "end_time": "2023-12-31T11:29:42+00:00"
+}

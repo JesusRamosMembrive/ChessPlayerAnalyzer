@@ -7,14 +7,22 @@ import chess.polyglot
 from typing import List
 from pathlib import Path
 import logging
-
 logger = logging.getLogger(__name__)
 
+
+import sys
+from pathlib import Path
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+# Ensure repository root is on the Python path so imports like ``app.*`` work
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+from app.utils_debugging.tracer import trace
 
 ###############################################################################
 # 0.  Utilidades auxiliares ###################################################
 ###############################################################################
-
+@trace
 def shannon_entropy(series: pd.Series) -> float:
     """
     H = −Σ p_i·log2(p_i)   (bits)
@@ -27,14 +35,14 @@ def shannon_entropy(series: pd.Series) -> float:
     probs  = counts / counts.sum()
     return -(probs * np.log2(probs)).sum()
 
-
+@trace
 def load_reference_book(path: str | Path) -> chess.polyglot.Reader:
     """
     Abre un libro Polyglot o PGN grande convertido a .bin (mucho más rápido).
     """
     return chess.polyglot.open_reader(path)
 
-
+@trace
 def novelty_ply(game: chess.pgn.Game, book: chess.polyglot.Reader) -> int:
     """
     Devuelve el número de ply (1‑based) en el que la partida se desvía del libro.
@@ -53,7 +61,7 @@ def novelty_ply(game: chess.pgn.Game, book: chess.polyglot.Reader) -> int:
 ###############################################################################
 # 1.  ENTROPÍA DE APERTURAS ###################################################
 ###############################################################################
-
+@trace
 def opening_entropy(games_df: pd.DataFrame,
                     eco_col: str = "eco_code",
                     elo: int | pd.Series | None = None,
@@ -80,7 +88,7 @@ def opening_entropy(games_df: pd.DataFrame,
 ###############################################################################
 # 2.  PROFUNDIDAD DE NOVEDAD (TN‑depth) ######################################
 ###############################################################################
-
+@trace
 def novelty_depth_stats(games: List[chess.pgn.Game],
                         book: chess.polyglot.Reader
                        ) -> dict:
@@ -102,7 +110,7 @@ def novelty_depth_stats(games: List[chess.pgn.Game],
 ###############################################################################
 # 3.  COINCIDENCIA CON 2ª / 3ª LÍNEA DEL MOTOR ###############################
 ###############################################################################
-
+@trace
 def second_choice_rate(moves_df: pd.DataFrame,
                        rank_col: str = "bestmove_rank",
                        delta_eval_col: str = "delta_eval",
@@ -127,7 +135,7 @@ def second_choice_rate(moves_df: pd.DataFrame,
 ###############################################################################
 # 4.  BREADTH‑/FOCUS‑INDEX ####################################################
 ###############################################################################
-
+@trace
 def repertoire_breadth_focus(games_df: pd.DataFrame,
                              eco_col: str = "eco_code",
                              min_occurrences: int = 3
@@ -153,7 +161,7 @@ def repertoire_breadth_focus(games_df: pd.DataFrame,
 ###############################################################################
 # 5.  AGREGADOR GENERAL #######################################################
 ###############################################################################
-
+@trace
 def aggregate_opening_features(opening_key: str,
                                eco_code: str | None,
                                moves_df: pd.DataFrame,
@@ -182,8 +190,9 @@ def aggregate_opening_features(opening_key: str,
     }
 
 # ---------------------------------------------------------- #
-# 7.  AGREGADOR -- NIVEL JUGADOR ---------------------------- #
+# 7.  AGREGADOR -- NIVEL JUGADOR --------------------------- #
 # ---------------------------------------------------------- #
+@trace
 def aggregate_player_opening_patterns(games_df: pd.DataFrame,
                                       moves_dfs: list[pd.DataFrame]) -> dict:
     """

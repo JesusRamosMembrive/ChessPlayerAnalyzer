@@ -1,5 +1,27 @@
 import numpy as np
-import pandas as pd
+import logging
+logger = logging.getLogger(__name__)
+
+
+import sys
+from pathlib import Path
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+# Ensure repository root is on the Python path so imports like ``app.*`` work
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+try:
+    from app.utils_debugging.tracer import trace
+    logger.info("DEBUG TIMING: Tracer imported")
+except Exception:
+    def trace(func=None, *targs, **tkwargs):
+        # Fallback no-op decorator if tracer is unavailable
+        if func is None:
+            def _decorator(f):
+                return f
+            return _decorator
+        return func
 
 # Pre-computed reference table (Elo band → percentiles)
 # Example structure: rows per Elo bucket every 200 Elo
@@ -17,12 +39,13 @@ REFERENCE = {
     2800: {"acpl": [100, 400, 800], "entropy": [3.0, 5.6, 11.0]},
 }
 
+@trace
 def _pct(value: float, quartiles: list[float]) -> int:
     """Return approximate percentile (0,25,50,75,100) given quartiles array."""
     if value is None or np.isnan(value):
         return None
     
-    if value == 0.0:
+    if np.isclose(value, 0.0, rtol=1e-09, atol=1e-09):
         return 5  # Very low percentile for 0 values
     
     if value <= quartiles[0]:
@@ -33,6 +56,7 @@ def _pct(value: float, quartiles: list[float]) -> int:
         return 65
     return 90
 
+@trace
 def compute_benchmark(avg_acpl: float,
                       mean_entropy: float,
                       player_elo: int | None) -> dict:

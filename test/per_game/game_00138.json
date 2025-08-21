@@ -1,0 +1,14 @@
+{
+  "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2024.04.11\"]\n[Round \"-\"]\n[White \"simon5946\"]\n[Black \"Affan_khan123\"]\n[Result \"1-0\"]\n[CurrentPosition \"rnbqkb1r/pppp1Q1p/5n2/4p1p1/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq -\"]\n[Timezone \"UTC\"]\n[ECO \"C20\"]\n[ECOUrl \"https://www.chess.com/openings/Kings-Pawn-Opening-1...e5\"]\n[UTCDate \"2024.04.11\"]\n[UTCTime \"11:18:01\"]\n[WhiteElo \"390\"]\n[BlackElo \"369\"]\n[TimeControl \"600\"]\n[Termination \"simon5946 won by checkmate\"]\n[StartTime \"11:18:01\"]\n[EndDate \"2024.04.11\"]\n[EndTime \"11:18:23\"]\n[Link \"https://www.chess.com/game/live/104988181822\"]\n\n1. e4 {[%clk 0:09:59.8]} 1... e5 {[%clk 0:09:58.5]} 2. Qh5 {[%clk 0:09:58.3]} 2... g5 {[%clk 0:09:53.8]} 3. Bc4 {[%clk 0:09:54.4]} 3... Nf6 {[%clk 0:09:50.6]} 4. Qxf7# {[%clk 0:09:51.9]} 1-0\n",
+  "move_times": [
+    1,
+    0,
+    5,
+    -1,
+    4,
+    -1
+  ],
+  "white": "simon5946",
+  "black": "Affan_khan123",
+  "end_time": "2024-04-11T11:18:23+00:00"
+}

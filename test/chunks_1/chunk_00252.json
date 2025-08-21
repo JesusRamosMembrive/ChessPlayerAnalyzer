@@ -1,0 +1,42 @@
+[
+  {
+    "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2025.04.02\"]\n[Round \"-\"]\n[White \"DecCxPT\"]\n[Black \"Affan_khan123\"]\n[Result \"1-0\"]\n[CurrentPosition \"4k2r/1pp3pp/3Q4/p7/5N2/3BB3/PPP2PPP/R3K2R b KQ -\"]\n[Timezone \"UTC\"]\n[ECO \"C45\"]\n[ECOUrl \"https://www.chess.com/openings/Scotch-Game\"]\n[UTCDate \"2025.04.02\"]\n[UTCTime \"07:16:42\"]\n[WhiteElo \"377\"]\n[BlackElo \"347\"]\n[TimeControl \"600\"]\n[Termination \"DecCxPT won - game abandoned\"]\n[StartTime \"07:16:42\"]\n[EndDate \"2025.04.02\"]\n[EndTime \"07:21:33\"]\n[Link \"https://www.chess.com/game/live/136936479214\"]\n\n1. e4 {[%clk 0:09:59.2]} 1... e5 {[%clk 0:09:58.4]} 2. Nf3 {[%clk 0:09:57.6]} 2... Nc6 {[%clk 0:09:56.8]} 3. d4 {[%clk 0:09:42.2]} 3... Nf6 {[%clk 0:09:53]} 4. dxe5 {[%clk 0:09:38.2]} 4... Nxe4 {[%clk 0:09:50.5]} 5. Be3 {[%clk 0:09:07.9]} 5... Bb4+ {[%clk 0:09:47.8]} 6. Nc3 {[%clk 0:09:01.8]} 6... Nxe5 {[%clk 0:09:40.6]} 7. Qd4 {[%clk 0:08:51.7]} 7... Qf6 {[%clk 0:09:33.7]} 8. Qxb4 {[%clk 0:08:45.8]} 8... a5 {[%clk 0:09:24.9]} 9. Qxe4 {[%clk 0:08:44]} 9... d5 {[%clk 0:09:15.1]} 10. Nxd5 {[%clk 0:08:35]} 10... Qd6 {[%clk 0:08:57.8]} 11. Nf4 {[%clk 0:08:32.6]} 11... Be6 {[%clk 0:08:47.7]} 12. Nxe5 {[%clk 0:08:28.1]} 12... Rd8 {[%clk 0:08:44]} 13. Bd3 {[%clk 0:08:19.5]} 13... Bd5 {[%clk 0:08:32.3]} 14. Qxd5 {[%clk 0:08:10.7]} 14... Kf8 {[%clk 0:08:13.2]} 15. Nxf7 {[%clk 0:08:07.5]} 15... Ke8 {[%clk 0:07:58.7]} 16. Nxd6+ {[%clk 0:08:04.3]} 16... Rxd6 {[%clk 0:07:50.2]} 17. Qxd6 {[%clk 0:07:42.9]} 1-0\n",
+    "move_times": [
+      1,
+      1,
+      1,
+      14,
+      -11,
+      15,
+      -12,
+      43,
+      -40,
+      46,
+      -39,
+      49,
+      -42,
+      48,
+      -39,
+      40,
+      -31,
+      40,
+      -22,
+      25,
+      -15,
+      19,
+      -16,
+      25,
+      -13,
+      22,
+      -3,
+      6,
+      9,
+      -6,
+      14,
+      8
+    ],
+    "white": "DecCxPT",
+    "black": "Affan_khan123",
+    "end_time": "2025-04-02T07:21:33+00:00"
+  }
+]

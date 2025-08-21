@@ -1,0 +1,18 @@
+[
+  {
+    "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2024.03.31\"]\n[Round \"-\"]\n[White \"cesar3097\"]\n[Black \"Affan_khan123\"]\n[Result \"1-0\"]\n[CurrentPosition \"rnb1k1nr/pppp1p1p/5p2/2b5/7P/8/PPPPPPP1/RNBQKB1R b KQkq h3\"]\n[Timezone \"UTC\"]\n[ECO \"A04\"]\n[ECOUrl \"https://www.chess.com/openings/Reti-Opening\"]\n[UTCDate \"2024.03.31\"]\n[UTCTime \"21:04:11\"]\n[WhiteElo \"218\"]\n[BlackElo \"189\"]\n[TimeControl \"600\"]\n[Termination \"cesar3097 won by resignation\"]\n[StartTime \"21:04:11\"]\n[EndDate \"2024.03.31\"]\n[EndTime \"21:05:21\"]\n[Link \"https://www.chess.com/game/live/104902965418\"]\n\n1. Nf3 {[%clk 0:09:55.2]} 1... e5 {[%clk 0:09:55.7]} 2. Nxe5 {[%clk 0:09:52.5]} 2... Qf6 {[%clk 0:09:40]} 3. Ng4 {[%clk 0:09:48.8]} 3... Bc5 {[%clk 0:09:30.5]} 4. Nxf6+ {[%clk 0:09:46.3]} 4... gxf6 {[%clk 0:09:27.4]} 5. h4 {[%clk 0:09:32.1]} 1-0\n",
+    "move_times": [
+      0,
+      3,
+      12,
+      -8,
+      18,
+      -16,
+      19,
+      -5
+    ],
+    "white": "cesar3097",
+    "black": "Affan_khan123",
+    "end_time": "2024-03-31T21:05:21+00:00"
+  }
+]

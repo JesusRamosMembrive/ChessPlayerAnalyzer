@@ -1,0 +1,15 @@
+{
+  "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2024.03.01\"]\n[Round \"-\"]\n[White \"Affan_khan123\"]\n[Black \"GAB142027\"]\n[Result \"0-1\"]\n[CurrentPosition \"rn1qkbnr/ppp1pp1p/4b1p1/7Q/4p3/1B6/PPPP1PPP/RNB1K1NR w KQkq -\"]\n[Timezone \"UTC\"]\n[ECO \"B01\"]\n[ECOUrl \"https://www.chess.com/openings/Scandinavian-Defense\"]\n[UTCDate \"2024.03.01\"]\n[UTCTime \"16:28:34\"]\n[WhiteElo \"209\"]\n[BlackElo \"210\"]\n[TimeControl \"600\"]\n[Termination \"GAB142027 won - game abandoned\"]\n[StartTime \"16:28:34\"]\n[EndDate \"2024.03.01\"]\n[EndTime \"16:30:32\"]\n[Link \"https://www.chess.com/game/live/101409137488\"]\n\n1. e4 {[%clk 0:09:55.7]} 1... d5 {[%clk 0:09:56.1]} 2. Qh5 {[%clk 0:09:36.6]} 2... dxe4 {[%clk 0:09:52.5]} 3. Bc4 {[%clk 0:09:33.9]} 3... Be6 {[%clk 0:09:44.5]} 4. Bb3 {[%clk 0:09:23.8]} 4... g6 {[%clk 0:09:32.6]} 0-1\n",
+  "move_times": [
+    -1,
+    20,
+    -16,
+    19,
+    -11,
+    21,
+    -9
+  ],
+  "white": "Affan_khan123",
+  "black": "GAB142027",
+  "end_time": "2024-03-01T16:30:32+00:00"
+}

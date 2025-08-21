@@ -1,0 +1,12 @@
+[
+  {
+    "pgn": "[Event \"Let's Play!\"]\n[Site \"Chess.com\"]\n[Date \"2024.06.02\"]\n[Round \"-\"]\n[White \"ray47yan\"]\n[Black \"Affan_khan123\"]\n[Result \"1-0\"]\n[CurrentPosition \"rnbqkbnr/pppp1ppp/8/4p3/3PP3/8/PPP2PPP/RNBQKBNR b KQkq d3 0 2\"]\n[Timezone \"UTC\"]\n[ECO \"C21\"]\n[ECOUrl \"https://www.chess.com/openings/Center-Game\"]\n[UTCDate \"2024.06.02\"]\n[UTCTime \"12:59:13\"]\n[WhiteElo \"400\"]\n[BlackElo \"1200\"]\n[TimeControl \"1/259200\"]\n[Termination \"ray47yan won on time\"]\n[StartTime \"12:59:13\"]\n[EndDate \"2024.06.07\"]\n[EndTime \"10:10:36\"]\n[Link \"https://www.chess.com/game/daily/664007191\"]\n\n1. e4 {[%clk 0:00:39]} 1... e5 {[%clk 0:00:01.6]} 2. d4 {[%clk 4:30:20.7]} 1-0\n",
+    "move_times": [
+      38,
+      -16219
+    ],
+    "white": "ray47yan",
+    "black": "Affan_khan123",
+    "end_time": "2024-06-07T10:10:36+00:00"
+  }
+]

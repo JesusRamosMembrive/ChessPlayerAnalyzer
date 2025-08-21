@@ -1,0 +1,22 @@
+{
+  "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2024.04.01\"]\n[Round \"-\"]\n[White \"Hyde_ruiz\"]\n[Black \"Affan_khan123\"]\n[Result \"1-0\"]\n[CurrentPosition \"r1b1k1nr/ppp2ppp/3Bp3/b2p4/3nP2P/2PP2P1/PP3P2/RN1QKBNR b KQkq -\"]\n[Timezone \"UTC\"]\n[ECO \"C00\"]\n[ECOUrl \"https://www.chess.com/openings/French-Defense-Kings-Indian-Attack-2...d5\"]\n[UTCDate \"2024.04.01\"]\n[UTCTime \"08:08:41\"]\n[WhiteElo \"186\"]\n[BlackElo \"173\"]\n[TimeControl \"600\"]\n[Termination \"Hyde_ruiz won - game abandoned\"]\n[StartTime \"08:08:41\"]\n[EndDate \"2024.04.01\"]\n[EndTime \"08:10:22\"]\n[Link \"https://www.chess.com/game/live/104905931194\"]\n\n1. d3 {[%clk 0:09:53.1]} 1... d5 {[%clk 0:09:55.4]} 2. e4 {[%clk 0:09:48.8]} 2... e6 {[%clk 0:09:53.6]} 3. h4 {[%clk 0:09:43]} 3... Bb4+ {[%clk 0:09:48.2]} 4. c3 {[%clk 0:09:40.4]} 4... Ba5 {[%clk 0:09:46.1]} 5. Bg5 {[%clk 0:09:32.4]} 5... Qd6 {[%clk 0:09:32.1]} 6. g3 {[%clk 0:09:27.7]} 6... Nc6 {[%clk 0:09:30.9]} 7. Bf4 {[%clk 0:09:26.4]} 7... Nd4 {[%clk 0:09:29.1]} 8. Bxd6 {[%clk 0:09:24.3]} 1-0\n",
+  "move_times": [
+    -2,
+    7,
+    -5,
+    10,
+    -5,
+    8,
+    -6,
+    14,
+    0,
+    5,
+    -3,
+    4,
+    -3,
+    5
+  ],
+  "white": "Hyde_ruiz",
+  "black": "Affan_khan123",
+  "end_time": "2024-04-01T08:10:22+00:00"
+}

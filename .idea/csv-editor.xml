@@ -3,7 +3,7 @@
   <component name="CsvFileAttributes">
     <option name="attributeMap">
       <map>
-        <entry key="\backend\app\analysis\eco_table.csv">
+        <entry key="\test\test\out\results\chunk_00001.per_game.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />

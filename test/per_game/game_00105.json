@@ -1,0 +1,24 @@
+{
+  "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2024.04.09\"]\n[Round \"-\"]\n[White \"bot123924\"]\n[Black \"Affan_khan123\"]\n[Result \"1-0\"]\n[CurrentPosition \"rnbqkb1r/p4Qpp/2p5/6P1/2B1p1n1/7P/PPPP1P2/RNB1K1NR b KQkq -\"]\n[Timezone \"UTC\"]\n[ECO \"C24\"]\n[ECOUrl \"https://www.chess.com/openings/Bishops-Opening-Berlin-Defense\"]\n[UTCDate \"2024.04.09\"]\n[UTCTime \"15:57:20\"]\n[WhiteElo \"304\"]\n[BlackElo \"277\"]\n[TimeControl \"600\"]\n[Termination \"bot123924 won by checkmate\"]\n[StartTime \"15:57:20\"]\n[EndDate \"2024.04.09\"]\n[EndTime \"15:58:44\"]\n[Link \"https://www.chess.com/game/live/104973618670\"]\n\n1. e4 {[%clk 0:09:59.5]} 1... e5 {[%clk 0:09:58.5]} 2. Bc4 {[%clk 0:09:57.6]} 2... Nf6 {[%clk 0:09:51.3]} 3. Qf3 {[%clk 0:09:50.7]} 3... d6 {[%clk 0:09:47.6]} 4. g4 {[%clk 0:09:44.3]} 4... d5 {[%clk 0:09:46.2]} 5. exd5 {[%clk 0:09:37.6]} 5... c6 {[%clk 0:09:43.2]} 6. dxc6 {[%clk 0:09:34.5]} 6... bxc6 {[%clk 0:09:42.3]} 7. g5 {[%clk 0:09:29.1]} 7... Ng4 {[%clk 0:09:38.8]} 8. h3 {[%clk 0:09:22.8]} 8... e4 {[%clk 0:09:30.7]} 9. Qxf7# {[%clk 0:09:13.4]} 1-0\n",
+  "move_times": [
+    1,
+    1,
+    6,
+    1,
+    3,
+    3,
+    -2,
+    9,
+    -6,
+    9,
+    -8,
+    13,
+    -9,
+    16,
+    -8,
+    17
+  ],
+  "white": "bot123924",
+  "black": "Affan_khan123",
+  "end_time": "2024-04-09T15:58:44+00:00"
+}

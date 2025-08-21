@@ -1,0 +1,23 @@
+{
+  "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2024.03.31\"]\n[Round \"-\"]\n[White \"cheyomax73745\"]\n[Black \"Affan_khan123\"]\n[Result \"0-1\"]\n[CurrentPosition \"r1bq1br1/ppppkBpp/5n2/4p1N1/4P3/3P1Q2/PP3PPP/nNBK3R w - -\"]\n[Timezone \"UTC\"]\n[ECO \"C24\"]\n[ECOUrl \"https://www.chess.com/openings/Bishops-Opening-Berlin-Defense\"]\n[UTCDate \"2024.03.31\"]\n[UTCTime \"20:58:56\"]\n[WhiteElo \"156\"]\n[BlackElo \"207\"]\n[TimeControl \"600\"]\n[Termination \"Affan_khan123 won by resignation\"]\n[StartTime \"20:58:56\"]\n[EndDate \"2024.03.31\"]\n[EndTime \"21:02:05\"]\n[Link \"https://www.chess.com/game/live/104902932426\"]\n\n1. e4 {[%clk 0:09:49.2]} 1... e5 {[%clk 0:09:57.8]} 2. Bc4 {[%clk 0:09:43.6]} 2... Nf6 {[%clk 0:09:54.7]} 3. Qf3 {[%clk 0:09:42.4]} 3... Nc6 {[%clk 0:09:18]} 4. Nh3 {[%clk 0:09:33.5]} 4... Nd4 {[%clk 0:09:10.3]} 5. Ng5 {[%clk 0:09:20.9]} 5... Nxc2+ {[%clk 0:09:05.7]} 6. Kd1 {[%clk 0:09:11.6]} 6... Nxa1 {[%clk 0:09:03.3]} 7. Bxf7+ {[%clk 0:09:03.4]} 7... Ke7 {[%clk 0:08:51.8]} 8. d3 {[%clk 0:08:34]} 8... Rg8 {[%clk 0:08:45.3]} 0-1\n",
+  "move_times": [
+    -8,
+    14,
+    -11,
+    12,
+    24,
+    -15,
+    23,
+    -10,
+    15,
+    -6,
+    8,
+    0,
+    12,
+    17,
+    -11
+  ],
+  "white": "cheyomax73745",
+  "black": "Affan_khan123",
+  "end_time": "2024-03-31T21:02:05+00:00"
+}

@@ -14,6 +14,15 @@ from pathlib import Path
 
 from app.models import Game, GameAnalysisDetailed, PlayerAnalysisDetailed
 from app.database import engine as db_engine
+try:
+    from app.utils_debugging.tracer import trace
+except Exception:
+    def trace(func=None, *targs, **tkwargs):
+        if func is None:
+            def _decorator(f):
+                return f
+            return _decorator
+        return func
 from sqlmodel import Session, select
 
 # Importar módulos de análisis
@@ -46,9 +55,21 @@ from app.analysis.timing import (
 )
 from app.utils_sanitize import clean_json_numbers
 
-
 logger = logging.getLogger(__name__)
 
+
+import sys
+from pathlib import Path
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+# Ensure repository root is on the Python path so imports like ``app.*`` work
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from app.utils_debugging.tracer import trace
+
+
+@trace
 def prepare_moves_dataframe(game: models.Game, username: Optional[str] = None) -> pd.DataFrame:
     rows = []
     player_color = None
@@ -167,6 +188,7 @@ def prepare_moves_dataframe(game: models.Game, username: Optional[str] = None) -
 
     return df
 
+@trace
 def _safe_mean(df: pd.DataFrame, col: str, default: float = 0.0) -> float:
     """Media que nunca devuelve None (NaN→default, col ausente→default)."""
     if col not in df.columns:
@@ -197,6 +219,7 @@ class ChessAnalysisEngine:
             self.acpl_model = quality.ACPLModel()
             self.acpl_model.fit(reference_stats_df)
 
+    @trace
     def _get_player_color(self, game: Game, username: str) -> str | None:
         """Determine if username played as 'white' or 'black' in this game."""
         if game.white_username == username:
@@ -205,6 +228,7 @@ class ChessAnalysisEngine:
             return 'black'
         return None
 
+    @trace
     def analyze_game(self, game_id: int, username: str) -> GameAnalysisDetailed:
         """
         Analiza una partida completa con todos los módulos.
@@ -327,6 +351,7 @@ class ChessAnalysisEngine:
             logger.info("GameAnalysisDetailed result: %s", analysis)
             return analysis
 
+    @trace
     def analyze_player(self, username: str) -> PlayerAnalysisDetailed:
         """
         Analiza todas las partidas de un jugador y genera métricas agregadas.
@@ -570,12 +595,12 @@ class ChessAnalysisEngine:
             session.add(analysis)
             session.commit()
             return analysis
-
+    @trace
     def prepare_moves_dataframe(self, game: Game, username: Optional[str] = None) -> pd.DataFrame:
         """Convierte los movimientos de la BD a DataFrame para análisis."""
         return prepare_moves_dataframe(game, username)  # Llamada libre para reutilizar
 
-
+    @trace
     def _analyze_quality(self, moves_df: pd.DataFrame, game: Game, player_color: str) -> Dict:
         """Ejecuta análisis de calidad."""
         features = {}
@@ -610,6 +635,7 @@ class ChessAnalysisEngine:
 
         return features
 
+    @trace
     def _calculate_suspicious_flags(self, features: Dict) -> Dict:
         """Calcula flags de comportamiento sospechoso."""
         return {
@@ -627,6 +653,7 @@ class ChessAnalysisEngine:
             )
         }
 
+    @trace
     def _calculate_risk_score(self, games_df: pd.DataFrame,
                               long_features: Dict) -> tuple[float, Dict]:
         """
@@ -693,6 +720,7 @@ class ChessAnalysisEngine:
         logger.info(f"DEBUG ENGINE: Total risk score: {final_score}")
         return final_score, risk_factors
 
+    @trace
     def _get_player_games_df(self, username: str, session: Session) -> pd.DataFrame:
         """Obtiene DataFrame con todas las partidas del jugador."""
         stmt = select(Game).where(
@@ -710,6 +738,7 @@ class ChessAnalysisEngine:
     # --------------------------------------------------------------------------- #
     # 1.  Partidas + análisis detallado                                           #
     # --------------------------------------------------------------------------- #
+    @trace
     def _get_player_games_with_analysis(self, username: str,
                                         session: Session) -> pd.DataFrame:
         """
@@ -778,6 +807,7 @@ class ChessAnalysisEngine:
     # --------------------------------------------------------------------------- #
     # 2.  Estimación de ELO por media robusta                                     #
     # --------------------------------------------------------------------------- #
+    @trace
     def _estimate_player_elo(self, username: str, game: Optional[Game] = None) -> int:
         """
         Estima el ELO del jugador, usando el contexto del juego específico si está disponible.
@@ -813,6 +843,7 @@ class ChessAnalysisEngine:
     # --------------------------------------------------------------------------- #
     # 3.  Detección de final real                                                #
     # --------------------------------------------------------------------------- #
+    @trace
     def _has_endgame(self, moves_df: pd.DataFrame) -> bool:
         """
         Considera que hay final si:

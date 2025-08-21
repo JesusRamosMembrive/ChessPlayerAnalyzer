@@ -1,0 +1,43 @@
+[
+  {
+    "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2024.03.29\"]\n[Round \"-\"]\n[White \"grace_8ipk4\"]\n[Black \"Affan_khan123\"]\n[Result \"0-1\"]\n[CurrentPosition \"r7/ppp2pkp/3p4/3P4/4nB1P/7b/PPP1Qb1P/RN3K2 w - -\"]\n[Timezone \"UTC\"]\n[ECO \"C24\"]\n[ECOUrl \"https://www.chess.com/openings/Bishops-Opening-Berlin-Defense\"]\n[UTCDate \"2024.03.29\"]\n[UTCTime \"17:49:28\"]\n[WhiteElo \"148\"]\n[BlackElo \"186\"]\n[TimeControl \"600\"]\n[Termination \"Affan_khan123 won by checkmate\"]\n[StartTime \"17:49:28\"]\n[EndDate \"2024.03.29\"]\n[EndTime \"17:55:29\"]\n[Link \"https://www.chess.com/game/live/104886106994\"]\n\n1. e4 {[%clk 0:09:54.8]} 1... e5 {[%clk 0:09:58.1]} 2. Bc4 {[%clk 0:09:46.9]} 2... Nf6 {[%clk 0:09:48.5]} 3. Nf3 {[%clk 0:09:40.6]} 3... Nxe4 {[%clk 0:09:38.3]} 4. Nxe5 {[%clk 0:09:34.1]} 4... Qh4 {[%clk 0:09:15.6]} 5. g3 {[%clk 0:09:30]} 5... Bc5 {[%clk 0:09:13.7]} 6. gxh4 {[%clk 0:09:27]} 6... Bxf2+ {[%clk 0:09:12.3]} 7. Kf1 {[%clk 0:09:20.2]} 7... O-O {[%clk 0:08:59.8]} 8. Rg1 {[%clk 0:09:15.4]} 8... Re8 {[%clk 0:08:57.4]} 9. Rg6 {[%clk 0:09:12.4]} 9... Rxe5 {[%clk 0:08:24.7]} 10. Rxg7+ {[%clk 0:09:06.7]} 10... Kxg7 {[%clk 0:08:23.3]} 11. d4 {[%clk 0:09:00.2]} 11... Rf5 {[%clk 0:08:09.2]} 12. d5 {[%clk 0:08:55.2]} 12... d6 {[%clk 0:08:04.4]} 13. Be2 {[%clk 0:07:32.4]} 13... Na6 {[%clk 0:07:56.1]} 14. Bd3 {[%clk 0:07:15.4]} 14... Nac5 {[%clk 0:07:42.5]} 15. Bxe4 {[%clk 0:07:11.5]} 15... Nxe4 {[%clk 0:07:41.2]} 16. Qe2 {[%clk 0:07:04.4]} 16... Rf4 {[%clk 0:07:21.7]} 17. Bxf4 {[%clk 0:07:00.3]} 17... Bh3# {[%clk 0:07:08.7]} 0-1\n",
+    "move_times": [
+      -4,
+      12,
+      -2,
+      8,
+      2,
+      4,
+      19,
+      -15,
+      17,
+      -14,
+      15,
+      -8,
+      21,
+      -16,
+      18,
+      -15,
+      48,
+      -42,
+      43,
+      -37,
+      51,
+      -46,
+      51,
+      32,
+      -24,
+      41,
+      -27,
+      31,
+      -30,
+      37,
+      -17,
+      21,
+      -8
+    ],
+    "white": "grace_8ipk4",
+    "black": "Affan_khan123",
+    "end_time": "2024-03-29T17:55:29+00:00"
+  }
+]

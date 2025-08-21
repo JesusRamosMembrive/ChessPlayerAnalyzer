@@ -1,0 +1,16 @@
+{
+  "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2024.04.01\"]\n[Round \"-\"]\n[White \"trnglg\"]\n[Black \"Affan_khan123\"]\n[Result \"1-0\"]\n[CurrentPosition \"rnbqkb1r/pppp1Q1p/8/4N1p1/4n3/4P3/PPPP1PPP/RNB1KB1R b KQkq -\"]\n[Timezone \"UTC\"]\n[ECO \"A00\"]\n[ECOUrl \"https://www.chess.com/openings/Van-t-Kruijs-Opening-1...e5\"]\n[UTCDate \"2024.04.01\"]\n[UTCTime \"09:17:55\"]\n[WhiteElo \"184\"]\n[BlackElo \"172\"]\n[TimeControl \"600\"]\n[Termination \"trnglg won by checkmate\"]\n[StartTime \"09:17:55\"]\n[EndDate \"2024.04.01\"]\n[EndTime \"09:18:47\"]\n[Link \"https://www.chess.com/game/live/104906250822\"]\n\n1. e3 {[%clk 0:09:57]} 1... e5 {[%clk 0:09:58.2]} 2. Nf3 {[%clk 0:09:46.7]} 2... Nf6 {[%clk 0:09:56.5]} 3. Nxe5 {[%clk 0:09:44.7]} 3... Ne4 {[%clk 0:09:54.9]} 4. Qh5 {[%clk 0:09:38.2]} 4... g5 {[%clk 0:09:38.4]} 5. Qxf7# {[%clk 0:09:35.3]} 1-0\n",
+  "move_times": [
+    -1,
+    12,
+    -10,
+    12,
+    -10,
+    16,
+    0,
+    3
+  ],
+  "white": "trnglg",
+  "black": "Affan_khan123",
+  "end_time": "2024-04-01T09:18:47+00:00"
+}

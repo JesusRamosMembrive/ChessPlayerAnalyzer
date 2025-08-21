@@ -1,0 +1,15 @@
+[
+  {
+    "pgn": "[Event \"Let's Play!\"]\n[Site \"Chess.com\"]\n[Date \"2024.05.21\"]\n[Round \"-\"]\n[White \"Affan_khan123\"]\n[Black \"66paulo66\"]\n[Result \"0-1\"]\n[CurrentPosition \"rnbqkb1r/ppp1pppp/5n2/4N3/4p3/8/PPPP1PPP/RNBQKB1R w KQkq - 2 4\"]\n[Timezone \"UTC\"]\n[ECO \"B01\"]\n[ECOUrl \"https://www.chess.com/openings/Scandinavian-Defense\"]\n[UTCDate \"2024.05.21\"]\n[UTCTime \"20:02:17\"]\n[WhiteElo \"1200\"]\n[BlackElo \"1092\"]\n[TimeControl \"1/86400\"]\n[Termination \"66paulo66 won on time\"]\n[StartTime \"20:02:17\"]\n[EndDate \"2024.05.22\"]\n[EndTime \"20:08:17\"]\n[Link \"https://www.chess.com/game/daily/659776963\"]\n\n1. e4 {[%clk 0:00:02.2]} 1... d5 {[%clk 0:00:01.8]} 2. Nf3 {[%clk 0:00:02.1]} 2... dxe4 {[%clk 0:00:00.8]} 3. Ne5 {[%clk 0:00:06.5]} 3... Nf6 {[%clk 0:00:17.3]} 0-1\n",
+    "move_times": [
+      1,
+      -1,
+      2,
+      -6,
+      -11
+    ],
+    "white": "Affan_khan123",
+    "black": "66paulo66",
+    "end_time": "2024-05-22T20:08:17+00:00"
+  }
+]

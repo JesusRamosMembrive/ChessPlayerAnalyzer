@@ -1,0 +1,20 @@
+{
+  "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2024.04.12\"]\n[Round \"-\"]\n[White \"Affan_khan123\"]\n[Black \"rixfehren\"]\n[Result \"1-0\"]\n[CurrentPosition \"r1bqk2r/pppp1Qpp/2n5/2bNp1N1/4P3/8/PPPP1nPP/R1B1KB1R b KQkq -\"]\n[Timezone \"UTC\"]\n[ECO \"C47\"]\n[ECOUrl \"https://www.chess.com/openings/Four-Knights-Game\"]\n[UTCDate \"2024.04.12\"]\n[UTCTime \"09:38:48\"]\n[WhiteElo \"369\"]\n[BlackElo \"352\"]\n[TimeControl \"600\"]\n[Termination \"Affan_khan123 won by checkmate\"]\n[StartTime \"09:38:48\"]\n[EndDate \"2024.04.12\"]\n[EndTime \"09:40:26\"]\n[Link \"https://www.chess.com/game/live/104995886402\"]\n\n1. e4 {[%clk 0:09:59.2]} 1... e5 {[%clk 0:09:58.4]} 2. Nf3 {[%clk 0:09:55]} 2... Nc6 {[%clk 0:09:54.3]} 3. Nc3 {[%clk 0:09:52.6]} 3... Nf6 {[%clk 0:09:45.4]} 4. Ng5 {[%clk 0:09:42.2]} 4... Bc5 {[%clk 0:09:25]} 5. Nd5 {[%clk 0:09:40.5]} 5... Ng4 {[%clk 0:09:01.4]} 6. Qf3 {[%clk 0:09:37.2]} 6... Nxf2 {[%clk 0:08:53.7]} 7. Qxf7# {[%clk 0:09:34.1]} 1-0\n",
+  "move_times": [
+    1,
+    3,
+    1,
+    2,
+    7,
+    3,
+    17,
+    -15,
+    39,
+    -36,
+    44,
+    -41
+  ],
+  "white": "Affan_khan123",
+  "black": "rixfehren",
+  "end_time": "2024-04-12T09:40:26+00:00"
+}

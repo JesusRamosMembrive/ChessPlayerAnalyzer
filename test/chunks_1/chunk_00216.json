@@ -1,0 +1,20 @@
+[
+  {
+    "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2024.06.09\"]\n[Round \"-\"]\n[White \"Affan_khan123\"]\n[Black \"ray47yan\"]\n[Result \"1-0\"]\n[CurrentPosition \"r1bqkbnr/ppp2Qpp/2np4/4p3/2B1P3/8/PPPP1PPP/RNB1K2R b KQkq -\"]\n[Timezone \"UTC\"]\n[ECO \"C50\"]\n[ECOUrl \"https://www.chess.com/openings/Italian-Game-3...d6\"]\n[UTCDate \"2024.06.09\"]\n[UTCTime \"08:37:53\"]\n[WhiteElo \"382\"]\n[BlackElo \"106\"]\n[TimeControl \"1800\"]\n[Termination \"Affan_khan123 won by checkmate\"]\n[StartTime \"08:37:53\"]\n[EndDate \"2024.06.09\"]\n[EndTime \"08:39:11\"]\n[Link \"https://www.chess.com/game/live/111661344627\"]\n\n1. e4 {[%clk 0:30:00]} 1... e5 {[%clk 0:30:00]} 2. Nf3 {[%clk 0:29:59.3]} 2... d6 {[%clk 0:29:55.5]} 3. Bc4 {[%clk 0:29:58.6]} 3... Nc6 {[%clk 0:29:47.6]} 4. Ng5 {[%clk 0:29:56.5]} 4... Qxg5 {[%clk 0:29:43]} 5. Qf3 {[%clk 0:29:56.4]} 5... Qd8 {[%clk 0:29:22.2]} 6. Qxf7# {[%clk 0:29:45.5]} 1-0\n",
+    "move_times": [
+      0,
+      1,
+      4,
+      -3,
+      11,
+      -9,
+      13,
+      -13,
+      34,
+      -23
+    ],
+    "white": "Affan_khan123",
+    "black": "ray47yan",
+    "end_time": "2024-06-09T08:39:11+00:00"
+  }
+]

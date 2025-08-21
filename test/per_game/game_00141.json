@@ -1,0 +1,18 @@
+{
+  "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2024.04.12\"]\n[Round \"-\"]\n[White \"ashokmahali\"]\n[Black \"Affan_khan123\"]\n[Result \"1-0\"]\n[CurrentPosition \"rnb1kb1r/pppp1ppp/8/4p3/3PnPQ1/2P1P1P1/PP5P/RNB1KBNR b KQkq -\"]\n[Timezone \"UTC\"]\n[ECO \"A40\"]\n[ECOUrl \"https://www.chess.com/openings/Englund-Gambit\"]\n[UTCDate \"2024.04.12\"]\n[UTCTime \"09:41:10\"]\n[WhiteElo \"398\"]\n[BlackElo \"361\"]\n[TimeControl \"600\"]\n[Termination \"ashokmahali won - game abandoned\"]\n[StartTime \"09:41:10\"]\n[EndDate \"2024.04.12\"]\n[EndTime \"09:42:27\"]\n[Link \"https://www.chess.com/game/live/104995899172\"]\n\n1. d4 {[%clk 0:09:58.9]} 1... e5 {[%clk 0:09:56.6]} 2. c3 {[%clk 0:09:56]} 2... Nf6 {[%clk 0:09:43.8]} 3. f4 {[%clk 0:09:43.5]} 3... Ne4 {[%clk 0:09:40.6]} 4. e3 {[%clk 0:09:38.2]} 4... Qh4+ {[%clk 0:09:38.9]} 5. g3 {[%clk 0:09:34.1]} 5... Qg4 {[%clk 0:09:36.6]} 6. Qxg4 {[%clk 0:09:29]} 1-0\n",
+  "move_times": [
+    2,
+    0,
+    13,
+    0,
+    3,
+    2,
+    0,
+    4,
+    -2,
+    7
+  ],
+  "white": "ashokmahali",
+  "black": "Affan_khan123",
+  "end_time": "2024-04-12T09:42:27+00:00"
+}

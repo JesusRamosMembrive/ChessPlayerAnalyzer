@@ -1,0 +1,20 @@
+[
+  {
+    "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2024.04.09\"]\n[Round \"-\"]\n[White \"Affan_khan123\"]\n[Black \"Awwman69420\"]\n[Result \"1-0\"]\n[CurrentPosition \"rnbqkb1r/ppp2Q1p/3p2p1/4N3/4n3/8/PPPP1PPP/RNB1KB1R b KQkq -\"]\n[Timezone \"UTC\"]\n[ECO \"C42\"]\n[ECOUrl \"https://www.chess.com/openings/Petrovs-Defense-Classical-Variation\"]\n[UTCDate \"2024.04.09\"]\n[UTCTime \"18:30:17\"]\n[WhiteElo \"291\"]\n[BlackElo \"293\"]\n[TimeControl \"600\"]\n[Termination \"Affan_khan123 won by checkmate\"]\n[StartTime \"18:30:17\"]\n[EndDate \"2024.04.09\"]\n[EndTime \"18:31:20\"]\n[Link \"https://www.chess.com/game/live/106426586295\"]\n\n1. e4 {[%clk 0:10:00]} 1... e5 {[%clk 0:10:00]} 2. Nf3 {[%clk 0:09:55]} 2... Nf6 {[%clk 0:09:57.6]} 3. Nxe5 {[%clk 0:09:53.3]} 3... Nxe4 {[%clk 0:09:55.3]} 4. Qh5 {[%clk 0:09:50]} 4... g6 {[%clk 0:09:50.5]} 5. Qf3 {[%clk 0:09:43.3]} 5... d6 {[%clk 0:09:34.2]} 6. Qxf7# {[%clk 0:09:37]} 1-0\n",
+    "move_times": [
+      0,
+      5,
+      -2,
+      4,
+      -2,
+      5,
+      0,
+      7,
+      9,
+      -3
+    ],
+    "white": "Affan_khan123",
+    "black": "Awwman69420",
+    "end_time": "2024-04-09T18:31:20+00:00"
+  }
+]
