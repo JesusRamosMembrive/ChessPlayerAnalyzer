@@ -21,21 +21,30 @@ from app.utils_debugging.tracer import trace
 # 1.  Average Centipawn Loss (ACPL)   #########################################
 ###############################################################################
 @trace
-def acpl(game_df: pd.DataFrame, player_color: str = 'white') -> float:
+def acpl(game_df: pd.DataFrame, player_color: str = 'white', cap_cp: int | None = 1500) -> float:
     """
-    Calcula el Average Centipawn Loss (pérdida respecto a la mejor jugada) cuando esté disponible.
-    Si el DataFrame no trae 'delta_eval', hace fallback al swing de evaluación
-    |eval_cp_after - eval_cp_before| ajustado por color.
+    Calcula el Average Centipawn Loss (ACPL) a partir de las diferencias de evaluación.
 
     Args:
-        game_df: DataFrame con análisis de jugadas. Se espera `delta_eval` para el cálculo primario.
-        player_color: 'white' o 'black' para el fallback basado en eval_before/after.
+        game_df: DataFrame con datos de la partida. Debe contener `delta_eval`.
+        player_color: Color del jugador ('white' o 'black'), usado en fallbacks.
+        cap_cp: Límite superior para `delta_eval` en centipawns para evitar que las
+                evaluaciones de mate (ej. 100000cp) distorsionen la media.
+                Se recomienda un valor como 1500. `None` para desactivar.
+
+    Returns:
+        ACPL como flotante.
     """
     if "delta_eval" in game_df.columns:
         # Usar la pérdida vs. la mejor jugada del motor directamente
         vals = pd.to_numeric(game_df["delta_eval"], errors="coerce").abs().dropna()
+
+        # Aplicar cap para robustez frente a outliers (mates)
+        if cap_cp is not None:
+            vals = vals.clip(upper=cap_cp)
+
         result = float(vals.mean()) if not vals.empty else 0.0
-        logger.info(f"DEBUG QUALITY: ACPL calculated from 'delta_eval' (L1 loss): mean={result:.2f} over {len(vals)} moves.")
+        logger.info(f"DEBUG QUALITY: ACPL calculated from 'delta_eval' (L1 loss, cap={cap_cp}): mean={result:.2f} over {len(vals)} moves.")
         return result
 
     # --- Fallback si 'delta_eval' no está ---
