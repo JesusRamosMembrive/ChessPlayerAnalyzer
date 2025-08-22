@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from sklearn.linear_model import HuberRegressor
 from typing import Tuple, List
+from numpy.typing import NDArray
 import logging
 logger = logging.getLogger(__name__)
 
@@ -92,26 +93,35 @@ class ACPLModel:
     Ajusta una curva de referencia ACPL_expected(ELO) con un robust regressor
     sobre un conjunto grande de partidas 'limpias' y produce z‑scores.
     """
-    def __init__(self):
-        self.model = HuberRegressor()        # menos sensible a outliers
-        self.sigma_ = None                   # desviación típica residual
 
-    def fit(self, df_stats: pd.DataFrame):
+    def __init__(self):
+        self.model = HuberRegressor()  # menos sensible a outliers
+        self.sigma_: float | None = None  # desviación típica residual
+
+    def fit(self, df_stats: pd.DataFrame) -> ACPLModel:
         """
         df_stats debe tener columnas: ['elo', 'acpl']
         """
-        X = df_stats[['elo']].values
-        y = df_stats['acpl'].values
+        # Usar to_numpy con tipo explícito para robustez
+        X: NDArray[np.float64] = df_stats[['elo']].to_numpy(dtype=float)
+        y: NDArray[np.float64] = df_stats['acpl'].to_numpy(dtype=float)
         self.model.fit(X, y)
-        residuals = y - self.model.predict(X)
-        self.sigma_ = residuals.std(ddof=1)
+
+        # La predicción y los residuos deben usar los mismos tipos para evitar errores
+        y_pred: NDArray[np.float64] = self.model.predict(X)
+        residuals: NDArray[np.float64] = y - y_pred
+        self.sigma_ = np.std(residuals, ddof=1)
         return self
 
     def z_score(self, elo: float, acpl_value: float) -> float:
         """
         z > +2,75 ≈ umbral FIDE de evidencia estadística.
         """
-        mu = self.model.predict([[elo]])[0]
+        if self.sigma_ is None:
+            # El modelo debe ser fiteado antes de poder usarse
+            raise ValueError("ACPLModel must be fitted before calling z_score.")
+
+        mu: float = self.model.predict([[elo]])[0]
         return (mu - acpl_value) / self.sigma_
 
 ###############################################################################
@@ -182,7 +192,10 @@ def precision_bursts(game_df: pd.DataFrame,
     if not required_cols.issubset(game_df.columns):
         return []  # Return empty list when engine data is missing
 
-    diffs = np.abs(game_df["eval_cp_after"] - game_df["eval_cp_before"]).values
+    # Usar to_numpy() para obtener un array de tipo concreto y predecible
+    diffs: NDArray[np.float64] = np.abs(
+        game_df["eval_cp_after"] - game_df["eval_cp_before"]
+    ).to_numpy(dtype=float)
     bursts = []
     for i in range(len(diffs) - window_size + 1):
         window = diffs[i:i + window_size]
