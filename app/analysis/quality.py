@@ -337,6 +337,25 @@ def aggregate_quality_features(game_df, elo: int | None = None, player_color: st
     logger.info(f"DEBUG QUALITY: Input DataFrame columns: {list(game_df.columns)}")
     logger.info(f"DEBUG QUALITY: ELO parameter: {elo}")
 
+    # Check for effective depth and warn if below target
+    TARGET_DEPTH = 12
+    if 'depth' in game_df.columns:
+        # Ensure depth column is numeric and handle non-numeric gracefully
+        depth_series = pd.to_numeric(game_df['depth'], errors='coerce').dropna()
+
+        if not depth_series.empty:
+            avg_effective_depth = depth_series.mean()
+            logger.info(f"DEBUG QUALITY: Effective analysis depth found. Average: {avg_effective_depth:.2f} over {len(depth_series)} moves.")
+
+            if avg_effective_depth < TARGET_DEPTH:
+                logger.warning(
+                    f"Shallow analysis warning: "
+                    f"Average effective depth ({avg_effective_depth:.2f}) is below target depth ({TARGET_DEPTH}). "
+                    f"Results may be less reliable."
+                )
+        else:
+            logger.info("DEBUG QUALITY: 'depth' column found, but contains no valid numeric data.")
+
     match_rate = (
         game_df["is_engine_best"].mean() if "is_engine_best" in game_df else 0.0
     )
