@@ -1,6 +1,6 @@
 {
   "input_file": "per_game\\game_00001.json",
-  "processed_at": "2025-08-22T15:37:01.467147+00:00",
+  "processed_at": "2025-08-22T16:03:09.311989+00:00",
   "games_count": 1,
   "per_game": [
     {
@@ -30,6 +30,10 @@
       "white_opening_acpl": 81.16666666666667,
       "white_middlegame_acpl": 126.16666666666667,
       "white_endgame_acpl": 54.8,
+      "white_opening_blunder_rate": 0.0,
+      "white_middlegame_blunder_rate": 0.125,
+      "white_endgame_blunder_rate": 0.0,
+      "white_blunder_rate": 0.06521739130434782,
       "black_acpl": 98.91304347826087,
       "black_match_rate": 0.30434782608695654,
       "black_weighted_match_rate": 0.2943096297686671,
@@ -40,6 +44,10 @@
       "black_opening_acpl": 81.16666666666667,
       "black_middlegame_acpl": 126.16666666666667,
       "black_endgame_acpl": 54.8,
+      "black_opening_blunder_rate": 0.0,
+      "black_middlegame_blunder_rate": 0.125,
+      "black_endgame_blunder_rate": 0.0,
+      "black_blunder_rate": 0.06521739130434782,
       "opening_entropy": -0.0,
       "novelty_depth": 13,
       "second_choice_rate": 0.21739130434782608,
@@ -55,7 +63,11 @@
       "user_precision_burst_count": 3,
       "user_opening_acpl": 81.16666666666667,
       "user_middlegame_acpl": 126.16666666666667,
-      "user_endgame_acpl": 54.8
+      "user_endgame_acpl": 54.8,
+      "user_opening_blunder_rate": 0.0,
+      "user_middlegame_blunder_rate": 0.125,
+      "user_endgame_blunder_rate": 0.0,
+      "user_blunder_rate": 0.06521739130434782
     }
   ],
   "aggregates": {
@@ -78,8 +90,8 @@
     "step_acpl_index": -1,
     "step_acpl_flag": false,
     "selectivity_pct": 0.0,
-    "first_game_date": "2025-08-22T15:37:01.266257+00:00",
-    "last_game_date": "2025-08-22T15:37:01.266257+00:00",
+    "first_game_date": "2025-08-22T16:03:09.161764+00:00",
+    "last_game_date": "2025-08-22T16:03:09.161764+00:00",
     "precision_burst_count": 3,
     "second_choice_rate": 0.21739130434782608,
     "phase_quality": {
