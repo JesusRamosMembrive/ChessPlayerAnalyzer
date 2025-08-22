@@ -244,6 +244,29 @@ def aggregate_tactical_trends(games_df: pd.DataFrame) -> dict:
         "second_choice_rate": float(scr) if not np.isnan(scr) else None,
     }
 
+
+@trace
+def phase_blunder_rate_single(game_df: pd.DataFrame) -> dict:
+    """
+    Calcula la tasa de blunders por fase para una sola partida.
+    """
+    if "phase" not in game_df.columns or "delta_eval" not in game_df.columns:
+        return {}
+
+    is_blunder = game_df["delta_eval"].abs() > BLUNDER
+    temp_df = game_df.assign(is_blunder=is_blunder)
+
+    phase_rates = temp_df.groupby("phase")["is_blunder"].mean().to_dict()
+    overall_blunder_rate = float(is_blunder.mean())
+
+    return {
+        "opening_blunder_rate":    float(phase_rates.get("opening", np.nan)),
+        "middlegame_blunder_rate": float(phase_rates.get("middlegame", np.nan)),
+        "endgame_blunder_rate":    float(phase_rates.get("endgame", np.nan)),
+        "blunder_rate":            overall_blunder_rate,
+    }
+
+
 BLUNDER = 300  # cp
 @trace
 def aggregate_blunders_by_phase(moves_dfs: list[pd.DataFrame]) -> dict:
@@ -346,6 +369,11 @@ def aggregate_quality_features(game_df, elo: int | None = None, player_color: st
         if pacpl:
             feats.update(pacpl)
             logger.info(f"DEBUG QUALITY: Phase ACPL added: {pacpl}")
+
+        blunder_rates = phase_blunder_rate_single(game_df)
+        if blunder_rates:
+            feats.update(blunder_rates)
+            logger.info(f"DEBUG QUALITY: Phase blunder rates added: {blunder_rates}")
 
     logger.info(f"DEBUG QUALITY: Final quality features: {feats}")
     return feats
