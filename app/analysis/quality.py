@@ -21,16 +21,19 @@ from app.utils_debugging.tracer import trace
 # 1.  Average Centipawn Loss (ACPL)   #########################################
 ###############################################################################
 @trace
-def acpl(game_df: pd.DataFrame, player_color: str = 'white', cap_cp: int | None = 1500) -> float:
+def acpl(game_df: pd.DataFrame, player_color: str = 'white', cap_cp: int | None = 1500, use_median: bool = True) -> float:
     """
-    Calcula el Average Centipawn Loss (ACPL) a partir de las diferencias de evaluación.
+    Calcula el Average Centipawn Loss (ACPL) usando la media o mediana.
+    La mediana es más robusta a outliers (blunders), dando una visión más
+    estable de la calidad de juego típica de un jugador.
 
     Args:
         game_df: DataFrame con datos de la partida. Debe contener `delta_eval`.
         player_color: Color del jugador ('white' o 'black'), usado en fallbacks.
-        cap_cp: Límite superior para `delta_eval` en centipawns para evitar que las
-                evaluaciones de mate (ej. 100000cp) distorsionen la media.
+        cap_cp: Límite superior para `delta_eval` en centipawns. Previene que las
+                evaluaciones de mate (ej. 100000cp) distorsionen la métrica.
                 Se recomienda un valor como 1500. `None` para desactivar.
+        use_median: Si es True, usa la mediana en lugar de la media.
 
     Returns:
         ACPL como flotante.
@@ -43,8 +46,13 @@ def acpl(game_df: pd.DataFrame, player_color: str = 'white', cap_cp: int | None 
         if cap_cp is not None:
             vals = vals.clip(upper=cap_cp)
 
-        result = float(vals.mean()) if not vals.empty else 0.0
-        logger.info(f"DEBUG QUALITY: ACPL calculated from 'delta_eval' (L1 loss, cap={cap_cp}): mean={result:.2f} over {len(vals)} moves.")
+        if vals.empty:
+            return 0.0
+
+        agg_func = np.median if use_median else np.mean
+        result = float(agg_func(vals))
+        agg_name = "median" if use_median else "mean"
+        logger.info(f"DEBUG QUALITY: ACPL calculated from 'delta_eval' (L1 loss, cap={cap_cp}, agg={agg_name}): {result:.2f} over {len(vals)} moves.")
         return result
 
     # --- Fallback si 'delta_eval' no está ---
@@ -61,10 +69,16 @@ def acpl(game_df: pd.DataFrame, player_color: str = 'white', cap_cp: int | None 
         eval_after = -eval_after
 
     diffs = (eval_after - eval_before).abs().dropna()
-    result = float(diffs.mean()) if not diffs.empty else 0.0
+
+    if diffs.empty:
+        return 0.0
+
+    agg_func = np.median if use_median else np.mean
+    result = float(agg_func(diffs))
+    agg_name = "median" if use_median else "mean"
     logger.warning(
         f"ACPL calculated using fallback (eval swing) because 'delta_eval' was missing. "
-        f"Count: {len(diffs)}, Mean: {result:.2f}"
+        f"Count: {len(diffs)}, Agg: {agg_name}, Result: {result:.2f}"
     )
     return result
 
@@ -353,15 +367,26 @@ def aggregate_quality_features(game_df, elo: int | None = None, player_color: st
     else:
         logger.info("DEBUG QUALITY: No ELO provided, IPR Z-score remains 0.0")
 
-    # Nuevo score sintético: 40 % ACPL, 30 % match_rate, 30 % weighted_match_rate
+    # --- Quality Score ---
+    # El quality_score es un indicador sintético (0-100) que combina:
+    # 1. ACPL (pérdida media de centipawns): Aportando un 40%.
+    #    - Se normaliza: un ACPL de 0 es 1.0, y un ACPL >= 100 es 0.0.
+    #    - Un ACPL bajo (ej. < 20) es típico de maestros.
+    #    - Un ACPL alto (ej. > 100) es típico de principiantes.
+    # 2. Tasa de coincidencias con el motor (match_rate): Aportando un 30%.
+    # 3. Tasa de coincidencias ponderada por complejidad: Aportando un 30%.
+
+    # Normaliza el ACPL a un rango [0, 1] para el score.
+    # Un ACPL de 100 o más se considera de calidad mínima (0 puntos).
     acpl_scaled = 1 - min(max(acpl_val, 0), 100) / 100
+
     quality_score = (
-            40 * acpl_scaled +  # menos ACPL ⇒ mejor
-            30 * match_rate +   # jugadas exactas
-            30 * weighted_match # precisión ponderada por complejidad
+        40 * acpl_scaled +        # Menos ACPL es mejor
+        30 * match_rate +         # Más jugadas exactas es mejor
+        30 * weighted_match      # Precisión ponderada por complejidad
     )
     feats["quality_score"] = quality_score
-    logger.info(f"DEBUG QUALITY: Quality score (acpl_scaled={acpl_scaled}): {quality_score}")
+    logger.info(f"DEBUG QUALITY: Quality score (acpl_scaled={acpl_scaled:.2f}): {quality_score:.2f}")
 
     burst_count = len(precision_bursts(game_df))
     feats["precision_burst_count"] = burst_count
