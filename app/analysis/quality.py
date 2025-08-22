@@ -337,6 +337,23 @@ def aggregate_quality_features(game_df, elo: int | None = None, player_color: st
     logger.info(f"DEBUG QUALITY: Input DataFrame columns: {list(game_df.columns)}")
     logger.info(f"DEBUG QUALITY: ELO parameter: {elo}")
 
+    # Excluir filas donde la evaluación del motor no está disponible
+    original_count = len(game_df)
+    valid_mask = pd.Series(True, index=game_df.index)
+
+    # La fuente de verdad es 'delta_eval' si existe, si no, las evaluaciones
+    if 'delta_eval' in game_df.columns:
+        valid_mask = pd.to_numeric(game_df['delta_eval'], errors='coerce').notna()
+    elif 'eval_cp_before' in game_df.columns and 'eval_cp_after' in game_df.columns:
+        valid_mask = pd.to_numeric(game_df['eval_cp_before'], errors='coerce').notna() & \
+                     pd.to_numeric(game_df['eval_cp_after'], errors='coerce').notna()
+
+    if (~valid_mask).any():
+        game_df = game_df[valid_mask]
+        excluded_count = original_count - len(game_df)
+        logger.info(f"DEBUG QUALITY: Excluded {excluded_count} of {original_count} rows due to missing/invalid engine evaluations.")
+
+
     # Check for effective depth and warn if below target
     TARGET_DEPTH = 12
     if 'depth' in game_df.columns:
