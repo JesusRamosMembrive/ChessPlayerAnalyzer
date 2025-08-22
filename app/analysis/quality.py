@@ -62,7 +62,10 @@ def acpl(game_df: pd.DataFrame, player_color: str = 'white', cap_cp: int | None 
 
     diffs = (eval_after - eval_before).abs().dropna()
     result = float(diffs.mean()) if not diffs.empty else 0.0
-    logger.info(f"DEBUG QUALITY: ACPL using fallback eval swing: count={len(diffs)}, mean={result}")
+    logger.warning(
+        f"ACPL calculated using fallback (eval swing) because 'delta_eval' was missing. "
+        f"Count: {len(diffs)}, Mean: {result:.2f}"
+    )
     return result
 
 
