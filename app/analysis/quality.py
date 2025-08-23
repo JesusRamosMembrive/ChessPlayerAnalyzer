@@ -601,10 +601,49 @@ def aggregate_quality_features(game_df, elo: int | None = None, player_color: st
         valid_mask = pd.to_numeric(game_df['eval_cp_before'], errors='coerce').notna() & \
                      pd.to_numeric(game_df['eval_cp_after'], errors='coerce').notna()
 
+    # Pre‑sanity: % usable rows for ACPL and match_rate
+    try:
+        acpl_usable = int(valid_mask.sum())
+        denom = max(original_count, 1)
+        acpl_pct = 100.0 * acpl_usable / denom
+        logger.info(f"DEBUG QUALITY SANITY: ACPL usable rows: {acpl_usable}/{original_count} ({acpl_pct:.1f}%)")
+    except Exception as e:
+        logger.info(f"DEBUG QUALITY SANITY: Unable to compute ACPL usable rows: {e}")
+
+    try:
+        if 'is_engine_best' in game_df.columns:
+            ieb = pd.to_numeric(game_df['is_engine_best'], errors='coerce')
+            match_usable = int(ieb.notna().sum())
+            match_pct = 100.0 * match_usable / max(original_count, 1)
+            logger.info(f"DEBUG QUALITY SANITY: Match-rate usable rows: {match_usable}/{original_count} ({match_pct:.1f}%)")
+        else:
+            logger.info("DEBUG QUALITY SANITY: Match-rate column 'is_engine_best' not available")
+    except Exception as e:
+        logger.info(f"DEBUG QUALITY SANITY: Unable to compute match-rate usable rows: {e}")
+
     if (~valid_mask).any():
         game_df = game_df[valid_mask]
         excluded_count = original_count - len(game_df)
         logger.info(f"DEBUG QUALITY: Excluded {excluded_count} of {original_count} rows due to missing/invalid engine evaluations.")
+
+    # Post‑sanity: delta_eval quantiles and extremes
+    try:
+        if 'delta_eval' in game_df.columns:
+            de = pd.to_numeric(game_df['delta_eval'], errors='coerce').abs().dropna()
+            if len(de) > 0:
+                q10 = float(de.quantile(0.10, interpolation='linear'))
+                q50 = float(de.quantile(0.50, interpolation='linear'))
+                q90 = float(de.quantile(0.90, interpolation='linear'))
+                logger.info(f"DEBUG QUALITY SANITY: delta_eval(abs) quantiles p10={q10:.1f}, p50={q50:.1f}, p90={q90:.1f}")
+                CAP = 1500
+                extremes = int((de > CAP).sum())
+                logger.info(f"DEBUG QUALITY SANITY: suspected mate-driven extremes (> {CAP}cp): {extremes}")
+            else:
+                logger.info("DEBUG QUALITY SANITY: delta_eval data unavailable for quantiles")
+        else:
+            logger.info("DEBUG QUALITY SANITY: Column 'delta_eval' not available for quantiles")
+    except Exception as e:
+        logger.info(f"DEBUG QUALITY SANITY: Unable to compute delta_eval quantiles/extremes: {e}")
 
 
     # Check for effective depth and warn if below target
