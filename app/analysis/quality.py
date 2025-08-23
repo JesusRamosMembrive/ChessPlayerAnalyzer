@@ -508,6 +508,82 @@ def phase_acpl_single(game_df: pd.DataFrame, cap_cp: int | None = 1500) -> dict:
     }
 
 @trace
+def compute_second_choice_behavior(
+    game_df: pd.DataFrame,
+    threshold_cp: int = 20,
+) -> dict:
+    """
+    Compute the frequency of choosing PV[2] (best_rank == 2) when PV[0] and PV[1]
+    are close in evaluation.
+
+    Expected columns (preferred):
+      - 'pv_gap01_cp': centipawn difference between PV[0] and PV[1].
+      - 'best_rank': 0 for best move, 1 for second, 2 for third, ...
+      - optional 'phase' for per-phase breakdown.
+
+    Behavior:
+      - If 'pv_gap01_cp' not present, returns NaN metrics and flags
+        'pv_gap_available': False. We avoid proxying to prevent misleading
+        signals.
+    """
+    result: dict = {
+        "second_choice_rate": np.nan,
+        "opening_second_choice_rate": np.nan,
+        "middlegame_second_choice_rate": np.nan,
+        "endgame_second_choice_rate": np.nan,
+        "second_choice_eligible_count": 0,
+        "pv_gap_available": False,
+        "second_choice_threshold_cp": int(threshold_cp),
+    }
+
+    if "best_rank" not in game_df.columns:
+        return result
+
+    if "pv_gap01_cp" not in game_df.columns:
+        # No reliable way to determine closeness of PV[0] and PV[1]
+        return result
+
+    # Build eligibility mask where top-2 lines are close
+    gaps = pd.to_numeric(game_df["pv_gap01_cp"], errors="coerce")
+    eligible = gaps.le(threshold_cp)
+
+    # Ensure we only count moves with a valid rank
+    ranks = pd.to_numeric(game_df["best_rank"], errors="coerce")
+    elig_mask = eligible & ranks.notna()
+    elig_n = int(elig_mask.sum())
+
+    result["pv_gap_available"] = True
+    result["second_choice_eligible_count"] = elig_n
+
+    if elig_n == 0:
+        return result
+
+    is_second_choice = ranks.eq(2)
+    rate = float((is_second_choice & elig_mask).mean())
+    result["second_choice_rate"] = rate
+
+    # Per-phase breakdown
+    if "phase" in game_df.columns:
+        tmp = pd.DataFrame({
+            "phase": game_df["phase"],
+            "eligible": elig_mask,
+            "is_second": is_second_choice,
+        })
+        # Compute per-phase only over eligible rows
+        for phase_name, key in (
+            ("opening", "opening_second_choice_rate"),
+            ("middlegame", "middlegame_second_choice_rate"),
+            ("endgame", "endgame_second_choice_rate"),
+        ):
+            sub = tmp[(tmp["phase"] == phase_name) & tmp["eligible"]]
+            if len(sub) == 0:
+                result[key] = np.nan
+            else:
+                result[key] = float(sub["is_second"].mean())
+
+    return result
+
+@trace
 def aggregate_quality_features(game_df, elo: int | None = None, player_color: str = 'white') -> dict:
     logger.info("DEBUG QUALITY: Starting quality features calculation")
     logger.info(f"DEBUG QUALITY: Input DataFrame shape: {game_df.shape}")
@@ -619,6 +695,21 @@ def aggregate_quality_features(game_df, elo: int | None = None, player_color: st
         if blunder_rates:
             feats.update(blunder_rates)
             logger.info(f"DEBUG QUALITY: Phase blunder rates added: {blunder_rates}")
+
+    # Second-choice behavior: choose PV[2] when PV[0] and PV[1] are close
+    scb = compute_second_choice_behavior(game_df, threshold_cp=20)
+    feats.update({
+        "second_choice_rate": scb.get("second_choice_rate", np.nan),
+        "opening_second_choice_rate": scb.get("opening_second_choice_rate", np.nan),
+        "middlegame_second_choice_rate": scb.get("middlegame_second_choice_rate", np.nan),
+        "endgame_second_choice_rate": scb.get("endgame_second_choice_rate", np.nan),
+    })
+    # Optionally expose meta for traceability
+    feats.update({
+        "second_choice_eligible_count": scb.get("second_choice_eligible_count", 0),
+        "second_choice_threshold_cp": scb.get("second_choice_threshold_cp", 20),
+        "pv_gap_available": scb.get("pv_gap_available", False),
+    })
 
     logger.info(f"DEBUG QUALITY: Final quality features: {feats}")
     return feats
