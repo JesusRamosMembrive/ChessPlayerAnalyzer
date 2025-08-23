@@ -77,6 +77,7 @@ class GameAnalysisDetailed(SQLModel, table=True):
 
     # === QUALITY METRICS ===
     acpl: float = Field(description="Average Centipawn Loss")
+    wdl_loss: float = Field(description="Average Win/Draw/Loss Probability Loss")
     match_rate: float = Field(description="% de coincidencia con motor")
     weighted_match_rate: float = Field(description="Match rate ponderado por complejidad")
     ipr: float = Field(description="Intrinsic Performance Rating")
@@ -186,6 +187,7 @@ class PlayerAnalysisDetailed(SQLModel, table=True):
     # ── Métricas globales de calidad ───────────────────────────────────
     games_analyzed: int = Field(nullable=False, ge=0)
     avg_acpl: float = Field(nullable=False, ge=0)
+    avg_wdl_loss: float = Field(nullable=False, ge=0)
     robust_loss: float = Field(default=0.0, ge=0)
     avg_match_rate: float = Field(nullable=False, ge=0)
     avg_ipr: float = Field(nullable=False, ge=0)

@@ -323,6 +323,7 @@ class ChessAnalysisEngine:
                 game_id=game_id,
                 # Quality
                 acpl=all_features.get('acpl', 0),
+                wdl_loss=all_features.get('wdl_loss', 0),
                 match_rate=all_features.get('match_rate', 0),
                 weighted_match_rate=all_features.get('match_weighted', 0),
                 ipr=all_features.get('ipr', 0),
@@ -558,6 +559,7 @@ class ChessAnalysisEngine:
                 games_analyzed=len(games_df),
                 # ─ Calidad ─
                 avg_acpl=_safe_mean(games_df, "acpl"),
+                avg_wdl_loss=_safe_mean(games_df, "wdl_loss"),
                 robust_loss=quality.robust_loss(games_df),
                 std_acpl=games_df["acpl"].std(ddof=1) or 0.0,
                 avg_match_rate=_safe_mean(games_df, "match_rate"),
@@ -790,6 +792,7 @@ class ChessAnalysisEngine:
                 "eco_code": game.eco_code,  # 🆕
                 "opening_key": game.opening_key,  # (opcional, útil para otras métricas)
                 "acpl": detail.acpl,
+                "wdl_loss": detail.wdl_loss,
                 "match_rate": detail.match_rate,
                 "ipr": detail.ipr,
                 "suspicion": detail.overall_suspicion_score,
