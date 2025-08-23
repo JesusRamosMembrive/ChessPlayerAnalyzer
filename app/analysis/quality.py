@@ -18,6 +18,25 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 from app.utils_debugging.tracer import trace
 
+
+def eval_to_wdl_prob(evaluation_in_cp: float, k: float = 400.0) -> float:
+    """
+    Convierte una evaluación en centipawns a una probabilidad de WDL (Win/Draw/Loss).
+    Utiliza una función sigmoide estándar. El resultado es un valor entre 0 y 1,
+    que representa el resultado esperado de la partida (1=victoria, 0.5=tablas, 0=derrota).
+
+    Args:
+        evaluation_in_cp: La evaluación de la posición en centipawns.
+        k: El factor de escala. Un valor de 400 es estándar y corresponde
+           a la expectativa de que una ventaja de 400cp (4 peones) da una
+           probabilidad de victoria muy alta.
+
+    Returns:
+        La probabilidad WDL como un flotante entre 0 y 1.
+    """
+    return 1.0 / (1.0 + 10 ** (-evaluation_in_cp / k))
+
+
 ###############################################################################
 # 1.  Average Centipawn Loss (ACPL)   #########################################
 ###############################################################################
@@ -81,6 +100,50 @@ def acpl(game_df: pd.DataFrame, player_color: str = 'white', cap_cp: int | None 
         f"ACPL calculated using fallback (eval swing) because 'delta_eval' was missing. "
         f"Count: {len(diffs)}, Agg: {agg_name}, Result: {result:.2f}"
     )
+    return result
+
+
+@trace
+def wdl_loss(game_df: pd.DataFrame, player_color: str = 'white') -> float:
+    """
+    Calcula la pérdida de probabilidad de WDL (Win/Draw/Loss) para un jugador.
+
+    Esta métrica es más robusta que el ACPL porque es insensible a blunders
+    en posiciones ya perdidas o ganadas. Una pérdida de 50cp importa mucho
+    más en una posición igualada que en una con +10 de ventaja.
+
+    Args:
+        game_df: DataFrame con datos de la partida. Debe contener
+                 `eval_cp_before` y `eval_cp_after`.
+        player_color: Color del jugador ('white' o 'black').
+
+    Returns:
+        Pérdida de WDL media como flotante.
+    """
+    required_cols = {"eval_cp_before", "eval_cp_after"}
+    if not required_cols.issubset(game_df.columns):
+        logger.warning("WDL loss calculation requires 'eval_cp_before' and 'eval_cp_after'.")
+        return 0.0
+
+    eval_before = pd.to_numeric(game_df["eval_cp_before"], errors="coerce")
+    eval_after = pd.to_numeric(game_df["eval_cp_after"], errors="coerce")
+
+    # Flip evaluations for black player so that positive is always good for the player
+    if player_color == 'black':
+        eval_before = -eval_before
+        eval_after = -eval_after
+
+    wdl_prob_before = eval_to_wdl_prob(eval_before)
+    wdl_prob_after = eval_to_wdl_prob(eval_after)
+
+    # Loss is the difference in win probability
+    wdl_loss_per_move = (wdl_prob_before - wdl_prob_after).dropna()
+
+    if wdl_loss_per_move.empty:
+        return 0.0
+
+    result = float(wdl_loss_per_move.mean())
+    logger.info(f"DEBUG QUALITY: WDL loss calculated for {player_color}: {result:.4f} over {len(wdl_loss_per_move)} moves.")
     return result
 
 
@@ -465,8 +528,12 @@ def aggregate_quality_features(game_df, elo: int | None = None, player_color: st
     ipr_val = intrinsic_performance_rating(match_rate, acpl_val)
     logger.info(f"DEBUG QUALITY: IPR value: {ipr_val}")
 
+    wdl_loss_val = wdl_loss(game_df, player_color)
+    logger.info(f"DEBUG QUALITY: WDL loss value: {wdl_loss_val}")
+
     feats = {
         "acpl"               : acpl_val,
+        "wdl_loss"           : wdl_loss_val,
         "match_rate"         : match_rate,
         "weighted_match_rate": weighted_match,
         "ipr"                : ipr_val,
