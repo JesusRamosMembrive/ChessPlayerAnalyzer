@@ -186,6 +186,7 @@ class PlayerAnalysisDetailed(SQLModel, table=True):
     # ── Métricas globales de calidad ───────────────────────────────────
     games_analyzed: int = Field(nullable=False, ge=0)
     avg_acpl: float = Field(nullable=False, ge=0)
+    robust_loss: float = Field(default=0.0, ge=0)
     avg_match_rate: float = Field(nullable=False, ge=0)
     avg_ipr: float = Field(nullable=False, ge=0)
     std_acpl: float | None = None
