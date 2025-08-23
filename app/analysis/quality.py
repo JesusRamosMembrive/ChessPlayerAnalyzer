@@ -336,35 +336,71 @@ BLUNDER_THRESHOLD = 300  # cp
 @trace
 def compute_phase_quality(moves_df_list: list[pd.DataFrame]) -> dict:
     """
-    Agrega calidad por fase a nivel jugador.
-    Cada moves_df debe tener:
-       • 'phase'  ('opening' | 'middlegame' | 'endgame')
-       • 'delta_eval'  (abs cp vs best)
+    Agrega un bloque estandarizado de calidad por fase a nivel jugador.
+    Retorna SIEMPRE las claves:
+      - opening_acpl, middlegame_acpl, endgame_acpl (robustas: |delta_eval| con cap y mediana)
+      - opening_blunder_rate, middlegame_blunder_rate, endgame_blunder_rate
+    y mantiene 'blunder_rate' global para compatibilidad.
+
+    Cada moves_df debe tener columnas:
+      • 'phase'  ('opening' | 'middlegame' | 'endgame')
+      • 'delta_eval'  (cp vs best)
     """
 
+    # Helper para salida consistente
+    def _empty_phase_block():
+        return {
+            "opening_acpl": None,
+            "middlegame_acpl": None,
+            "endgame_acpl": None,
+            "opening_blunder_rate": None,
+            "middlegame_blunder_rate": None,
+            "endgame_blunder_rate": None,
+            "blunder_rate": None,
+        }
+
     if not moves_df_list:
-        return {}
+        return _empty_phase_block()
 
     combined = pd.concat(moves_df_list, ignore_index=True)
 
-    # ACPL por fase
-    phase_acpl = (
-        combined.groupby("phase")["delta_eval"]
-        .mean()
-        .to_dict()
-    )
+    # Validación de columnas requeridas
+    if "phase" not in combined.columns or "delta_eval" not in combined.columns:
+        return _empty_phase_block()
 
-    # Blunder rate
-    blunder_rate = (
-        (combined["delta_eval"].abs() > BLUNDER_THRESHOLD).mean()
-        if "delta_eval" in combined else None
-    )
+    # Valores robustos: |delta_eval| con cap para evitar outliers del final
+    vals = pd.to_numeric(combined["delta_eval"], errors="coerce").abs()
+    vals = vals.clip(upper=1500)  # cap robusto consistente con acpl()
+
+    tmp = pd.DataFrame({
+        "phase": combined["phase"],
+        "delta": vals,
+    }).dropna()
+
+    # ACPL robusto por fase (mediana)
+    if tmp.empty:
+        phase_acpl = {}
+    else:
+        phase_acpl = tmp.groupby("phase")["delta"].median().to_dict()
+
+    # Tasa de blunders por fase y global
+    is_blunder = tmp["delta"] > BLUNDER_THRESHOLD if not tmp.empty else pd.Series(dtype=bool)
+    if not tmp.empty:
+        tmp2 = tmp.assign(is_blunder=is_blunder)
+        phase_blunders = tmp2.groupby("phase")["is_blunder"].mean().to_dict()
+        overall_blunder_rate = float(is_blunder.mean())
+    else:
+        phase_blunders = {}
+        overall_blunder_rate = None
 
     return {
-        "opening_acpl": float(phase_acpl.get("opening", np.nan)),
-        "middlegame_acpl": float(phase_acpl.get("middlegame", np.nan)),
-        "endgame_acpl": float(phase_acpl.get("endgame", np.nan)),
-        "blunder_rate": float(blunder_rate) if blunder_rate is not None else None,
+        "opening_acpl": float(phase_acpl.get("opening")) if "opening" in phase_acpl else None,
+        "middlegame_acpl": float(phase_acpl.get("middlegame")) if "middlegame" in phase_acpl else None,
+        "endgame_acpl": float(phase_acpl.get("endgame")) if "endgame" in phase_acpl else None,
+        "opening_blunder_rate": float(phase_blunders.get("opening")) if "opening" in phase_blunders else None,
+        "middlegame_blunder_rate": float(phase_blunders.get("middlegame")) if "middlegame" in phase_blunders else None,
+        "endgame_blunder_rate": float(phase_blunders.get("endgame")) if "endgame" in phase_blunders else None,
+        "blunder_rate": overall_blunder_rate,
     }
 @trace
 def aggregate_clutch_accuracy(games_df):
