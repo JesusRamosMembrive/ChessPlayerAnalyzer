@@ -215,6 +215,7 @@ class PlayerMetricsOut(BaseModel):
     # Quality metrics
     games_analyzed: int
     avg_acpl: float
+    robust_loss: float
     std_acpl: float
     avg_match_rate: float
     std_match_rate: float

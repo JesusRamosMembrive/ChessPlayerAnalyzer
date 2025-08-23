@@ -84,6 +84,71 @@ def acpl(game_df: pd.DataFrame, player_color: str = 'white', cap_cp: int | None 
     return result
 
 
+@trace
+def robust_loss(
+    game_df: pd.DataFrame,
+    cap_cp: int | None = 1000,
+    trim_pct: float | None = 0.1,
+    use_median: bool = False,
+) -> float:
+    """
+    Calcula una métrica de pérdida robusta (mediana o media recortada)
+    para delta_eval, limitando el impacto de outliers.
+
+    Args:
+        game_df: DataFrame con la columna 'delta_eval'.
+        cap_cp: Límite superior para delta_eval antes de agregar.
+        trim_pct: Porcentaje (0.0-1.0) de valores a recortar de cada
+                  extremo si no se usa la mediana.
+        use_median: Si es True, calcula la mediana; de lo contrario,
+                    usa la media recortada.
+
+    Returns:
+        La métrica de pérdida robusta calculada.
+    """
+    if "delta_eval" not in game_df.columns:
+        return 0.0
+
+    vals = pd.to_numeric(game_df["delta_eval"], errors="coerce").abs().dropna()
+
+    if cap_cp is not None:
+        vals = vals.clip(upper=cap_cp)
+
+    if vals.empty:
+        return 0.0
+
+    if use_median:
+        return float(np.median(vals))
+
+    # Usar media recortada si no es mediana
+    if trim_pct is not None and 0 < trim_pct < 0.5:
+        return trimmed_mean(vals, trim_pct)
+
+    return float(np.mean(vals))
+
+
+def trimmed_mean(series: pd.Series, trim_pct: float) -> float:
+    """
+    Calcula la media de una serie después de eliminar un porcentaje
+    de los valores más pequeños y más grandes.
+    """
+    if not isinstance(series, pd.Series) or series.empty:
+        return 0.0
+
+    # Ordenar la serie para recortar los extremos
+    sorted_series = series.sort_values()
+    n = len(sorted_series)
+    trim_count = int(n * trim_pct)
+
+    # Recortar y calcular la media
+    trimmed_series = sorted_series.iloc[trim_count : n - trim_count]
+
+    if trimmed_series.empty:
+        return 0.0
+
+    return float(trimmed_series.mean())
+
+
 ###############################################################################
 # 2.  ACPL ajustado al rating  #################################################
 ###############################################################################

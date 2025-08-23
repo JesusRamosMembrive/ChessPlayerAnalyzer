@@ -558,6 +558,7 @@ class ChessAnalysisEngine:
                 games_analyzed=len(games_df),
                 # ─ Calidad ─
                 avg_acpl=_safe_mean(games_df, "acpl"),
+                robust_loss=quality.robust_loss(games_df),
                 std_acpl=games_df["acpl"].std(ddof=1) or 0.0,
                 avg_match_rate=_safe_mean(games_df, "match_rate"),
                 std_match_rate=games_df["match_rate"].std(ddof=1) or 0.0,
