@@ -29,19 +29,25 @@ _celery_instrumented = False
 
 def init_otel_base():
     """
-    Inicializa el TracerProvider de OpenTelemetry con Jaeger.
+    Inicializa el TracerProvider de OpenTelemetry con Jaeger, de forma opcional.
     Se puede llamar múltiples veces sin problemas.
     """
     global _otel_initialized
     if _otel_initialized:
         return
-    
+
+    enabled = os.getenv("ENABLE_TRACING", "").lower() in ("1", "true", "yes", "on")
+    if not enabled:
+        logger.info("OTEL: Tracing deshabilitado por ENABLE_TRACING")
+        _otel_initialized = True
+        return
+
     try:
         # Leer configuración desde variables de entorno
         service_name = os.getenv("OTEL_SERVICE_NAME", "chess-analyzer")
         jaeger_host = os.getenv("OTEL_EXPORTER_JAEGER_AGENT_HOST", "localhost")
         jaeger_port = int(os.getenv("OTEL_EXPORTER_JAEGER_AGENT_PORT", "6831"))
-        
+
         logger.info(f"OTEL Config - Service: {service_name}, Host: {jaeger_host}, Port: {jaeger_port}")
 
         # Crear proveedor de trazas con metadata de recurso
@@ -116,4 +122,4 @@ def init_otel():
         HTTPXClientInstrumentor().instrument()
         logger.info("OTEL: HTTPX instrumentado")
     except Exception as e:
-        logger.warning(f"No se pudo instrumentar HTTPX: {e}") 
+        logger.warning(f"No se pudo instrumentar HTTPX: {e}")  

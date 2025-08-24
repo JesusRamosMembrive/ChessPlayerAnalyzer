@@ -243,7 +243,11 @@ app.include_router(legacy_router)
 # ────────────────────────────────────────────────────────────────────────────
 
 from app.schemas import AnalyzeGameIn, TaskQueuedOut  # pylint: disable=wrong-import-position
-from app.celery_app import analyze_game_task  # pylint: disable=wrong-import-position
+from app.celery_app import analyze_game_task, analyze_game_detailed, extract_game_id  # pylint: disable=wrong-import-position
+
+from celery import chain  # pylint: disable=wrong-import-position
+import io  # pylint: disable=wrong-import-position
+import chess.pgn  # pylint: disable=wrong-import-position
 
 
 @app.post("/analyze", response_model=TaskQueuedOut, tags=["legacy"])
@@ -257,10 +261,18 @@ def analyze_game_root(request: AnalyzeGameIn, session: Session = Depends(get_ses
         session.commit()
         session.refresh(game_db)
 
-        task = analyze_game_task.delay(request.pgn, game_db.id, move_times=request.move_times)
+        game_pgn_obj = chess.pgn.read_game(io.StringIO(request.pgn))
+        username = game_pgn_obj.headers.get("White") or game_pgn_obj.headers.get("Black") or "unknown"
+
+        c = chain(
+            analyze_game_task.s(request.pgn, game_db.id, move_times=request.move_times),
+            extract_game_id.s(),
+            analyze_game_detailed.s(username),
+        )
+        async_res = c.apply_async()
         
         return TaskQueuedOut(
-            task_id=task.id,
+            task_id=async_res.id,
             game_id=game_db.id,
             status="queued"
         )

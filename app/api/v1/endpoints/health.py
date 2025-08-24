@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends
 from sqlmodel import Session
+from sqlalchemy import text
 import os
 import time
 try:
@@ -30,7 +31,7 @@ async def health_check(session: Session = Depends(get_session)):
     db_response_time = None
     try:
         db_start = time.time()
-        session.execute("SELECT 1")
+        session.exec(text("SELECT 1"))
         db_response_time = (time.time() - db_start) * 1000  # ms
         db_status = "connected"
     except Exception as e:
