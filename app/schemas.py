@@ -450,14 +450,12 @@ class GameMetricsOut(BaseModel):
     mean_move_time: float
     time_variance: float
     time_complexity_corr: float
-    suspicious_quality: float
-    suspicious_timing: float
-    suspicious_opening: float
-    overall_suspicion_score: float
+    suspicion_score: float = Field(alias="overall_suspicion_score")
     analyzed_at: datetime
 
     class Config:
         orm_mode = True
+        allow_population_by_field_name = True
         schema_extra = {
             "example": {
                 "game_id": 42,
@@ -470,10 +468,7 @@ class GameMetricsOut(BaseModel):
                 "mean_move_time": 12.5,
                 "time_variance": 30.2,
                 "time_complexity_corr": 0.45,
-                "suspicious_quality": 0.1,
-                "suspicious_timing": 0.2,
-                "suspicious_opening": 0.05,
-                "overall_suspicion_score": 0.12,
+                "suspicion_score": 0.12,
                 "analyzed_at": "2024-06-28T15:00:00Z"
             }
         }

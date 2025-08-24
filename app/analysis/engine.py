@@ -44,6 +44,7 @@ from app.analysis.timing import aggregate_time_management
 from app.analysis.quality import aggregate_clutch_accuracy
 from app.analysis.quality import aggregate_tactical_trends
 from app.analysis.endgame import aggregate_endgame_efficiency
+from .bayesian import BayesianSuspicionModel
 
 from app.analysis.quality import (
     aggregate_tactical_trends,
@@ -274,14 +275,14 @@ class ChessAnalysisEngine:
             timing_features = timing.aggregate_time_features(moves_df)
             logger.info(f"DEBUG ENGINE: Timing features: {timing_features}")
 
+            # Obtener todas las partidas del jugador para experiencia y, si aplica, análisis de apertura
+            games_df = self._get_player_games_df(username, session)
+            logger.info(f"DEBUG ENGINE: Player games DataFrame shape: {games_df.shape}")
+
             # 3. MÉTRICAS DE APERTURA (si es aplicable)
             opening_features = {}
             if self.reference_book:
                 logger.info("DEBUG ENGINE: Starting opening analysis with reference book")
-                # Necesitamos múltiples partidas del jugador para entropía
-                games_df = self._get_player_games_df(username, session)
-
-                logger.info(f"DEBUG ENGINE: Player games DataFrame shape: {games_df.shape}")
                 opening_features = openings.aggregate_opening_features(
                     game.opening_key or "",
                     game.eco_code,
@@ -313,10 +314,12 @@ class ChessAnalysisEngine:
             logger.info(f"DEBUG ENGINE: Combined features count: {len(all_features)}")
             logger.info(f"DEBUG ENGINE: All features: {all_features}")
 
-            # 6. CALCULAR FLAGS DE SOSPECHA
-            logger.info("DEBUG ENGINE: Calculating suspicious flags")
-            suspicious_flags = self._calculate_suspicious_flags(all_features)
-            logger.info(f"DEBUG ENGINE: Suspicious flags: {suspicious_flags}")
+            # 6. CALCULAR SCORE DE SOSPECHA
+            player_rating = game.white_elo if player_color == 'white' else game.black_elo
+            experience = len(games_df)
+            logger.info("DEBUG ENGINE: Calculating suspicion score")
+            suspicion_score = self._calculate_suspicion_score(all_features, player_rating, experience)
+            logger.info(f"DEBUG ENGINE: Suspicion score: {suspicion_score}")
 
             # 7. CREAR REGISTRO DE ANÁLISIS
             analysis = GameAnalysisDetailed(
@@ -341,8 +344,11 @@ class ChessAnalysisEngine:
                 # Endgame
                 tb_match_rate=all_features.get('tb_match_pct'),
                 conversion_efficiency=all_features.get('conversion_moves'),
-                # Flags
-                **suspicious_flags
+                # Flags (legacy fields kept for compatibility)
+                suspicious_quality=False,
+                suspicious_timing=False,
+                suspicious_opening=False,
+                overall_suspicion_score=suspicion_score,
             )
 
             session.add(analysis)
@@ -639,22 +645,18 @@ class ChessAnalysisEngine:
         return features
 
     @trace
-    def _calculate_suspicious_flags(self, features: Dict) -> Dict:
-        """Calcula flags de comportamiento sospechoso."""
-        return {
-            'suspicious_quality': (
-                    features.get('acpl', 100) < 20 and
-                    features.get('match_rate', 0) > 0.70
-            ),
-            'suspicious_timing': (
-                    features.get('time_complexity_corr', 1) < 0.1 or
-                    features.get('lag_spike_count', 0) > 2
-            ),
-            'suspicious_opening': (
-                    features.get('H_opening', 10) < 1.0 and
-                    features.get('second_choice_pct', 0) > 0.80
-            )
+    def _calculate_suspicion_score(self, features: Dict, rating: Optional[int], experience: int) -> float:
+        """Calcular ``P(suspicious | evidence)`` usando un modelo bayesiano simple."""
+        model = BayesianSuspicionModel()
+        evidence = {
+            'acpl': features.get('acpl', 0),
+            'match_rate': features.get('match_rate', 0),
+            'time_complexity_corr': features.get('time_complexity_corr', 0),
+            'lag_spike_count': features.get('lag_spike_count', 0),
+            'opening_entropy': features.get('H_opening', 0),
+            'second_choice_rate': features.get('second_choice_pct', 0),
         }
+        return model.update(rating, experience, evidence)
 
     @trace
     def _calculate_risk_score(self, games_df: pd.DataFrame,

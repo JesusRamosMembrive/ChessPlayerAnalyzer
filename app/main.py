@@ -621,11 +621,8 @@ def game_metrics(game_id: int, session: Session = Depends(get_session)):
         "tb_match_rate": ga.tb_match_rate,
         "dtz_deviation": ga.dtz_deviation,
         "conversion_efficiency": ga.conversion_efficiency,
-        # ── Flags y score ─────────────────────────
-        "suspicious_quality": ga.suspicious_quality,
-        "suspicious_timing": ga.suspicious_timing,
-        "suspicious_opening": ga.suspicious_opening,
-        "overall_suspicion_score": ga.overall_suspicion_score,
+        # ── Score de sospecha ─────────────────────
+        "suspicion_score": ga.overall_suspicion_score,
         # ── Metadata ──────────────────────────────
         "analyzed_at": ga.analyzed_at.isoformat(),
     }

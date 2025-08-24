@@ -40,10 +40,7 @@ async def get_game_metrics(game_id: int, session: Session = Depends(get_session)
         "mean_move_time": detailed.mean_move_time,
         "time_variance": detailed.time_variance,
         "time_complexity_corr": detailed.time_complexity_corr,
-        "suspicious_quality": detailed.suspicious_quality,
-        "suspicious_timing": detailed.suspicious_timing,
-        "suspicious_opening": detailed.suspicious_opening,
-        "overall_suspicion_score": detailed.overall_suspicion_score,
+        "suspicion_score": detailed.overall_suspicion_score,
         "analyzed_at": detailed.analyzed_at.isoformat()
     }
 
