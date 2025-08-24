@@ -16,6 +16,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 from app.utils_debugging.tracer import trace
+from .spc import compute_spc
 
 ###############################################################################
 # 0.  CONSTANTES Y UTILIDADES ##################################################
@@ -362,6 +363,20 @@ def aggregate_longitudinal_features(
         logger.info(f"DEBUG LONGITUDINAL: Peer comparison features: {peer_features}")
     else:
         logger.info("DEBUG LONGITUDINAL: Skipping peer comparison - no reference data")
+
+    # --- SPC Charts ------------------------------------------------------
+    logger.info("DEBUG LONGITUDINAL: Calculating SPC charts")
+    acpl_series = pd.to_numeric(games_df.get("acpl") or games_df.get("acl"), errors="coerce")
+    time_series = pd.to_numeric(games_df.get("mean_move_time"), errors="coerce")
+    spc_acpl = compute_spc(acpl_series) if not acpl_series.dropna().empty else {}
+    spc_time = compute_spc(time_series) if not time_series.dropna().empty else {}
+    if spc_acpl:
+        features["spc_acpl"] = spc_acpl
+        features["acpl_spc_alert"] = any(spc_acpl.get("alerts", {}).values())
+    if spc_time:
+        features["spc_time"] = spc_time
+        features["time_spc_alert"] = any(spc_time.get("alerts", {}).values())
+    features["spc_alert"] = bool(features.get("acpl_spc_alert") or features.get("time_spc_alert"))
 
     # --- Date range calculations ------------------------------------------
     if "created_at" in games_df.columns and not games_df.empty:
