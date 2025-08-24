@@ -2,10 +2,14 @@ from datetime import datetime, timezone
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
+from celery import chain
+import io
+import chess.pgn
+
 
 from app import models
 from app.database import get_session
-from app.celery_app import analyze_game_task, celery_app
+from app.celery_app import analyze_game_task, analyze_game_detailed, extract_game_id, celery_app
 from celery.result import AsyncResult
 from app.schemas import (
     AnalyzeGameIn,
@@ -76,10 +80,17 @@ async def analyze_game(
         session.commit()
         session.refresh(game_db)
 
-        # Start Celery task for analysis
-        task = analyze_game_task.delay(req.pgn, game_db.id, move_times=req.move_times)
+        game_pgn_obj = chess.pgn.read_game(io.StringIO(req.pgn))
+        username = game_pgn_obj.headers.get("White") or game_pgn_obj.headers.get("Black") or "unknown"
 
-        return TaskQueuedOut(game_id=game_db.id, task_id=task.id, status="queued")
+        c = chain(
+            analyze_game_task.s(req.pgn, game_db.id, move_times=req.move_times),
+            extract_game_id.s(),
+            analyze_game_detailed.s(username),
+        )
+        async_res = c.apply_async()
+
+        return TaskQueuedOut(game_id=game_db.id, task_id=async_res.id, status="queued")
     except Exception as e:
         session.rollback()
         redis_client.delete(dedupe_key)

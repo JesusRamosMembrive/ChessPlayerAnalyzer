@@ -18,6 +18,25 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 from app.utils_debugging.tracer import trace
 
+
+def eval_to_wdl_prob(evaluation_in_cp: float, k: float = 400.0) -> float:
+    """
+    Convierte una evaluación en centipawns a una probabilidad de WDL (Win/Draw/Loss).
+    Utiliza una función sigmoide estándar. El resultado es un valor entre 0 y 1,
+    que representa el resultado esperado de la partida (1=victoria, 0.5=tablas, 0=derrota).
+
+    Args:
+        evaluation_in_cp: La evaluación de la posición en centipawns.
+        k: El factor de escala. Un valor de 400 es estándar y corresponde
+           a la expectativa de que una ventaja de 400cp (4 peones) da una
+           probabilidad de victoria muy alta.
+
+    Returns:
+        La probabilidad WDL como un flotante entre 0 y 1.
+    """
+    return 1.0 / (1.0 + 10 ** (-evaluation_in_cp / k))
+
+
 ###############################################################################
 # 1.  Average Centipawn Loss (ACPL)   #########################################
 ###############################################################################
@@ -82,6 +101,115 @@ def acpl(game_df: pd.DataFrame, player_color: str = 'white', cap_cp: int | None 
         f"Count: {len(diffs)}, Agg: {agg_name}, Result: {result:.2f}"
     )
     return result
+
+
+@trace
+def wdl_loss(game_df: pd.DataFrame, player_color: str = 'white') -> float:
+    """
+    Calcula la pérdida de probabilidad de WDL (Win/Draw/Loss) para un jugador.
+
+    Esta métrica es más robusta que el ACPL porque es insensible a blunders
+    en posiciones ya perdidas o ganadas. Una pérdida de 50cp importa mucho
+    más en una posición igualada que en una con +10 de ventaja.
+
+    Args:
+        game_df: DataFrame con datos de la partida. Debe contener
+                 `eval_cp_before` y `eval_cp_after`.
+        player_color: Color del jugador ('white' o 'black').
+
+    Returns:
+        Pérdida de WDL media como flotante.
+    """
+    required_cols = {"eval_cp_before", "eval_cp_after"}
+    if not required_cols.issubset(game_df.columns):
+        logger.warning("WDL loss calculation requires 'eval_cp_before' and 'eval_cp_after'.")
+        return 0.0
+
+    eval_before = pd.to_numeric(game_df["eval_cp_before"], errors="coerce")
+    eval_after = pd.to_numeric(game_df["eval_cp_after"], errors="coerce")
+
+    # Flip evaluations for black player so that positive is always good for the player
+    if player_color == 'black':
+        eval_before = -eval_before
+        eval_after = -eval_after
+
+    wdl_prob_before = eval_to_wdl_prob(eval_before)
+    wdl_prob_after = eval_to_wdl_prob(eval_after)
+
+    # Loss is the difference in win probability
+    wdl_loss_per_move = (wdl_prob_before - wdl_prob_after).dropna()
+
+    if wdl_loss_per_move.empty:
+        return 0.0
+
+    result = float(wdl_loss_per_move.mean())
+    logger.info(f"DEBUG QUALITY: WDL loss calculated for {player_color}: {result:.4f} over {len(wdl_loss_per_move)} moves.")
+    return result
+
+
+@trace
+def robust_loss(
+    game_df: pd.DataFrame,
+    cap_cp: int | None = 1000,
+    trim_pct: float | None = 0.1,
+    use_median: bool = False,
+) -> float:
+    """
+    Calcula una métrica de pérdida robusta (mediana o media recortada)
+    para delta_eval, limitando el impacto de outliers.
+
+    Args:
+        game_df: DataFrame con la columna 'delta_eval'.
+        cap_cp: Límite superior para delta_eval antes de agregar.
+        trim_pct: Porcentaje (0.0-1.0) de valores a recortar de cada
+                  extremo si no se usa la mediana.
+        use_median: Si es True, calcula la mediana; de lo contrario,
+                    usa la media recortada.
+
+    Returns:
+        La métrica de pérdida robusta calculada.
+    """
+    if "delta_eval" not in game_df.columns:
+        return 0.0
+
+    vals = pd.to_numeric(game_df["delta_eval"], errors="coerce").abs().dropna()
+
+    if cap_cp is not None:
+        vals = vals.clip(upper=cap_cp)
+
+    if vals.empty:
+        return 0.0
+
+    if use_median:
+        return float(np.median(vals))
+
+    # Usar media recortada si no es mediana
+    if trim_pct is not None and 0 < trim_pct < 0.5:
+        return trimmed_mean(vals, trim_pct)
+
+    return float(np.mean(vals))
+
+
+def trimmed_mean(series: pd.Series, trim_pct: float) -> float:
+    """
+    Calcula la media de una serie después de eliminar un porcentaje
+    de los valores más pequeños y más grandes.
+    """
+    if not isinstance(series, pd.Series) or series.empty:
+        return 0.0
+
+    # Ordenar la serie para recortar los extremos
+    sorted_series = series.sort_values()
+    n = len(sorted_series)
+    trim_count = int(n * trim_pct)
+
+    # Recortar y calcular la media
+    trimmed_series = sorted_series.iloc[trim_count : n - trim_count]
+
+    if trimmed_series.empty:
+        return 0.0
+
+    return float(trimmed_series.mean())
 
 
 ###############################################################################
@@ -208,35 +336,71 @@ BLUNDER_THRESHOLD = 300  # cp
 @trace
 def compute_phase_quality(moves_df_list: list[pd.DataFrame]) -> dict:
     """
-    Agrega calidad por fase a nivel jugador.
-    Cada moves_df debe tener:
-       • 'phase'  ('opening' | 'middlegame' | 'endgame')
-       • 'delta_eval'  (abs cp vs best)
+    Agrega un bloque estandarizado de calidad por fase a nivel jugador.
+    Retorna SIEMPRE las claves:
+      - opening_acpl, middlegame_acpl, endgame_acpl (robustas: |delta_eval| con cap y mediana)
+      - opening_blunder_rate, middlegame_blunder_rate, endgame_blunder_rate
+    y mantiene 'blunder_rate' global para compatibilidad.
+
+    Cada moves_df debe tener columnas:
+      • 'phase'  ('opening' | 'middlegame' | 'endgame')
+      • 'delta_eval'  (cp vs best)
     """
 
+    # Helper para salida consistente
+    def _empty_phase_block():
+        return {
+            "opening_acpl": None,
+            "middlegame_acpl": None,
+            "endgame_acpl": None,
+            "opening_blunder_rate": None,
+            "middlegame_blunder_rate": None,
+            "endgame_blunder_rate": None,
+            "blunder_rate": None,
+        }
+
     if not moves_df_list:
-        return {}
+        return _empty_phase_block()
 
     combined = pd.concat(moves_df_list, ignore_index=True)
 
-    # ACPL por fase
-    phase_acpl = (
-        combined.groupby("phase")["delta_eval"]
-        .mean()
-        .to_dict()
-    )
+    # Validación de columnas requeridas
+    if "phase" not in combined.columns or "delta_eval" not in combined.columns:
+        return _empty_phase_block()
 
-    # Blunder rate
-    blunder_rate = (
-        (combined["delta_eval"].abs() > BLUNDER_THRESHOLD).mean()
-        if "delta_eval" in combined else None
-    )
+    # Valores robustos: |delta_eval| con cap para evitar outliers del final
+    vals = pd.to_numeric(combined["delta_eval"], errors="coerce").abs()
+    vals = vals.clip(upper=1500)  # cap robusto consistente con acpl()
+
+    tmp = pd.DataFrame({
+        "phase": combined["phase"],
+        "delta": vals,
+    }).dropna()
+
+    # ACPL robusto por fase (mediana)
+    if tmp.empty:
+        phase_acpl = {}
+    else:
+        phase_acpl = tmp.groupby("phase")["delta"].median().to_dict()
+
+    # Tasa de blunders por fase y global
+    is_blunder = tmp["delta"] > BLUNDER_THRESHOLD if not tmp.empty else pd.Series(dtype=bool)
+    if not tmp.empty:
+        tmp2 = tmp.assign(is_blunder=is_blunder)
+        phase_blunders = tmp2.groupby("phase")["is_blunder"].mean().to_dict()
+        overall_blunder_rate = float(is_blunder.mean())
+    else:
+        phase_blunders = {}
+        overall_blunder_rate = None
 
     return {
-        "opening_acpl": float(phase_acpl.get("opening", np.nan)),
-        "middlegame_acpl": float(phase_acpl.get("middlegame", np.nan)),
-        "endgame_acpl": float(phase_acpl.get("endgame", np.nan)),
-        "blunder_rate": float(blunder_rate) if blunder_rate is not None else None,
+        "opening_acpl": float(phase_acpl.get("opening")) if "opening" in phase_acpl else None,
+        "middlegame_acpl": float(phase_acpl.get("middlegame")) if "middlegame" in phase_acpl else None,
+        "endgame_acpl": float(phase_acpl.get("endgame")) if "endgame" in phase_acpl else None,
+        "opening_blunder_rate": float(phase_blunders.get("opening")) if "opening" in phase_blunders else None,
+        "middlegame_blunder_rate": float(phase_blunders.get("middlegame")) if "middlegame" in phase_blunders else None,
+        "endgame_blunder_rate": float(phase_blunders.get("endgame")) if "endgame" in phase_blunders else None,
+        "blunder_rate": overall_blunder_rate,
     }
 @trace
 def aggregate_clutch_accuracy(games_df):
@@ -344,6 +508,82 @@ def phase_acpl_single(game_df: pd.DataFrame, cap_cp: int | None = 1500) -> dict:
     }
 
 @trace
+def compute_second_choice_behavior(
+    game_df: pd.DataFrame,
+    threshold_cp: int = 20,
+) -> dict:
+    """
+    Compute the frequency of choosing PV[2] (best_rank == 2) when PV[0] and PV[1]
+    are close in evaluation.
+
+    Expected columns (preferred):
+      - 'pv_gap01_cp': centipawn difference between PV[0] and PV[1].
+      - 'best_rank': 0 for best move, 1 for second, 2 for third, ...
+      - optional 'phase' for per-phase breakdown.
+
+    Behavior:
+      - If 'pv_gap01_cp' not present, returns NaN metrics and flags
+        'pv_gap_available': False. We avoid proxying to prevent misleading
+        signals.
+    """
+    result: dict = {
+        "second_choice_rate": np.nan,
+        "opening_second_choice_rate": np.nan,
+        "middlegame_second_choice_rate": np.nan,
+        "endgame_second_choice_rate": np.nan,
+        "second_choice_eligible_count": 0,
+        "pv_gap_available": False,
+        "second_choice_threshold_cp": int(threshold_cp),
+    }
+
+    if "best_rank" not in game_df.columns:
+        return result
+
+    if "pv_gap01_cp" not in game_df.columns:
+        # No reliable way to determine closeness of PV[0] and PV[1]
+        return result
+
+    # Build eligibility mask where top-2 lines are close
+    gaps = pd.to_numeric(game_df["pv_gap01_cp"], errors="coerce")
+    eligible = gaps.le(threshold_cp)
+
+    # Ensure we only count moves with a valid rank
+    ranks = pd.to_numeric(game_df["best_rank"], errors="coerce")
+    elig_mask = eligible & ranks.notna()
+    elig_n = int(elig_mask.sum())
+
+    result["pv_gap_available"] = True
+    result["second_choice_eligible_count"] = elig_n
+
+    if elig_n == 0:
+        return result
+
+    is_second_choice = ranks.eq(2)
+    rate = float((is_second_choice & elig_mask).mean())
+    result["second_choice_rate"] = rate
+
+    # Per-phase breakdown
+    if "phase" in game_df.columns:
+        tmp = pd.DataFrame({
+            "phase": game_df["phase"],
+            "eligible": elig_mask,
+            "is_second": is_second_choice,
+        })
+        # Compute per-phase only over eligible rows
+        for phase_name, key in (
+            ("opening", "opening_second_choice_rate"),
+            ("middlegame", "middlegame_second_choice_rate"),
+            ("endgame", "endgame_second_choice_rate"),
+        ):
+            sub = tmp[(tmp["phase"] == phase_name) & tmp["eligible"]]
+            if len(sub) == 0:
+                result[key] = np.nan
+            else:
+                result[key] = float(sub["is_second"].mean())
+
+    return result
+
+@trace
 def aggregate_quality_features(game_df, elo: int | None = None, player_color: str = 'white') -> dict:
     logger.info("DEBUG QUALITY: Starting quality features calculation")
     logger.info(f"DEBUG QUALITY: Input DataFrame shape: {game_df.shape}")
@@ -361,10 +601,49 @@ def aggregate_quality_features(game_df, elo: int | None = None, player_color: st
         valid_mask = pd.to_numeric(game_df['eval_cp_before'], errors='coerce').notna() & \
                      pd.to_numeric(game_df['eval_cp_after'], errors='coerce').notna()
 
+    # Pre‑sanity: % usable rows for ACPL and match_rate
+    try:
+        acpl_usable = int(valid_mask.sum())
+        denom = max(original_count, 1)
+        acpl_pct = 100.0 * acpl_usable / denom
+        logger.info(f"DEBUG QUALITY SANITY: ACPL usable rows: {acpl_usable}/{original_count} ({acpl_pct:.1f}%)")
+    except Exception as e:
+        logger.info(f"DEBUG QUALITY SANITY: Unable to compute ACPL usable rows: {e}")
+
+    try:
+        if 'is_engine_best' in game_df.columns:
+            ieb = pd.to_numeric(game_df['is_engine_best'], errors='coerce')
+            match_usable = int(ieb.notna().sum())
+            match_pct = 100.0 * match_usable / max(original_count, 1)
+            logger.info(f"DEBUG QUALITY SANITY: Match-rate usable rows: {match_usable}/{original_count} ({match_pct:.1f}%)")
+        else:
+            logger.info("DEBUG QUALITY SANITY: Match-rate column 'is_engine_best' not available")
+    except Exception as e:
+        logger.info(f"DEBUG QUALITY SANITY: Unable to compute match-rate usable rows: {e}")
+
     if (~valid_mask).any():
         game_df = game_df[valid_mask]
         excluded_count = original_count - len(game_df)
         logger.info(f"DEBUG QUALITY: Excluded {excluded_count} of {original_count} rows due to missing/invalid engine evaluations.")
+
+    # Post‑sanity: delta_eval quantiles and extremes
+    try:
+        if 'delta_eval' in game_df.columns:
+            de = pd.to_numeric(game_df['delta_eval'], errors='coerce').abs().dropna()
+            if len(de) > 0:
+                q10 = float(de.quantile(0.10, interpolation='linear'))
+                q50 = float(de.quantile(0.50, interpolation='linear'))
+                q90 = float(de.quantile(0.90, interpolation='linear'))
+                logger.info(f"DEBUG QUALITY SANITY: delta_eval(abs) quantiles p10={q10:.1f}, p50={q50:.1f}, p90={q90:.1f}")
+                CAP = 1500
+                extremes = int((de > CAP).sum())
+                logger.info(f"DEBUG QUALITY SANITY: suspected mate-driven extremes (> {CAP}cp): {extremes}")
+            else:
+                logger.info("DEBUG QUALITY SANITY: delta_eval data unavailable for quantiles")
+        else:
+            logger.info("DEBUG QUALITY SANITY: Column 'delta_eval' not available for quantiles")
+    except Exception as e:
+        logger.info(f"DEBUG QUALITY SANITY: Unable to compute delta_eval quantiles/extremes: {e}")
 
 
     # Check for effective depth and warn if below target
@@ -400,8 +679,12 @@ def aggregate_quality_features(game_df, elo: int | None = None, player_color: st
     ipr_val = intrinsic_performance_rating(match_rate, acpl_val)
     logger.info(f"DEBUG QUALITY: IPR value: {ipr_val}")
 
+    wdl_loss_val = wdl_loss(game_df, player_color)
+    logger.info(f"DEBUG QUALITY: WDL loss value: {wdl_loss_val}")
+
     feats = {
         "acpl"               : acpl_val,
+        "wdl_loss"           : wdl_loss_val,
         "match_rate"         : match_rate,
         "weighted_match_rate": weighted_match,
         "ipr"                : ipr_val,
@@ -451,6 +734,21 @@ def aggregate_quality_features(game_df, elo: int | None = None, player_color: st
         if blunder_rates:
             feats.update(blunder_rates)
             logger.info(f"DEBUG QUALITY: Phase blunder rates added: {blunder_rates}")
+
+    # Second-choice behavior: choose PV[2] when PV[0] and PV[1] are close
+    scb = compute_second_choice_behavior(game_df, threshold_cp=20)
+    feats.update({
+        "second_choice_rate": scb.get("second_choice_rate", np.nan),
+        "opening_second_choice_rate": scb.get("opening_second_choice_rate", np.nan),
+        "middlegame_second_choice_rate": scb.get("middlegame_second_choice_rate", np.nan),
+        "endgame_second_choice_rate": scb.get("endgame_second_choice_rate", np.nan),
+    })
+    # Optionally expose meta for traceability
+    feats.update({
+        "second_choice_eligible_count": scb.get("second_choice_eligible_count", 0),
+        "second_choice_threshold_cp": scb.get("second_choice_threshold_cp", 20),
+        "pv_gap_available": scb.get("pv_gap_available", False),
+    })
 
     logger.info(f"DEBUG QUALITY: Final quality features: {feats}")
     return feats

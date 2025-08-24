@@ -248,6 +248,9 @@ def aggregate_time_features(game_df: pd.DataFrame) -> dict:
                 de_q50 = float(de.quantile(0.50, interpolation="linear"))
                 de_q90 = float(de.quantile(0.90, interpolation="linear"))
                 logger.info(f"DEBUG TIMING: delta_eval(abs) quantiles p10={de_q10}, p50={de_q50}, p90={de_q90}")
+                CAP = 1500
+                extremes = int((de > CAP).sum())
+                logger.info(f"DEBUG TIMING SANITY: suspected mate-driven extremes (> {CAP}cp): {extremes}")
             except Exception:
                 logger.info("DEBUG TIMING: delta_eval quantiles unavailable")
 
@@ -256,7 +259,9 @@ def aggregate_time_features(game_df: pd.DataFrame) -> dict:
 
     lm = pd.to_numeric(df["legal_moves"], errors="coerce")
     valid_corr = int((mt.notna() & lm.notna()).sum())
-    logger.info(f"DEBUG TIMING: Valid rows for corr: {valid_corr}")
+    total_rows = int(df.shape[0]) if hasattr(df, "shape") else len(df)
+    corr_pct = 100.0 * valid_corr / max(total_rows, 1)
+    logger.info(f"DEBUG TIMING SANITY: Valid rows for correlation: {valid_corr}/{total_rows} ({corr_pct:.1f}%)")
 
     lag_spikes = len(detect_lag_spikes(df))
     logger.info(f"DEBUG TIMING: Lag spikes detected: {lag_spikes}")

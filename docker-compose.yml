@@ -66,6 +66,7 @@ services:
       REDIS_URL: redis://redis:6379/0
       STOCKFISH_PATH: /usr/games/stockfish
       STOCKFISH_DEPTH: 12
+      ENABLE_TRACING: "true"
       OTEL_SERVICE_NAME: chess-analyzer-api
       OTEL_EXPORTER_JAEGER_AGENT_HOST: jaeger
       OTEL_EXPORTER_JAEGER_AGENT_PORT: 6831
@@ -91,6 +92,7 @@ services:
       REDIS_URL: redis://redis:6379/0
       STOCKFISH_PATH: /usr/games/stockfish
       STOCKFISH_DEPTH: 12
+      ENABLE_TRACING: "true"
       OTEL_SERVICE_NAME: chess-analyzer-worker
       OTEL_EXPORTER_JAEGER_AGENT_HOST: jaeger
       OTEL_EXPORTER_JAEGER_AGENT_PORT: 6831
