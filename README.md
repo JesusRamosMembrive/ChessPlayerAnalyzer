@@ -32,16 +32,18 @@ Para obtener métricas completas de endgame (`tb_match_rate` y `dtz_deviation`),
 
 **Nota:** Las tablebases completas requieren ~150 GB de espacio (versión 3-4-5-6 piezas) o ~18 TB (versión completa 3-4-5-6-7 piezas).
 
-## Trazas (OpenTelemetry/Jaeger) opcional
+## Trazas (OpenTelemetry/Jaeger)
 
-Por defecto, el trazado está deshabilitado para evitar errores cuando no hay un agente Jaeger disponible. Si quieres habilitarlo, exporta la variable de entorno:
+- En desarrollo con docker-compose, el trazado está ACTIVADO por defecto y se incluye el servicio Jaeger (UI: http://localhost:16686). 
+- Si quieres desactivarlo, puedes poner `ENABLE_TRACING=false` en los servicios `backend` y `celery`.
 
+Variables relevantes:
 - ENABLE_TRACING=true
 - OTEL_SERVICE_NAME=chess-analyzer-api (opcional)
 - OTEL_EXPORTER_JAEGER_AGENT_HOST=jaeger (o localhost, según tu entorno)
 - OTEL_EXPORTER_JAEGER_AGENT_PORT=6831
 
-En `docker-compose.yml` puedes añadir estas variables al servicio que corresponda. Si `ENABLE_TRACING` no está activo, el sistema no intentará enviar spans y no verás errores tipo socket.gaierror relacionados con Jaeger.
+Si `ENABLE_TRACING` no está activo, el sistema no intentará enviar spans y no verás errores tipo socket.gaierror relacionados con Jaeger.
 
 ## Flujo de análisis (workflow)
 
@@ -113,5 +115,8 @@ Este proyecto se distribuye bajo los términos de la licencia MIT incluida en `L
 
 ## Copias de seguridad de la base de datos
 
+## Integración continua (CI)
+- El workflow de GitHub Actions está configurado para no fallar cuando `pytest` no recolecta tests (exit code 5). Esto permite mantener el pipeline en verde aunque no existan pruebas todavía.
+- Cuando se añadan tests, el pipeline validará normalmente y fallará ante errores reales.
 Consulta `docs/backup_recovery.md` para un procedimiento detallado de cómo generar dumps con `pg_dump` y restaurarlos mediante `psql`. También encontrarás ejemplos de uso en Docker y buenas prácticas.
 

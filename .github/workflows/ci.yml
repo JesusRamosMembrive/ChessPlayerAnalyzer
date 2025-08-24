@@ -60,9 +60,11 @@ jobs:
           STOCKFISH_PATH: /usr/games/stockfish
           STOCKFISH_DEPTH: 1
         run: |
-          pytest -vv || code=$?
-          if [ "${code:-0}" -eq 5 ]; then
+          set +e
+          pytest -vv
+          code=$?
+          if [ "$code" -eq 5 ]; then
             echo "Pytest collected 0 tests (exit code 5). Treating as success."
             exit 0
           fi
-          exit "${code:-0}"
+          exit "$code"
