@@ -32,6 +32,17 @@ Para obtener métricas completas de endgame (`tb_match_rate` y `dtz_deviation`),
 
 **Nota:** Las tablebases completas requieren ~150 GB de espacio (versión 3-4-5-6 piezas) o ~18 TB (versión completa 3-4-5-6-7 piezas).
 
+## Trazas (OpenTelemetry/Jaeger) opcional
+
+Por defecto, el trazado está deshabilitado para evitar errores cuando no hay un agente Jaeger disponible. Si quieres habilitarlo, exporta la variable de entorno:
+
+- ENABLE_TRACING=true
+- OTEL_SERVICE_NAME=chess-analyzer-api (opcional)
+- OTEL_EXPORTER_JAEGER_AGENT_HOST=jaeger (o localhost, según tu entorno)
+- OTEL_EXPORTER_JAEGER_AGENT_PORT=6831
+
+En `docker-compose.yml` puedes añadir estas variables al servicio que corresponda. Si `ENABLE_TRACING` no está activo, el sistema no intentará enviar spans y no verás errores tipo socket.gaierror relacionados con Jaeger.
+
 ## Flujo de análisis (workflow)
 
 1. **Inicio del análisis**
