@@ -56,6 +56,7 @@ from app.analysis import (
     aggregate_opening_features as o_feats,
     aggregate_endgame_features as e_feats,
 )
+from app.analysis.bayesian import BayesianSuspicionModel
 
 from kombu import Queue  # Añadido para configurar colas con prioridad
 from celery.exceptions import SoftTimeLimitExceeded
@@ -582,16 +583,19 @@ def analyze_game_detailed(game_id: int, username: str) -> dict[str, int | str | 
     except Exception:
         pass
 
-    quality_score = q.get("quality_score", 0) or 0  # None → 0
-    logger.info(f"DEBUG DETAILED: Quality score: {quality_score}")
-
-    overall_score = (
-            safe(quality_score) * 0.4 +
-            safe(t.get("timing_score")) * 0.25 +
-            safe(o.get("opening_score")) * 0.2 +
-            safe(e.get("endgame_score")) * 0.15
-    )
-    logger.info(f"DEBUG DETAILED: Overall suspicion score: {overall_score}")
+    model = BayesianSuspicionModel()
+    rating = game.white_elo if player_color == 'white' else game.black_elo
+    experience = len(games_df)
+    evidence = {
+        "acpl": q.get("acpl", 0),
+        "match_rate": q.get("match_rate", 0),
+        "time_complexity_corr": t.get("time_complexity_corr", 0),
+        "lag_spike_count": t.get("lag_spike_count", 0),
+        "opening_entropy": o.get("opening_entropy", 0),
+        "second_choice_rate": o.get("second_choice_rate", 0),
+    }
+    suspicion_score = model.update(rating, experience, evidence)
+    logger.info(f"DEBUG DETAILED: Bayesian suspicion score: {suspicion_score}")
 
     # ── 4. Persistir en BD ─────────────────────────────────────────────
     with Session(engine) as s:
@@ -622,10 +626,10 @@ def analyze_game_detailed(game_id: int, username: str) -> dict[str, int | str | 
             dtz_deviation=(None if (e.get("dtz_deviation") is None or (e.get("dtz_deviation") != e.get("dtz_deviation"))) else float(e.get("dtz_deviation"))),
             conversion_efficiency=(None if (e.get("conversion_efficiency") is None or (e.get("conversion_efficiency") != e.get("conversion_efficiency"))) else int(e.get("conversion_efficiency"))),
             # ─ Flags & score ─
-            suspicious_quality=bool(quality_score > 50),
-            suspicious_timing=bool((t.get("timing_score") or 0) > 50),
-            suspicious_opening=bool((o.get("opening_score") or 0) > 50),
-            overall_suspicion_score=safe(overall_score),
+            suspicious_quality=False,
+            suspicious_timing=False,
+            suspicious_opening=False,
+            overall_suspicion_score=safe(suspicion_score),
         )
         cancellation_key = f"cancel:{username}"
         if redis_client.get(cancellation_key):
@@ -644,7 +648,7 @@ def analyze_game_detailed(game_id: int, username: str) -> dict[str, int | str | 
         export_analysis_to_json(detailed, username, "game")
 
         # ⚠️  capturamos los valores **antes** de cerrar la sesión
-        suspicion_flag = overall_score > 50
+        suspicion_flag = suspicion_score > 0.5
         analyzed_at    = detailed.analyzed_at.isoformat()
 
     # ── 4. Actualizar progreso del jugador ─────────────────────────────
@@ -664,7 +668,7 @@ def analyze_game_detailed(game_id: int, username: str) -> dict[str, int | str | 
     result = {
         "game_id": game_id,
         "suspicious": suspicion_flag,
-        "score": round(overall_score, 1),
+        "score": round(suspicion_score, 3),
         "analyzed_at": analyzed_at,
     }
 
