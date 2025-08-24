@@ -1,0 +1,23 @@
+[
+  {
+    "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2024.03.29\"]\n[Round \"-\"]\n[White \"Javicg08\"]\n[Black \"Affan_khan123\"]\n[Result \"0-1\"]\n[CurrentPosition \"r3kb1r/ppp1n1pp/2nq1p2/3ppb2/8/2NPPN2/PPPBBPPP/R2Q1RK1 w kq -\"]\n[Timezone \"UTC\"]\n[ECO \"A00\"]\n[ECOUrl \"https://www.chess.com/openings/Mieses-Opening-1...d5\"]\n[UTCDate \"2024.03.29\"]\n[UTCTime \"18:47:02\"]\n[WhiteElo \"169\"]\n[BlackElo \"184\"]\n[TimeControl \"600\"]\n[Termination \"Affan_khan123 won by resignation\"]\n[StartTime \"18:47:02\"]\n[EndDate \"2024.03.29\"]\n[EndTime \"18:49:17\"]\n[Link \"https://www.chess.com/game/live/104886539052\"]\n\n1. d3 {[%clk 0:09:59.7]} 1... d5 {[%clk 0:09:55]} 2. e3 {[%clk 0:09:58.6]} 2... e5 {[%clk 0:09:53.1]} 3. Bd2 {[%clk 0:09:57]} 3... Nc6 {[%clk 0:09:49.7]} 4. Be2 {[%clk 0:09:55.5]} 4... f6 {[%clk 0:09:43.5]} 5. Nf3 {[%clk 0:09:53.7]} 5... Nge7 {[%clk 0:09:37.6]} 6. Nc3 {[%clk 0:09:52.1]} 6... Bf5 {[%clk 0:09:30]} 7. O-O {[%clk 0:09:22.7]} 7... Qd6 {[%clk 0:09:11.7]} 0-1\n",
+    "move_times": [
+      4,
+      -3,
+      5,
+      -4,
+      8,
+      -6,
+      12,
+      -10,
+      16,
+      -15,
+      22,
+      8,
+      11
+    ],
+    "white": "Javicg08",
+    "black": "Affan_khan123",
+    "end_time": "2024-03-29T18:49:17+00:00"
+  }
+]

@@ -1,0 +1,38 @@
+[
+  {
+    "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2024.04.15\"]\n[Round \"-\"]\n[White \"Hamdollahaskari\"]\n[Black \"Affan_khan123\"]\n[Result \"1-0\"]\n[CurrentPosition \"r1q4r/p1ppkp1p/1p3N2/2b1P3/4Q3/5N2/PP3PPP/n2K1B1R b - -\"]\n[Timezone \"UTC\"]\n[ECO \"C42\"]\n[ECOUrl \"https://www.chess.com/openings/Petrovs-Defense-Three-Knights-Game\"]\n[UTCDate \"2024.04.15\"]\n[UTCTime \"12:07:48\"]\n[WhiteElo \"350\"]\n[BlackElo \"337\"]\n[TimeControl \"600\"]\n[Termination \"Hamdollahaskari won - game abandoned\"]\n[StartTime \"12:07:48\"]\n[EndDate \"2024.04.15\"]\n[EndTime \"12:13:55\"]\n[Link \"https://www.chess.com/game/live/105020744338\"]\n\n1. Nf3 {[%clk 0:09:51.3]} 1... e5 {[%clk 0:09:56.5]} 2. Nc3 {[%clk 0:09:48.7]} 2... Nf6 {[%clk 0:09:54.9]} 3. e4 {[%clk 0:09:32.4]} 3... Bd6 {[%clk 0:09:44.3]} 4. d3 {[%clk 0:09:18.5]} 4... b6 {[%clk 0:09:06.1]} 5. Bg5 {[%clk 0:09:11.5]} 5... Bb7 {[%clk 0:09:04.8]} 6. Bxf6 {[%clk 0:08:54.2]} 6... gxf6 {[%clk 0:09:01.5]} 7. d4 {[%clk 0:08:50]} 7... exd4 {[%clk 0:08:56]} 8. Qxd4 {[%clk 0:08:46.4]} 8... Nc6 {[%clk 0:08:48.3]} 9. Qd5 {[%clk 0:08:41.3]} 9... Nb4 {[%clk 0:08:21.9]} 10. Qxb7 {[%clk 0:08:32.3]} 10... Nxc2+ {[%clk 0:08:16.3]} 11. Kd1 {[%clk 0:08:23.8]} 11... Nxa1 {[%clk 0:08:14.4]} 12. e5 {[%clk 0:08:05.3]} 12... Bc5 {[%clk 0:08:08.8]} 13. Nd5 {[%clk 0:07:56.9]} 13... Qc8 {[%clk 0:08:06.1]} 14. Nxf6+ {[%clk 0:07:48.2]} 14... Ke7 {[%clk 0:08:00.2]} 15. Qe4 {[%clk 0:07:19.6]} 1-0\n",
+    "move_times": [
+      -5,
+      8,
+      -6,
+      22,
+      -12,
+      26,
+      12,
+      -5,
+      7,
+      10,
+      -7,
+      11,
+      -6,
+      10,
+      -2,
+      7,
+      20,
+      -11,
+      16,
+      -7,
+      9,
+      9,
+      -3,
+      12,
+      -10,
+      18,
+      -12,
+      41
+    ],
+    "white": "Hamdollahaskari",
+    "black": "Affan_khan123",
+    "end_time": "2024-04-15T12:13:55+00:00"
+  }
+]

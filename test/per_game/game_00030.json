@@ -1,0 +1,20 @@
+{
+  "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2024.03.01\"]\n[Round \"-\"]\n[White \"khnh12399\"]\n[Black \"Affan_khan123\"]\n[Result \"1-0\"]\n[CurrentPosition \"rn1k1Qnr/pbpp2pp/1p6/4p3/2B1q3/6P1/PPPP1P1P/RNB2KNR b - -\"]\n[Timezone \"UTC\"]\n[ECO \"C23\"]\n[ECOUrl \"https://www.chess.com/openings/Bishops-Opening\"]\n[UTCDate \"2024.03.01\"]\n[UTCTime \"14:12:46\"]\n[WhiteElo \"300\"]\n[BlackElo \"238\"]\n[TimeControl \"600\"]\n[Termination \"khnh12399 won by checkmate\"]\n[StartTime \"14:12:46\"]\n[EndDate \"2024.03.01\"]\n[EndTime \"14:14:25\"]\n[Link \"https://www.chess.com/game/live/101408083100\"]\n\n1. e4 {[%clk 0:09:55.9]} 1... e5 {[%clk 0:09:53.3]} 2. Bc4 {[%clk 0:09:44.5]} 2... Qh4 {[%clk 0:09:44.5]} 3. g3 {[%clk 0:09:38.3]} 3... Qxe4+ {[%clk 0:09:37]} 4. Kf1 {[%clk 0:09:30.9]} 4... b6 {[%clk 0:09:21.9]} 5. Qf3 {[%clk 0:09:22.8]} 5... Bb7 {[%clk 0:09:16.3]} 6. Qxf7+ {[%clk 0:09:20.9]} 6... Kd8 {[%clk 0:09:07.3]} 7. Qxf8# {[%clk 0:09:17]} 1-0\n",
+  "move_times": [
+    2,
+    9,
+    0,
+    6,
+    1,
+    7,
+    9,
+    -1,
+    6,
+    -4,
+    13,
+    -10
+  ],
+  "white": "khnh12399",
+  "black": "Affan_khan123",
+  "end_time": "2024-03-01T14:14:25+00:00"
+}

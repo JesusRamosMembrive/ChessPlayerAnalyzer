@@ -1,0 +1,16 @@
+[
+  {
+    "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2025.04.07\"]\n[Round \"-\"]\n[White \"Affan_khan123\"]\n[Black \"Camcoriver\"]\n[Result \"1-0\"]\n[CurrentPosition \"rnbqk1nr/ppp2Qpp/3p4/2b1p3/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq -\"]\n[Timezone \"UTC\"]\n[ECO \"C20\"]\n[ECOUrl \"https://www.chess.com/openings/Bishops-Opening-Boi-Variation\"]\n[UTCDate \"2025.04.07\"]\n[UTCTime \"19:08:37\"]\n[WhiteElo \"345\"]\n[BlackElo \"334\"]\n[TimeControl \"600\"]\n[Termination \"Affan_khan123 won by checkmate\"]\n[StartTime \"19:08:37\"]\n[EndDate \"2025.04.07\"]\n[EndTime \"19:09:20\"]\n[Link \"https://www.chess.com/game/live/137133802988\"]\n\n1. e4 {[%clk 0:09:57.3]} 1... e5 {[%clk 0:09:53.9]} 2. Bc4 {[%clk 0:09:53.3]} 2... Bc5 {[%clk 0:09:45]} 3. Qf3 {[%clk 0:09:51.5]} 3... d6 {[%clk 0:09:36.3]} 4. Qxf7# {[%clk 0:09:45.4]} 1-0\n",
+    "move_times": [
+      4,
+      0,
+      8,
+      -6,
+      15,
+      -9
+    ],
+    "white": "Affan_khan123",
+    "black": "Camcoriver",
+    "end_time": "2025-04-07T19:09:20+00:00"
+  }
+]

@@ -1,0 +1,26 @@
+{
+  "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2023.04.22\"]\n[Round \"-\"]\n[White \"mathgeek69\"]\n[Black \"Affan_khan123\"]\n[Result \"0-1\"]\n[CurrentPosition \"rn1qk1nr/p1p3bp/4p3/1P1p2p1/5p2/3Q4/PP1P1PPP/RNB1KBNR b KQkq -\"]\n[Timezone \"UTC\"]\n[ECO \"B00\"]\n[ECOUrl \"https://www.chess.com/openings/Kings-Pawn-Opening\"]\n[UTCDate \"2023.04.22\"]\n[UTCTime \"11:58:21\"]\n[WhiteElo \"219\"]\n[BlackElo \"323\"]\n[TimeControl \"900+10\"]\n[Termination \"Affan_khan123 won by resignation\"]\n[StartTime \"11:58:21\"]\n[EndDate \"2023.04.22\"]\n[EndTime \"12:00:04\"]\n[Link \"https://www.chess.com/game/live/75903716245\"]\n\n1. e4 {[%clk 0:15:10]} 1... b5 {[%clk 0:14:56.8]} 2. Qf3 {[%clk 0:15:18.4]} 2... Bb7 {[%clk 0:15:05.6]} 3. c4 {[%clk 0:15:24.7]} 3... f5 {[%clk 0:15:09.6]} 4. cxb5 {[%clk 0:15:33.1]} 4... Bxe4 {[%clk 0:15:17.5]} 5. Qf4 {[%clk 0:15:40]} 5... g5 {[%clk 0:15:24.5]} 6. Qe3 {[%clk 0:15:46.4]} 6... f4 {[%clk 0:15:30.6]} 7. Qxe4 {[%clk 0:15:50.7]} 7... d5 {[%clk 0:15:39.3]} 8. Qe5 {[%clk 0:15:54]} 8... Bg7 {[%clk 0:15:35.7]} 9. Qf5 {[%clk 0:15:58.8]} 9... e6 {[%clk 0:15:40.6]} 10. Qd3 {[%clk 0:16:03.8]} 0-1\n",
+  "move_times": [
+    14,
+    -22,
+    13,
+    -19,
+    15,
+    -24,
+    16,
+    -23,
+    16,
+    -22,
+    16,
+    -20,
+    11,
+    -15,
+    19,
+    -23,
+    18,
+    -23
+  ],
+  "white": "mathgeek69",
+  "black": "Affan_khan123",
+  "end_time": "2023-04-22T12:00:04+00:00"
+}

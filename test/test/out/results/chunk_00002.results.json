@@ -1,0 +1,112 @@
+{
+  "input_file": "chunks_1\\chunk_00002.json",
+  "processed_at": "2025-08-20T15:01:51.704617+00:00",
+  "games_count": 1,
+  "per_game": [
+    {
+      "eco_code": "A41",
+      "result": "0-1",
+      "white": "Affan_khan123",
+      "black": "chussis",
+      "end_time": "2023-04-21T08:20:47+00:00",
+      "opening_key": "d4 d6 c3 c5 Qa4+ Bd7 Qd1 e5 e3 Nc6 Bb5 Nf6",
+      "mean_move_time": 0.0,
+      "time_variance": 0.0,
+      "time_complexity_corr": 0.0,
+      "lag_spike_count": 0,
+      "uniformity_score": 0.0,
+      "timing_score": 0.0,
+      "_timing_error": "The data contains non-finite values.",
+      "white_acpl": 5600.444444444444,
+      "white_match_rate": 0.16666666666666666,
+      "white_weighted_match_rate": 0.1167237979612475,
+      "white_ipr": -666.8888888888887,
+      "white_ipr_z_score": 0.0,
+      "white_quality_score": -2191.6760638389405,
+      "white_precision_burst_count": 0,
+      "black_acpl": 5600.444444444444,
+      "black_match_rate": 0.16666666666666666,
+      "black_weighted_match_rate": 0.1167237979612475,
+      "black_ipr": -666.8888888888887,
+      "black_ipr_z_score": 0.0,
+      "black_quality_score": -2191.6760638389405,
+      "black_precision_burst_count": 0,
+      "opening_entropy": -0.0,
+      "novelty_depth": 13,
+      "second_choice_rate": 0.1111111111111111,
+      "opening_breadth": 8,
+      "opening_score": 74.0,
+      "player_color_username": "white",
+      "user_acpl": 5600.444444444444,
+      "user_match_rate": 0.16666666666666666,
+      "user_weighted_match_rate": 0.1167237979612475,
+      "user_ipr": -666.8888888888887,
+      "user_ipr_z_score": 0.0,
+      "user_quality_score": -2191.6760638389405,
+      "user_precision_burst_count": 0
+    }
+  ],
+  "aggregates": {
+    "opening_top3": [
+      {
+        "eco_code": "A41",
+        "count": 1
+      }
+    ],
+    "opening_focus_top3_pct": 1.0,
+    "roi_mean": -666.8888888888887,
+    "roi_max": -666.8888888888887,
+    "roi_sd": 0.0,
+    "roi_games>2": 0,
+    "longest_streak": 0,
+    "step_match_rate_delta": 0.0,
+    "step_match_rate_index": -1,
+    "step_match_rate_flag": false,
+    "step_acpl_delta": 0.0,
+    "step_acpl_index": -1,
+    "step_acpl_flag": false,
+    "selectivity_pct": 0.0,
+    "first_game_date": "2025-08-20T15:01:51.559913+00:00",
+    "last_game_date": "2025-08-20T15:01:51.559913+00:00",
+    "precision_burst_count": 0,
+    "second_choice_rate": 0.1111111111111111,
+    "phase_quality": {
+      "opening_acpl": 52.8,
+      "middlegame_acpl": 60.55555555555556,
+      "endgame_acpl": 24999.75,
+      "blunder_rate": 0.1111111111111111
+    },
+    "opening_patterns": {
+      "mean_entropy": -0.0,
+      "novelty_depth": 13.0,
+      "opening_breadth": 1,
+      "second_choice_rate": 1.0
+    },
+    "time_management": {
+      "mean_move_time": NaN,
+      "time_variance": NaN,
+      "uniformity_score": NaN,
+      "lag_spike_count": 0
+    },
+    "endgame": {},
+    "time_complexity": {
+      "time_complexity_corr": 0.0
+    },
+    "benchmark": {
+      "percentile_acpl": 90,
+      "percentile_entropy": 5
+    },
+    "_performance_error": "SVD did not converge in Linear Least Squares",
+    "favorite_openings": [
+      {
+        "eco_code": "A41",
+        "name": "Queen's Pawn Game (with ...d6)",
+        "count": 1
+      }
+    ],
+    "risk_score": 20,
+    "risk_factors": {
+      "abnormal_timing": true
+    }
+  }
+}

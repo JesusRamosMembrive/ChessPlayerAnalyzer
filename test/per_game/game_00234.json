@@ -1,0 +1,25 @@
+{
+  "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2025.03.23\"]\n[Round \"-\"]\n[White \"Affan_khan123\"]\n[Black \"MCgroove61\"]\n[Result \"0-1\"]\n[CurrentPosition \"r1bqkb1r/ppp4p/5pp1/3N2N1/1n6/5Q2/PPPP1PPP/R1B1K2R w KQkq -\"]\n[Timezone \"UTC\"]\n[ECO \"B00\"]\n[ECOUrl \"https://www.chess.com/openings/Nimzowitsch-Defense-Declined-2...g6\"]\n[UTCDate \"2025.03.23\"]\n[UTCTime \"13:12:47\"]\n[WhiteElo \"259\"]\n[BlackElo \"306\"]\n[TimeControl \"600\"]\n[Termination \"MCgroove61 won - game abandoned\"]\n[StartTime \"13:12:47\"]\n[EndDate \"2025.03.23\"]\n[EndTime \"13:16:03\"]\n[Link \"https://www.chess.com/game/live/136582837160\"]\n\n1. e4 {[%clk 0:09:58.3]} 1... g6 {[%clk 0:09:58.3]} 2. Nf3 {[%clk 0:09:57.8]} 2... Nc6 {[%clk 0:09:55.6]} 3. Bc4 {[%clk 0:09:57.4]} 3... e6 {[%clk 0:09:48.2]} 4. Nc3 {[%clk 0:09:56.4]} 4... d5 {[%clk 0:09:45.3]} 5. Ng5 {[%clk 0:09:53.7]} 5... Nf6 {[%clk 0:09:34.4]} 6. exd5 {[%clk 0:09:49.2]} 6... exd5 {[%clk 0:09:33]} 7. Bxd5 {[%clk 0:09:45.7]} 7... Nxd5 {[%clk 0:09:08]} 8. Qf3 {[%clk 0:09:39.6]} 8... f6 {[%clk 0:09:02.1]} 9. Nxd5 {[%clk 0:09:30.8]} 9... Nb4 {[%clk 0:08:53.1]} 0-1\n",
+  "move_times": [
+    0,
+    1,
+    2,
+    -2,
+    9,
+    -8,
+    11,
+    -8,
+    19,
+    -15,
+    16,
+    -12,
+    37,
+    -31,
+    37,
+    -28,
+    37
+  ],
+  "white": "Affan_khan123",
+  "black": "MCgroove61",
+  "end_time": "2025-03-23T13:16:03+00:00"
+}

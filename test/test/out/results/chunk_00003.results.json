@@ -1,0 +1,112 @@
+{
+  "input_file": "chunks_1\\chunk_00003.json",
+  "processed_at": "2025-08-20T15:02:32.505098+00:00",
+  "games_count": 1,
+  "per_game": [
+    {
+      "eco_code": "B30",
+      "result": "1-0",
+      "white": "dirtycheesydawg",
+      "black": "Affan_khan123",
+      "end_time": "2023-04-21T08:22:50+00:00",
+      "opening_key": "e4 c5 Nf3 Nc6 d4 Nxd4 Nxd4 cxd4 Qxd4 e5 Qxe5+ Be7",
+      "mean_move_time": 0.0,
+      "time_variance": 0.0,
+      "time_complexity_corr": 0.0,
+      "lag_spike_count": 0,
+      "uniformity_score": 0.0,
+      "timing_score": 0.0,
+      "_timing_error": "The data contains non-finite values.",
+      "white_acpl": 4788.714285714285,
+      "white_match_rate": 0.42857142857142855,
+      "white_weighted_match_rate": 0.4075439565693207,
+      "white_ipr": -51.5,
+      "white_ipr_z_score": 0.0,
+      "white_quality_score": -1850.4022527314917,
+      "white_precision_burst_count": 5,
+      "black_acpl": 4788.714285714285,
+      "black_match_rate": 0.42857142857142855,
+      "black_weighted_match_rate": 0.4075439565693207,
+      "black_ipr": -51.5,
+      "black_ipr_z_score": 0.0,
+      "black_quality_score": -1850.4022527314917,
+      "black_precision_burst_count": 5,
+      "opening_entropy": -0.0,
+      "novelty_depth": 13,
+      "second_choice_rate": 0.09523809523809523,
+      "opening_breadth": 7,
+      "opening_score": 74.0,
+      "player_color_username": "black",
+      "user_acpl": 4788.714285714285,
+      "user_match_rate": 0.42857142857142855,
+      "user_weighted_match_rate": 0.4075439565693207,
+      "user_ipr": -51.5,
+      "user_ipr_z_score": 0.0,
+      "user_quality_score": -1850.4022527314917,
+      "user_precision_burst_count": 5
+    }
+  ],
+  "aggregates": {
+    "opening_top3": [
+      {
+        "eco_code": "B30",
+        "count": 1
+      }
+    ],
+    "opening_focus_top3_pct": 1.0,
+    "roi_mean": -51.5,
+    "roi_max": -51.5,
+    "roi_sd": 0.0,
+    "roi_games>2": 0,
+    "longest_streak": 0,
+    "step_match_rate_delta": 0.0,
+    "step_match_rate_index": -1,
+    "step_match_rate_flag": false,
+    "step_acpl_delta": 0.0,
+    "step_acpl_index": -1,
+    "step_acpl_flag": false,
+    "selectivity_pct": 0.0,
+    "first_game_date": "2025-08-20T15:02:32.343490+00:00",
+    "last_game_date": "2025-08-20T15:02:32.343490+00:00",
+    "precision_burst_count": 5,
+    "second_choice_rate": 0.09523809523809523,
+    "phase_quality": {
+      "opening_acpl": 15.5,
+      "middlegame_acpl": 73.3,
+      "endgame_acpl": 19947.4,
+      "blunder_rate": 0.047619047619047616
+    },
+    "opening_patterns": {
+      "mean_entropy": -0.0,
+      "novelty_depth": 13.0,
+      "opening_breadth": 1,
+      "second_choice_rate": 0.8333333333333334
+    },
+    "time_management": {
+      "mean_move_time": NaN,
+      "time_variance": NaN,
+      "uniformity_score": NaN,
+      "lag_spike_count": 0
+    },
+    "endgame": {},
+    "time_complexity": {
+      "time_complexity_corr": 0.0
+    },
+    "benchmark": {
+      "percentile_acpl": 90,
+      "percentile_entropy": 5
+    },
+    "_performance_error": "SVD did not converge in Linear Least Squares",
+    "favorite_openings": [
+      {
+        "eco_code": "B30",
+        "name": "Sicilian",
+        "count": 1
+      }
+    ],
+    "risk_score": 20,
+    "risk_factors": {
+      "abnormal_timing": true
+    }
+  }
+}

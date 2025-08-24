@@ -1,0 +1,13 @@
+{
+  "pgn": "[Event \"Let's Play!\"]\n[Site \"Chess.com\"]\n[Date \"2024.05.21\"]\n[Round \"-\"]\n[White \"Affan_khan123\"]\n[Black \"dolaboy\"]\n[Result \"0-1\"]\n[CurrentPosition \"rnb1kbnr/pp1p1ppp/4pq2/2p1N3/4P3/8/PPPP1PPP/RNBQKB1R w KQkq - 2 4\"]\n[Timezone \"UTC\"]\n[ECO \"B40\"]\n[ECOUrl \"https://www.chess.com/openings/Sicilian-Defense-French-Variation\"]\n[UTCDate \"2024.05.21\"]\n[UTCTime \"20:01:50\"]\n[WhiteElo \"1200\"]\n[BlackElo \"1122\"]\n[TimeControl \"1/86400\"]\n[Termination \"dolaboy won on time\"]\n[StartTime \"20:01:50\"]\n[EndDate \"2024.05.22\"]\n[EndTime \"20:09:23\"]\n[Link \"https://www.chess.com/game/daily/659776809\"]\n\n1. e4 {[%clk 0:00:06.7]} 1... c5 {[%clk 0:00:02]} 2. Nf3 {[%clk 0:00:00.6]} 2... e6 {[%clk 0:00:03.2]} 3. Ne5 {[%clk 0:00:04.6]} 3... Qf6 {[%clk 0:00:25.2]} 0-1\n",
+  "move_times": [
+    4,
+    2,
+    -3,
+    -1,
+    -21
+  ],
+  "white": "Affan_khan123",
+  "black": "dolaboy",
+  "end_time": "2024-05-22T20:09:23+00:00"
+}

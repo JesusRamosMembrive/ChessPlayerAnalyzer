@@ -1,0 +1,41 @@
+[
+  {
+    "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2024.04.09\"]\n[Round \"-\"]\n[White \"Awwman69420\"]\n[Black \"Affan_khan123\"]\n[Result \"0-1\"]\n[CurrentPosition \"r1b2k1r/ppp2ppp/8/8/1n6/3B1N2/q5PP/1NB1K2R w - -\"]\n[Timezone \"UTC\"]\n[ECO \"A40\"]\n[ECOUrl \"https://www.chess.com/openings/Englund-Gambit-2.dxe5-Nc6\"]\n[UTCDate \"2024.04.09\"]\n[UTCTime \"18:31:35\"]\n[WhiteElo \"279\"]\n[BlackElo \"299\"]\n[TimeControl \"600\"]\n[Termination \"Affan_khan123 won by resignation\"]\n[StartTime \"18:31:35\"]\n[EndDate \"2024.04.09\"]\n[EndTime \"18:37:11\"]\n[Link \"https://www.chess.com/game/live/106426612517\"]\n\n1. d4 {[%clk 0:10:00]} 1... e5 {[%clk 0:10:00]} 2. dxe5 {[%clk 0:09:58.4]} 2... Nc6 {[%clk 0:09:51.4]} 3. c4 {[%clk 0:09:55.4]} 3... Nxe5 {[%clk 0:09:42.2]} 4. c5 {[%clk 0:09:51.2]} 4... Nc4 {[%clk 0:09:26.5]} 5. e4 {[%clk 0:09:47.4]} 5... Bxc5 {[%clk 0:09:19.2]} 6. Bxc4 {[%clk 0:09:44.7]} 6... Qf6 {[%clk 0:09:14]} 7. Qd5 {[%clk 0:09:30.9]} 7... Qxf2+ {[%clk 0:09:11.3]} 8. Kd1 {[%clk 0:09:22.2]} 8... Nf6 {[%clk 0:08:54.2]} 9. Qe5+ {[%clk 0:09:07.8]} 9... Kf8 {[%clk 0:08:13.7]} 10. Qxc5+ {[%clk 0:08:45.1]} 10... Qxc5 {[%clk 0:08:11.2]} 11. b4 {[%clk 0:08:08.7]} 11... Qd4+ {[%clk 0:08:04.2]} 12. Ke2 {[%clk 0:08:02.3]} 12... Qxa1 {[%clk 0:08:02.6]} 13. Bd3 {[%clk 0:07:45.7]} 13... Qxa2+ {[%clk 0:07:52.8]} 14. Ke1 {[%clk 0:07:35.9]} 14... d5 {[%clk 0:07:45.3]} 15. exd5 {[%clk 0:07:31.5]} 15... Nxd5 {[%clk 0:07:44.1]} 16. Nf3 {[%clk 0:07:24.7]} 16... Nxb4 {[%clk 0:07:31.6]} 0-1\n",
+    "move_times": [
+      0,
+      2,
+      7,
+      -4,
+      13,
+      -9,
+      25,
+      -21,
+      28,
+      -25,
+      30,
+      -16,
+      19,
+      -11,
+      28,
+      -13,
+      54,
+      -32,
+      34,
+      3,
+      4,
+      2,
+      0,
+      17,
+      -7,
+      17,
+      -10,
+      14,
+      -13,
+      20,
+      -7
+    ],
+    "white": "Awwman69420",
+    "black": "Affan_khan123",
+    "end_time": "2024-04-09T18:37:11+00:00"
+  }
+]

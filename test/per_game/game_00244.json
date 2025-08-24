@@ -1,0 +1,10 @@
+{
+  "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2025.03.28\"]\n[Round \"-\"]\n[White \"Poulette222\"]\n[Black \"Affan_khan123\"]\n[Result \"1-0\"]\n[CurrentPosition \"rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq -\"]\n[Timezone \"UTC\"]\n[ECO \"C40\"]\n[ECOUrl \"https://www.chess.com/openings/Kings-Pawn-Opening-Kings-Knight-Variation\"]\n[UTCDate \"2025.03.28\"]\n[UTCTime \"16:46:16\"]\n[WhiteElo \"343\"]\n[BlackElo \"325\"]\n[TimeControl \"600\"]\n[Termination \"Poulette222 won - game abandoned\"]\n[StartTime \"16:46:16\"]\n[EndDate \"2025.03.28\"]\n[EndTime \"16:47:26\"]\n[Link \"https://www.chess.com/game/live/136772974006\"]\n\n1. e4 {[%clk 0:09:55.2]} 1... e5 {[%clk 0:09:59.2]} 2. Nf3 {[%clk 0:09:53.9]} 1-0\n",
+  "move_times": [
+    -4,
+    6
+  ],
+  "white": "Poulette222",
+  "black": "Affan_khan123",
+  "end_time": "2025-03-28T16:47:26+00:00"
+}

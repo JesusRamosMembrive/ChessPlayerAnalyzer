@@ -1,0 +1,27 @@
+[
+  {
+    "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2025.06.06\"]\n[Round \"-\"]\n[White \"Affan_khan123\"]\n[Black \"z16bil\"]\n[Result \"0-1\"]\n[CurrentPosition \"r1bq1rk1/ppp1Rp1p/5np1/1P1p4/3n1P1P/B7/P1PPP1P1/RN1QKBN1 w Q - 0 10\"]\n[Timezone \"UTC\"]\n[ECO \"A00\"]\n[ECOUrl \"https://www.chess.com/openings/Polish-Opening-1...e5\"]\n[UTCDate \"2025.06.06\"]\n[UTCTime \"22:08:55\"]\n[WhiteElo \"321\"]\n[BlackElo \"343\"]\n[TimeControl \"600\"]\n[Termination \"z16bil won - game abandoned\"]\n[StartTime \"22:08:55\"]\n[EndDate \"2025.06.06\"]\n[EndTime \"22:16:59\"]\n[Link \"https://www.chess.com/game/live/139297249014\"]\n\n1. b4 {[%clk 0:09:57.2]} 1... e5 {[%clk 0:09:52.4]} 2. h4 {[%clk 0:09:49.6]} 2... d5 {[%clk 0:09:50.6]} 3. Rh3 {[%clk 0:09:28.5]} 3... Nf6 {[%clk 0:09:47.9]} 4. Re3 {[%clk 0:08:52.7]} 4... Nc6 {[%clk 0:09:27.6]} 5. b5 {[%clk 0:08:04.4]} 5... Nd4 {[%clk 0:09:13.9]} 6. f4 {[%clk 0:06:48.8]} 6... Bc5 {[%clk 0:08:57]} 7. Rxe5+ {[%clk 0:06:35.6]} 7... Be7 {[%clk 0:08:43.3]} 8. Ba3 {[%clk 0:06:14.7]} 8... O-O {[%clk 0:08:36.1]} 9. Rxe7 {[%clk 0:05:44.4]} 9... g6 {[%clk 0:08:13.9]} 0-1\n",
+    "move_times": [
+      5,
+      3,
+      -1,
+      22,
+      -19,
+      55,
+      -35,
+      83,
+      -69,
+      145,
+      -129,
+      142,
+      -128,
+      149,
+      -142,
+      172,
+      -149
+    ],
+    "white": "Affan_khan123",
+    "black": "z16bil",
+    "end_time": "2025-06-06T22:16:59+00:00"
+  }
+]

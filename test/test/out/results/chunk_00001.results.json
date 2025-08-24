@@ -1,0 +1,124 @@
+{
+  "input_file": "chunks_1\\chunk_00001.json",
+  "processed_at": "2025-08-21T09:27:03.347027+00:00",
+  "games_count": 1,
+  "per_game": [
+    {
+      "eco_code": "A00",
+      "result": "0-1",
+      "white": "Affan_khan123",
+      "black": "nick212847",
+      "end_time": "2023-04-19T21:21:21+00:00",
+      "opening_key": "Nh3 e5 d4 Qh4 e4 Qxe4+ Be2 Qxg2 Bf3 Bb4+ Bd2 Qxh3",
+      "mean_move_time": 57.62222222222222,
+      "time_variance": 2332.649494949496,
+      "time_complexity_corr": 0.14440778746667401,
+      "lag_spike_count": 0,
+      "uniformity_score": 0.1672220342391892,
+      "clutch_accuracy_diff": null,
+      "timing_score": 15.58149108529316,
+      "timing_rows_total": 46,
+      "timing_rows_valid_time": 45,
+      "timing_rows_valid_corr": 45,
+      "white_acpl": 98.91304347826087,
+      "white_match_rate": 0.30434782608695654,
+      "white_weighted_match_rate": 0.2943096297686671,
+      "white_ipr": 2194.021739130435,
+      "white_ipr_z_score": 0.0,
+      "white_quality_score": 18.394506284364358,
+      "white_precision_burst_count": 3,
+      "white_opening_acpl": 81.16666666666667,
+      "white_middlegame_acpl": 126.16666666666667,
+      "white_endgame_acpl": 54.8,
+      "black_acpl": 98.91304347826087,
+      "black_match_rate": 0.30434782608695654,
+      "black_weighted_match_rate": 0.2943096297686671,
+      "black_ipr": 2194.021739130435,
+      "black_ipr_z_score": 0.0,
+      "black_quality_score": 18.394506284364358,
+      "black_precision_burst_count": 3,
+      "black_opening_acpl": 81.16666666666667,
+      "black_middlegame_acpl": 126.16666666666667,
+      "black_endgame_acpl": 54.8,
+      "opening_entropy": -0.0,
+      "novelty_depth": 13,
+      "second_choice_rate": 0.21739130434782608,
+      "opening_breadth": 8,
+      "opening_score": 74.0,
+      "player_color_username": "white",
+      "user_acpl": 98.91304347826087,
+      "user_match_rate": 0.30434782608695654,
+      "user_weighted_match_rate": 0.2943096297686671,
+      "user_ipr": 2194.021739130435,
+      "user_ipr_z_score": 0.0,
+      "user_quality_score": 18.394506284364358,
+      "user_precision_burst_count": 3,
+      "user_opening_acpl": 81.16666666666667,
+      "user_middlegame_acpl": 126.16666666666667,
+      "user_endgame_acpl": 54.8
+    }
+  ],
+  "aggregates": {
+    "opening_top3": [
+      {
+        "eco_code": "A00",
+        "count": 1
+      }
+    ],
+    "opening_focus_top3_pct": 1.0,
+    "roi_mean": 2194.021739130435,
+    "roi_max": 2194.021739130435,
+    "roi_sd": 0.0,
+    "roi_games>2": 1,
+    "longest_streak": 1,
+    "step_match_rate_delta": 0.0,
+    "step_match_rate_index": -1,
+    "step_match_rate_flag": false,
+    "step_acpl_delta": 0.0,
+    "step_acpl_index": -1,
+    "step_acpl_flag": false,
+    "selectivity_pct": 0.0,
+    "first_game_date": "2025-08-21T09:27:03.182089+00:00",
+    "last_game_date": "2025-08-21T09:27:03.182089+00:00",
+    "precision_burst_count": 3,
+    "second_choice_rate": 0.21739130434782608,
+    "phase_quality": {
+      "opening_acpl": 81.16666666666667,
+      "middlegame_acpl": 126.16666666666667,
+      "endgame_acpl": 54.8,
+      "blunder_rate": 0.06521739130434782
+    },
+    "opening_patterns": {
+      "mean_entropy": -0.0,
+      "novelty_depth": 13.0,
+      "opening_breadth": 1,
+      "second_choice_rate": 0.8636363636363636
+    },
+    "time_management": {
+      "mean_move_time": NaN,
+      "time_variance": NaN,
+      "uniformity_score": NaN,
+      "lag_spike_count": 0
+    },
+    "endgame": {},
+    "time_complexity": {
+      "time_complexity_corr": 0.14440778746667401
+    },
+    "benchmark": {
+      "percentile_acpl": 10,
+      "percentile_entropy": 5
+    },
+    "_performance_error": "SVD did not converge in Linear Least Squares",
+    "favorite_openings": [
+      {
+        "eco_code": "A00",
+        "name": "Uncommon Opening",
+        "count": 1
+      }
+    ],
+    "risk_score": 25,
+    "risk_factors": {
+      "high_roi": true
+    }
+  }
+}

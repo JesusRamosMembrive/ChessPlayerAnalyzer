@@ -6,5 +6,5 @@ services:
     # 1️⃣ usa la raíz como rootDir (o elimínalo)
     rootDir: .
     # 2️⃣ Dockerfile dentro de backend
-    dockerfilePath: backend/Dockerfile
+    dockerfilePath: Dockerfile
     # 3️⃣ opcional: quita dockerContext o pon “.”

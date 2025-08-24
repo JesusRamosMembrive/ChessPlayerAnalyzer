@@ -41,7 +41,7 @@ services:
   migrate:
     build:
       context: .
-      dockerfile: backend/Dockerfile
+      dockerfile: Dockerfile
     command: ["python", "-m", "app.init_db"]   # o ["alembic", "upgrade", "head"]
     working_dir: /app
     environment:
@@ -54,11 +54,11 @@ services:
   backend:
     build:
       context: .
-      dockerfile: backend/Dockerfile
+      dockerfile: Dockerfile
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
-      - ./backend:/app
-      - ./backend/alembic/versions:/app/backend/alembic/versions
+      - ./app:/app/app
+      - ./alembic/versions:/app/alembic/versions
       - ./archives:/app/archives
       - ./debug_results:/app/debug_results
     environment:
@@ -66,6 +66,7 @@ services:
       REDIS_URL: redis://redis:6379/0
       STOCKFISH_PATH: /usr/games/stockfish
       STOCKFISH_DEPTH: 12
+      ENABLE_TRACING: "true"
       OTEL_SERVICE_NAME: chess-analyzer-api
       OTEL_EXPORTER_JAEGER_AGENT_HOST: jaeger
       OTEL_EXPORTER_JAEGER_AGENT_PORT: 6831
@@ -81,16 +82,17 @@ services:
   celery:
     build:
       context: .
-      dockerfile: backend/Dockerfile
+      dockerfile: Dockerfile
     command: celery -A app.celery_app worker --loglevel=info
     volumes:
-      - ./backend:/app
+      - ./app:/app/app
       - ./debug_results:/app/debug_results
     environment:
       DATABASE_URL: postgresql+psycopg://chess:chess@postgres:5432/chessdb
       REDIS_URL: redis://redis:6379/0
       STOCKFISH_PATH: /usr/games/stockfish
       STOCKFISH_DEPTH: 12
+      ENABLE_TRACING: "true"
       OTEL_SERVICE_NAME: chess-analyzer-worker
       OTEL_EXPORTER_JAEGER_AGENT_HOST: jaeger
       OTEL_EXPORTER_JAEGER_AGENT_PORT: 6831

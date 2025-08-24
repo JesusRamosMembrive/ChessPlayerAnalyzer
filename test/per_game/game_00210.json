@@ -1,0 +1,21 @@
+{
+  "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2024.06.03\"]\n[Round \"-\"]\n[White \"ray47yan\"]\n[Black \"Affan_khan123\"]\n[Result \"0-1\"]\n[CurrentPosition \"rnb1k2r/pppp1ppp/8/4p3/2BPP1n1/7P/PPPN1qP1/RN1QK2R w KQkq -\"]\n[Timezone \"UTC\"]\n[ECO \"C43\"]\n[ECOUrl \"https://www.chess.com/openings/Petrovs-Defense-Steinitz-Attack\"]\n[UTCDate \"2024.06.03\"]\n[UTCTime \"10:37:07\"]\n[WhiteElo \"139\"]\n[BlackElo \"367\"]\n[TimeControl \"600\"]\n[Termination \"Affan_khan123 won by checkmate\"]\n[StartTime \"10:37:07\"]\n[EndDate \"2024.06.03\"]\n[EndTime \"10:38:39\"]\n[Link \"https://www.chess.com/game/live/111150044503\"]\n\n1. d4 {[%clk 0:10:00]} 1... e5 {[%clk 0:10:00]} 2. e4 {[%clk 0:09:58.2]} 2... Nf6 {[%clk 0:09:53]} 3. Nf3 {[%clk 0:09:56.1]} 3... Bb4+ {[%clk 0:09:48.9]} 4. Bd2 {[%clk 0:09:51.7]} 4... Bxd2+ {[%clk 0:09:36.8]} 5. Nfxd2 {[%clk 0:09:43.8]} 5... Ng4 {[%clk 0:09:30.8]} 6. Bc4 {[%clk 0:09:39.2]} 6... Qf6 {[%clk 0:09:30.1]} 7. h3 {[%clk 0:09:13.1]} 7... Qxf2# {[%clk 0:09:24.2]} 0-1\n",
+  "move_times": [
+    0,
+    2,
+    5,
+    -3,
+    8,
+    -3,
+    15,
+    -7,
+    13,
+    -9,
+    9,
+    17,
+    -11
+  ],
+  "white": "ray47yan",
+  "black": "Affan_khan123",
+  "end_time": "2024-06-03T10:38:39+00:00"
+}
