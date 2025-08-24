@@ -465,6 +465,13 @@ def safe(v):
         return float(v) if v == v else 0.0      # np.nan != np.nan
     except (TypeError, ValueError):
         return 0.0
+@celery_app.task(name="extract_game_id")
+def extract_game_id(result: dict) -> int:
+    gid = result.get("game_id")
+    if gid is None:
+        raise ValueError("Missing game_id in analyze_game_task result")
+    return int(gid)
+
 
 
 @celery_app.task(
