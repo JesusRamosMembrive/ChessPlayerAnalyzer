@@ -45,6 +45,7 @@ from app.analysis.quality import aggregate_clutch_accuracy
 from app.analysis.quality import aggregate_tactical_trends
 from app.analysis.endgame import aggregate_endgame_efficiency
 from .bayesian import BayesianSuspicionModel
+from .ml_classifier import MLSuspicionClassifier
 
 from app.analysis.quality import (
     aggregate_tactical_trends,
@@ -646,8 +647,10 @@ class ChessAnalysisEngine:
 
     @trace
     def _calculate_suspicion_score(self, features: Dict, rating: Optional[int], experience: int) -> float:
-        """Calcular ``P(suspicious | evidence)`` usando un modelo bayesiano simple."""
-        model = BayesianSuspicionModel()
+        """Combina modelos bayesianos y supervisados para un score final."""
+
+        # --- Modelo bayesiano -------------------------------------------------
+        bayes_model = BayesianSuspicionModel()
         evidence = {
             'acpl': features.get('acpl', 0),
             'match_rate': features.get('match_rate', 0),
@@ -656,7 +659,19 @@ class ChessAnalysisEngine:
             'opening_entropy': features.get('H_opening', 0),
             'second_choice_rate': features.get('second_choice_pct', 0),
         }
-        return model.update(rating, experience, evidence)
+        bayes_prob = bayes_model.update(rating, experience, evidence)
+
+        # --- Clasificador supervisado ---------------------------------------
+        ml_prob = bayes_prob
+        try:
+            ml_clf = MLSuspicionClassifier()
+            ml_prob = ml_clf.predict_proba(features)
+        except Exception as exc:
+            logger.warning("ML classifier unavailable: %s", exc)
+
+        # Soft voting: media de ambas probabilidades
+        final_prob = (bayes_prob + ml_prob) / 2
+        return final_prob
 
     @trace
     def _calculate_risk_score(self, games_df: pd.DataFrame,
