@@ -475,6 +475,7 @@ class GameMetricsOut(BaseModel):
     mean_move_time: float
     time_variance: float
     time_complexity_corr: float
+    anomaly_score: float
     suspicion_score: float = Field(alias="overall_suspicion_score")
     analyzed_at: datetime
 
@@ -493,6 +494,7 @@ class GameMetricsOut(BaseModel):
                 "mean_move_time": 12.5,
                 "time_variance": 30.2,
                 "time_complexity_corr": 0.45,
+                "anomaly_score": 1.5,
                 "suspicion_score": 0.12,
                 "analyzed_at": "2024-06-28T15:00:00Z"
             }
