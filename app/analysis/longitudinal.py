@@ -443,7 +443,15 @@ def aggregate_longitudinal_features(
 
     # --- SPC Charts ------------------------------------------------------
     logger.info("DEBUG LONGITUDINAL: Calculating SPC charts")
-    acpl_series = pd.to_numeric(games_df.get("acpl") or games_df.get("acl"), errors="coerce")
+    if "acpl" in games_df.columns:
+        acpl_raw = games_df["acpl"]
+    else:
+        acpl_raw = games_df.get("acl")
+    acpl_series = (
+        pd.to_numeric(acpl_raw, errors="coerce")
+        if acpl_raw is not None
+        else pd.Series(dtype=float)
+    )
     time_series = pd.to_numeric(games_df.get("mean_move_time"), errors="coerce")
     spc_acpl = compute_spc(acpl_series) if not acpl_series.dropna().empty else {}
     spc_time = compute_spc(time_series) if not time_series.dropna().empty else {}
