@@ -388,7 +388,8 @@ def aggregate_longitudinal_features(
 
     # --- Performance model predictions for ACPL --------------------------
     try:
-        acpl_series_model = pd.to_numeric(games_df.get("acpl"), errors="coerce").dropna()
+        acpl_values = games_df.get("acpl")
+        acpl_series_model = pd.to_numeric(pd.Series(acpl_values), errors="coerce").dropna()
         if len(acpl_series_model) >= 2:
             acpl_model = fit_performance_model(acpl_series_model, model="kalman")
             acpl_pred = predict_performance(acpl_model, steps=1)[0]
@@ -448,11 +449,16 @@ def aggregate_longitudinal_features(
     else:
         acpl_raw = games_df.get("acl")
     acpl_series = (
-        pd.to_numeric(acpl_raw, errors="coerce")
+        pd.to_numeric(pd.Series(acpl_raw), errors="coerce")
         if acpl_raw is not None
         else pd.Series(dtype=float)
     )
-    time_series = pd.to_numeric(games_df.get("mean_move_time"), errors="coerce")
+    time_raw = games_df.get("mean_move_time")
+    time_series = (
+        pd.to_numeric(pd.Series(time_raw), errors="coerce")
+        if time_raw is not None
+        else pd.Series(dtype=float)
+    )
     spc_acpl = compute_spc(acpl_series) if not acpl_series.dropna().empty else {}
     spc_time = compute_spc(time_series) if not time_series.dropna().empty else {}
     if spc_acpl:
