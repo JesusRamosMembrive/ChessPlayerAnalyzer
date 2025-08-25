@@ -57,9 +57,11 @@ from app.analysis import (
     aggregate_endgame_features as e_feats,
 )
 from app.analysis.bayesian import BayesianSuspicionModel
+from app.analysis.clustering import recompute_and_update_clusters
 
 from kombu import Queue  # Añadido para configurar colas con prioridad
 from celery.exceptions import SoftTimeLimitExceeded
+from celery.schedules import crontab
 
 # Configuración de prioridades (0 = más alta)
 HIGH_PRIORITY   = 0
@@ -885,3 +887,19 @@ def test_worker_functionality():
     import time
     time.sleep(0.1)
     return {"status": "success", "message": "Worker functionality verified"}
+
+
+@celery_app.task(name="recalculate_player_clusters")
+def recalculate_player_clusters():
+    """Periodic task to recompute clustering models and update players."""
+    recompute_and_update_clusters()
+    return {"status": "ok"}
+
+
+@celery_app.on_after_configure.connect
+def setup_cluster_schedule(sender, **kwargs):
+    sender.add_periodic_task(
+        crontab(hour=0, minute=0),
+        recalculate_player_clusters.s(),
+        name="recalculate-clusters-daily",
+    )

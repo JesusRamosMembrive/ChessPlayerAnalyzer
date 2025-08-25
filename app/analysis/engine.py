@@ -38,6 +38,7 @@ from app.analysis.openings import aggregate_player_opening_patterns
 from app.utils import clean_json_numbers
 from app.analysis.eco_table import ECO_NAMES
 from app.analysis.longitudinal import compute_trends
+from .clustering import assign_cluster_from_values
 from app.analysis.quality import compute_phase_quality
 import numpy as np
 from app.analysis.benchmark import compute_benchmark
@@ -539,6 +540,14 @@ class ChessAnalysisEngine:
             time_feats = aggregate_time_management(moves_dfs)
             long_features["time_management"] = time_feats
 
+            cluster_id, cluster_dist = assign_cluster_from_values(
+                avg_acpl=_safe_mean(games_df, "acpl"),
+                mean_move_time=time_feats.get("mean_move_time", 0.0),
+                mean_entropy=opening_feats.get("mean_entropy", 0.0),
+            )
+            long_features["cluster_id"] = cluster_id
+            long_features["distance_to_center"] = cluster_dist
+
             # 2. games_df lo tienes al principio:
             clutch_feats = aggregate_clutch_accuracy(games_df)
             long_features["clutch_accuracy"] = clutch_feats
@@ -606,6 +615,8 @@ class ChessAnalysisEngine:
                 endgame=endgame_feats,
                 segments=segments,
                 change_points=change_points,
+                cluster_id=long_features.get("cluster_id"),
+                cluster_distance=long_features.get("distance_to_center"),
                 # ─ Riesgo ─
                 risk_score=risk_score,
                 risk_factors=risk_factors,

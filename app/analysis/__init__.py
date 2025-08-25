@@ -8,6 +8,7 @@ from . import timing
 from . import openings
 from . import endgame
 from . import longitudinal
+from . import clustering
 from . import spc
 from . import anomaly
 from .engine import ChessAnalysisEngine, prepare_moves_dataframe
@@ -19,6 +20,7 @@ from .openings  import aggregate_opening_features
 from .endgame   import aggregate_endgame_features
 from .anomaly   import aggregate_anomaly_features
 from .spc       import compute_spc
+from .clustering import assign_cluster_from_values, recompute_and_update_clusters
 
 __all__ = [
     'quality',
@@ -26,6 +28,7 @@ __all__ = [
     'openings',
     'endgame',
     'longitudinal',
+    'clustering',
     'spc',
     'anomaly',
     'prepare_moves_dataframe',
@@ -36,6 +39,8 @@ __all__ = [
     'aggregate_endgame_features',
     'aggregate_anomaly_features',
     'compute_spc',
+    'assign_cluster_from_values',
+    'recompute_and_update_clusters',
     'fit_performance_model',
     'predict_performance',
 ]
