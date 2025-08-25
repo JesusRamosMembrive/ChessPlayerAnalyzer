@@ -148,6 +148,7 @@ class Player(SQLModel, table=True):
     finished_at: datetime | None = Field(default=None)
     progress: int = Field(default=0)
     total_games: int = Field(default=0)
+    done_tasks: int = Field(default=0)
     done_games: int = Field(default=0)
 
     error: str | None = Field(
