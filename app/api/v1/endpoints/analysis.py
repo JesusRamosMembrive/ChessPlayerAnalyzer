@@ -5,7 +5,13 @@ from sqlmodel import Session
 from app import models
 from app.database import get_session
 from app.analysis.engine import ChessAnalysisEngine
-from app.schemas import GameMetricsOut, PlayerMetricsSummaryOut
+from app.analysis.causal_fairness import demographic_parity, equalized_odds
+from app.schemas import (
+    GameMetricsOut,
+    PlayerMetricsSummaryOut,
+    FairnessMetricsIn,
+    FairnessMetricsOut,
+)
 
 router = APIRouter()
 
@@ -83,3 +89,23 @@ async def get_player_metrics(
         "longest_streak": analysis.longest_streak,
         "selectivity_score": analysis.selectivity_score
     }
+
+
+@router.post(
+    "/metrics/fairness",
+    response_model=FairnessMetricsOut,
+    summary="Calcular métricas de fairness",
+    description=(
+        "Calcula diferencias de demographic parity y equalized odds para las "
+        "predicciones proporcionadas."
+    ),
+)
+async def compute_fairness_metrics(payload: FairnessMetricsIn) -> FairnessMetricsOut:
+    """Compute fairness metrics for given predictions and sensitive groups."""
+    dp = demographic_parity(payload.y_pred, payload.sensitive_features)["parity_diff"]
+    eo = equalized_odds(payload.y_true, payload.y_pred, payload.sensitive_features)
+    return FairnessMetricsOut(
+        demographic_parity=dp,
+        equalized_odds_tpr_diff=eo["tpr_diff"],
+        equalized_odds_fpr_diff=eo["fpr_diff"],
+    )

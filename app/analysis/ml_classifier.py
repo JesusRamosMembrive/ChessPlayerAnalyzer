@@ -19,6 +19,11 @@ from sklearn.model_selection import StratifiedKFold, cross_val_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
+try:  # pragma: no cover - fallback for standalone usage
+    from .causal_fairness import check_fairness_thresholds
+except Exception:  # ImportError in non-package execution
+    from causal_fairness import check_fairness_thresholds  # type: ignore
+
 
 MODEL_FILENAME = "ml_suspicion_model.pkl"
 
@@ -55,6 +60,8 @@ class MLSuspicionClassifier:
         y: Iterable[int],
         model_type: str = "random_forest",
         cv: int = 5,
+        sensitive_features: Optional[Iterable[int]] = None,
+        fairness_thresholds: Optional[Dict[str, float]] = None,
     ) -> Dict[str, float]:
         """Train the classifier and persist it to disk.
 
@@ -68,10 +75,15 @@ class MLSuspicionClassifier:
             Either ``"random_forest"`` or ``"gradient_boosting"``.
         cv:
             Number of folds for cross-validation.
+        sensitive_features:
+            Optional iterable with sensitive group labels aligned with ``y``.
+        fairness_thresholds:
+            Thresholds for fairness metrics. If provided, demographic
+            parity and equalized odds will be computed and validated.
 
         Returns
         -------
-        Dict with cross-validation statistics.
+        Dict with cross-validation and (optionally) fairness statistics.
         """
 
         if model_type == "gradient_boosting":
@@ -99,7 +111,22 @@ class MLSuspicionClassifier:
         self.model_path.parent.mkdir(parents=True, exist_ok=True)
         joblib.dump({"model": self.model, "features": self.feature_names}, self.model_path)
 
-        return {"cv_mean": float(scores.mean()), "cv_std": float(scores.std())}
+        result: Dict[str, float] = {
+            "cv_mean": float(scores.mean()),
+            "cv_std": float(scores.std()),
+        }
+
+        if sensitive_features is not None:
+            preds = pipeline.predict(X)
+            metrics = check_fairness_thresholds(
+                y,
+                preds,
+                sensitive_features,
+                fairness_thresholds or {},
+            )
+            result.update(metrics)
+
+        return result
 
     # ------------------------------------------------------------------
     def predict_proba(self, features: Dict[str, float]) -> float:
