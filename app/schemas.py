@@ -751,6 +751,22 @@ class TaskResultOut(BaseModel):
         }
 
 
+class FairnessMetricsIn(BaseModel):
+    """Input payload for fairness metric calculation."""
+
+    y_true: List[int]
+    y_pred: List[int]
+    sensitive_features: List[Any]
+
+
+class FairnessMetricsOut(BaseModel):
+    """Fairness metrics returned by the API."""
+
+    demographic_parity: float
+    equalized_odds_tpr_diff: float
+    equalized_odds_fpr_diff: float
+
+
 __all__ = [
     "PlayerMetricsOut",
     "TimePatternsOut",
@@ -772,4 +788,6 @@ __all__ = [
     "TaskStatusOut",
     "TaskCancelOut",
     "TaskResultOut",
+    "FairnessMetricsIn",
+    "FairnessMetricsOut",
 ]
