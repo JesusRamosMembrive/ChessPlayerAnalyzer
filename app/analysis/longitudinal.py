@@ -17,6 +17,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 from app.utils_debugging.tracer import trace
 from .spc import compute_spc
+from .performance_model import fit_performance_model, predict_performance
 
 ###############################################################################
 # 0.  CONSTANTES Y UTILIDADES ##################################################
@@ -370,6 +371,34 @@ def aggregate_longitudinal_features(
     roi_features = aggregate_roi(games_df)
     features.update(roi_features)
     logger.info(f"DEBUG LONGITUDINAL: ROI features: {roi_features}")
+
+    # --- Performance model predictions for ROI ---------------------------
+    try:
+        roi_valid = roi_series.dropna()
+        if len(roi_valid) >= 2:
+            roi_model = fit_performance_model(roi_valid, model="arima")
+            roi_pred = predict_performance(roi_model, steps=1)[0]
+            roi_resid = roi_valid.iloc[-1] - roi_pred
+            features["roi_pred"] = float(roi_pred)
+            features["roi_resid"] = float(roi_resid)
+            if len(roi_valid) > 1:
+                features["roi_resid_alert"] = bool(abs(roi_resid) > 2 * roi_valid.std(ddof=1))
+    except Exception as e:
+        logger.warning(f"DEBUG LONGITUDINAL: ROI performance model failed: {e}")
+
+    # --- Performance model predictions for ACPL --------------------------
+    try:
+        acpl_series_model = pd.to_numeric(games_df.get("acpl"), errors="coerce").dropna()
+        if len(acpl_series_model) >= 2:
+            acpl_model = fit_performance_model(acpl_series_model, model="kalman")
+            acpl_pred = predict_performance(acpl_model, steps=1)[0]
+            acpl_resid = acpl_series_model.iloc[-1] - acpl_pred
+            features["acpl_pred"] = float(acpl_pred)
+            features["acpl_resid"] = float(acpl_resid)
+            if len(acpl_series_model) > 1:
+                features["acpl_resid_alert"] = bool(abs(acpl_resid) > 2 * acpl_series_model.std(ddof=1))
+    except Exception as e:
+        logger.warning(f"DEBUG LONGITUDINAL: ACPL performance model failed: {e}")
     
     longest_roi_streak = longest_streak(roi_series)
     features['longest_streak'] = longest_roi_streak

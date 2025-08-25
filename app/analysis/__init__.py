@@ -10,6 +10,7 @@ from . import endgame
 from . import longitudinal
 from . import spc
 from .engine import ChessAnalysisEngine, prepare_moves_dataframe
+from .performance_model import fit_performance_model, predict_performance
 
 from .quality   import aggregate_quality_features
 from .timing    import aggregate_time_features
@@ -31,4 +32,6 @@ __all__ = [
     'aggregate_opening_features',
     'aggregate_endgame_features',
     'compute_spc',
+    'fit_performance_model',
+    'predict_performance',
 ]
