@@ -252,6 +252,8 @@ class PlayerMetricsOut(BaseModel):
     peer_delta_acpl: float
     peer_delta_match: float
     longest_streak: int
+    cluster_id: Optional[int] = None
+    distance_to_center: Optional[float] = None
     first_game_date: Optional[datetime] = None
     last_game_date: Optional[datetime] = None
 
@@ -518,6 +520,8 @@ class PlayerMetricsSummaryOut(BaseModel):
     peer_delta_match: float
     longest_streak: int
     selectivity_score: float
+    cluster_id: Optional[int] = None
+    distance_to_center: Optional[float] = None
 
     class Config:
         orm_mode = True

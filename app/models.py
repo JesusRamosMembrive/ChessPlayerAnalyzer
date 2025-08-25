@@ -237,6 +237,8 @@ class PlayerAnalysisDetailed(SQLModel, table=True):
     time_complexity: Dict | None = Field(sa_column=Column(JSON, default=dict))
     segments: list[Dict] = Field(sa_column=Column(JSON, default=list))
     change_points: list[int] = Field(sa_column=Column(JSON, default=list))
+    cluster_id: int | None = Field(default=None, nullable=True)
+    cluster_distance: float | None = Field(default=None, nullable=True)
     # back-ref al jugador
     player: Optional[Player] = Relationship(back_populates="analysis")
 
