@@ -1,0 +1,96 @@
+{
+  "username": "tag",
+  "games_analyzed": 6,
+  "avg_acpl": 30.166666666666668,
+  "avg_wdl_loss": 0.06311335308644646,
+  "robust_loss": 0.0,
+  "avg_match_rate": 0.41093687636240833,
+  "avg_ipr": 2313.6661677565935,
+  "std_acpl": 11.548448669265783,
+  "std_match_rate": 0.11807591038961582,
+  "roi_mean": 2313.6661677565935,
+  "roi_max": 2475.714285714286,
+  "roi_std": 97.7189380472773,
+  "step_function_detected": false,
+  "step_function_magnitude": 0.0,
+  "peer_delta_acpl": 0.0,
+  "peer_delta_match": 0.0,
+  "longest_streak": 6,
+  "selectivity_score": 33.33333333333333,
+  "time_patterns": null,
+  "opening_patterns": {
+    "mean_entropy": -0.0,
+    "novelty_depth": 5.0,
+    "opening_breadth": 1,
+    "second_choice_rate": 0.8439861265948222
+  },
+  "suspicious_games_ids": [],
+  "performance": {
+    "trend_acpl": 419.9999999999999,
+    "trend_match_rate": 0.6904696114422565,
+    "roi_curve": [
+      2313.67
+    ]
+  },
+  "phase_quality": {
+    "opening_acpl": 19.0,
+    "middlegame_acpl": 39.0,
+    "endgame_acpl": 29.5,
+    "opening_blunder_rate": 0.023809523809523808,
+    "middlegame_blunder_rate": 0.05,
+    "endgame_blunder_rate": 0.14705882352941177,
+    "blunder_rate": 0.0641025641025641
+  },
+  "benchmark": {
+    "percentile_acpl": 10,
+    "percentile_entropy": 5
+  },
+  "risk_score": 25,
+  "risk_factors": {
+    "high_roi": true
+  },
+  "confidence_level": 0,
+  "first_game_date": "2025-08-25 07:30:16.949439",
+  "last_game_date": "2025-08-25 07:30:17.033973",
+  "analyzed_at": "2025-08-25 07:30:49.714849",
+  "time_management": {
+    "mean_move_time": 0.0,
+    "time_variance": 0.0,
+    "uniformity_score": 0,
+    "lag_spike_count": 0
+  },
+  "clutch_accuracy": {
+    "avg_clutch_diff": 0.0,
+    "clutch_games_pct": 1.0
+  },
+  "tactical": {},
+  "endgame": {
+    "conversion_efficiency": 2,
+    "tb_match_rate": null,
+    "dtz_deviation": null
+  },
+  "time_complexity": {
+    "time_complexity_corr": null
+  },
+  "segments": [
+    {
+      "start": 0,
+      "end": 6,
+      "mean_acpl": 30.166666666666668,
+      "mean_time": null
+    }
+  ],
+  "change_points": [],
+  "player": {
+    "username": "tag",
+    "status": "ready",
+    "requested_at": "2025-08-25 07:30:16.923777",
+    "finished_at": "2025-08-25 07:30:47.609235",
+    "progress": 100,
+    "total_games": 6,
+    "done_games": 12,
+    "error": null,
+    "last_task_id": "6c9a1076-3120-4669-b8d8-cf1e164484fb",
+    "analysis": null
+  }
+}
