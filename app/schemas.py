@@ -169,6 +169,25 @@ class PhaseQualityOut(BaseModel):
                 "middlegame_blunder_rate": 0.07,
                 "endgame_blunder_rate": 0.03,
                 "blunder_rate": 0.05
+        }
+        }
+
+
+class SegmentOut(BaseModel):
+    """Segmento temporal del historial del jugador."""
+
+    start: int
+    end: int
+    mean_acpl: Optional[float] = None
+    mean_time: Optional[float] = None
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "start": 0,
+                "end": 50,
+                "mean_acpl": 35.2,
+                "mean_time": 12.3,
             }
         }
 
@@ -240,6 +259,8 @@ class PlayerMetricsOut(BaseModel):
     selectivity_score: float
     time_patterns: Optional[TimePatternsOut] = None
     opening_patterns: Optional[OpeningPatternsOut] = None
+    segments: Optional[List[SegmentOut]] = None
+    change_points: Optional[List[int]] = None
 
     trend_acpl: float | None = None
     trend_match_rate: float | None = None
@@ -296,6 +317,10 @@ class PlayerMetricsOut(BaseModel):
                     "opening_breadth": 40,
                     "second_choice_rate": 0.19
                 },
+                "segments": [
+                    {"start": 0, "end": 40, "mean_acpl": 45.0, "mean_time": 15.2}
+                ],
+                "change_points": [40],
                 "trend_acpl": -1.4,
                 "trend_match_rate": 0.03,
                 "roi_curve": [0.01, -0.02, 0.03],

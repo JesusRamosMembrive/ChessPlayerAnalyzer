@@ -549,7 +549,6 @@ class ChessAnalysisEngine:
 
             time_patterns = clean_json_numbers(long_features.get("time_patterns"))
             opening_patterns = clean_json_numbers(long_features.get("opening_patterns"))
-            performance = clean_json_numbers(long_features.get("performance"))
             phase_quality = clean_json_numbers(long_features.get("phase_quality"))
             benchmark = clean_json_numbers(long_features.get("benchmark"))
             time_mgmt = clean_json_numbers(long_features.get("time_management"))
@@ -560,6 +559,8 @@ class ChessAnalysisEngine:
             performance = clean_json_numbers(long_features.get("performance"))
             risk_factors = clean_json_numbers(risk_factors)
             time_patterns = clean_json_numbers(time_patterns)
+            segments = clean_json_numbers(long_features.get("segments"))
+            change_points = long_features.get("change_points", [])
             # ── 4. Estadísticos globales y objeto PlayerAnalysisDetailed ─────
             analysis = models.PlayerAnalysisDetailed(
                 username=username,
@@ -594,6 +595,8 @@ class ChessAnalysisEngine:
                 tactical=tactical,
                 time_complexity=time_complexity,
                 endgame=endgame_feats,
+                segments=segments,
+                change_points=change_points,
                 # ─ Riesgo ─
                 risk_score=risk_score,
                 risk_factors=risk_factors,

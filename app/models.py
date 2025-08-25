@@ -232,6 +232,8 @@ class PlayerAnalysisDetailed(SQLModel, table=True):
     endgame: Dict | None = Field(sa_column=Column(JSON, default=dict))
 
     time_complexity: Dict | None = Field(sa_column=Column(JSON, default=dict))
+    segments: list[Dict] = Field(sa_column=Column(JSON, default=list))
+    change_points: list[int] = Field(sa_column=Column(JSON, default=list))
     # back-ref al jugador
     player: Optional[Player] = Relationship(back_populates="analysis")
 
