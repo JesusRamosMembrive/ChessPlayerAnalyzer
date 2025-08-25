@@ -31,6 +31,7 @@ from . import timing
 from . import openings
 from . import endgame
 from . import longitudinal
+from . import anomaly
 from app import models
 from app.database import engine
 from app.analysis.openings import aggregate_player_opening_patterns
@@ -305,12 +306,18 @@ class ChessAnalysisEngine:
             else:
                 logger.info("DEBUG ENGINE: Skipping endgame analysis - no tablebases or not endgame")
 
+            # 5.5 ANOMALY DETECTION
+            logger.info("DEBUG ENGINE: Starting anomaly analysis")
+            anomaly_features = anomaly.aggregate_anomaly_features(moves_df)
+            logger.info(f"DEBUG ENGINE: Anomaly features: {anomaly_features}")
+
             # 5. COMBINAR TODAS LAS FEATURES
             all_features = {
                 **quality_features,
                 **timing_features,
                 **opening_features,
-                **endgame_features
+                **endgame_features,
+                **anomaly_features,
             }
             logger.info(f"DEBUG ENGINE: Combined features count: {len(all_features)}")
             logger.info(f"DEBUG ENGINE: All features: {all_features}")
@@ -345,6 +352,8 @@ class ChessAnalysisEngine:
                 # Endgame
                 tb_match_rate=all_features.get('tb_match_pct'),
                 conversion_efficiency=all_features.get('conversion_moves'),
+                # Anomaly
+                anomaly_score=all_features.get('anomaly_score', 0),
                 # Flags (legacy fields kept for compatibility)
                 suspicious_quality=False,
                 suspicious_timing=False,

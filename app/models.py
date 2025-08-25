@@ -103,6 +103,9 @@ class GameAnalysisDetailed(SQLModel, table=True):
     dtz_deviation: Optional[float] = Field(default=None, description="Desviación DTZ promedio")
     conversion_efficiency: Optional[int] = Field(default=None, description="Movimientos para convertir ventaja")
 
+    # === ANOMALY METRICS ===
+    anomaly_score: float = Field(default=0, description="Score de detección de anomalías")
+
     # === FLAGS & SCORES ===
     suspicious_quality: bool = Field(default=False)
     suspicious_timing: bool = Field(default=False)
