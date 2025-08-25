@@ -64,7 +64,7 @@ def ensure_indices() -> None:
         ddl += [
             "CREATE INDEX IF NOT EXISTS ix_game_white_username  ON game (white_username)",
             "CREATE INDEX IF NOT EXISTS ix_game_black_username  ON game (black_username)",
-            "CREATE INDEX IF NOT EXISTS ix_game_pgn_white_black ON game (pgn, white_username, black_username)",
+            "CREATE INDEX IF NOT EXISTS ix_game_pgn_md5_white_black ON game (MD5(pgn), white_username, black_username)",
         ]
 
     if insp.has_table("player"):
