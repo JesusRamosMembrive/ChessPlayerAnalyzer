@@ -5,6 +5,7 @@ import numpy as np
 from typing import Dict, Tuple
 import logging
 from scipy.stats import linregress
+from .change_point import detect_change_points
 logger = logging.getLogger(__name__)
 
 
@@ -242,6 +243,48 @@ def longest_streak(roi_series: pd.Series,
     return int(max_streak) if not pd.isna(max_streak) and not np.isnan(max_streak) else 0
 
 
+###############################################################################
+# 6.  SEGMENTACIÓN POR PUNTOS DE CAMBIO ########################################
+###############################################################################
+@trace
+def segment_history(games_df: pd.DataFrame) -> Dict[str, list]:
+    """Segmenta el historial detectando puntos de cambio en ACPL y tiempo.
+
+    Usa una combinación de CUSUM y el algoritmo bayesiano de Adams & MacKay
+    para localizar cambios en la media de ``acpl`` y ``mean_move_time``.
+
+    Parameters
+    ----------
+    games_df : pd.DataFrame
+        DataFrame de partidas ordenado cronológicamente.
+
+    Returns
+    -------
+    dict
+        {'segments': list[dict], 'change_points': list[int]}
+    """
+    if games_df.empty:
+        return {"segments": [], "change_points": []}
+
+    cp_acpl = detect_change_points(games_df.get("acpl", [])) if "acpl" in games_df else []
+    cp_time = detect_change_points(games_df.get("mean_move_time", [])) if "mean_move_time" in games_df else []
+    cps = sorted(set(cp_acpl + cp_time))
+
+    segments = []
+    start = 0
+    for cp in cps + [len(games_df)]:
+        seg = games_df.iloc[start:cp]
+        segment_info = {
+            "start": int(start),
+            "end": int(cp),
+            "mean_acpl": float(seg["acpl"].mean()) if "acpl" in seg.columns and not seg["acpl"].isna().all() else None,
+            "mean_time": float(seg["mean_move_time"].mean()) if "mean_move_time" in seg.columns and not seg["mean_move_time"].isna().all() else None,
+        }
+        segments.append(segment_info)
+        start = cp
+
+    return {"segments": segments, "change_points": cps}
+
 @trace
 def compute_trends(games_df: pd.DataFrame) -> dict:
     """
@@ -347,6 +390,12 @@ def aggregate_longitudinal_features(
     step_acpl_features = detect_step_function(games_df, aliases=("acpl",), min_delta=25)
     features.update(step_acpl_features)
     logger.info(f"DEBUG LONGITUDINAL: ACPL step function features: {step_acpl_features}")
+
+    # --- Change point segmentation ------------------------------------
+    logger.info("DEBUG LONGITUDINAL: Segmenting history for change points")
+    segmentation = segment_history(games_df)
+    features.update(segmentation)
+    logger.info(f"DEBUG LONGITUDINAL: Segmentation result: {segmentation}")
 
     # --- Selectivity ------------------------------------------------------
     logger.info("DEBUG LONGITUDINAL: Calculating selectivity score")
