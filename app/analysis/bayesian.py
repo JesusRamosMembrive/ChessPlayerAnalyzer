@@ -1,8 +1,10 @@
 from __future__ import annotations
 """Simple Bayesian model for computing suspicion probabilities."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Dict, Callable, Optional
+import json
 
 
 @dataclass
@@ -18,6 +20,24 @@ class BayesianSuspicionModel:
 
     # Base prior probability that a random game is suspicious
     base_prior: float = 0.10
+    priors: Dict[str, Dict[str, Dict[str, float]]] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        path = Path(__file__).resolve().parents[2] / "data" / "suspicion_priors.json"
+        if path.exists():
+            self.priors = json.loads(path.read_text())
+        else:
+            self.priors = {}
+
+    def _rating_bucket(self, rating: Optional[int]) -> str:
+        if rating is None:
+            return "unknown"
+        start = (rating // 200) * 200
+        return f"{start}-{start + 199}"
+
+    def _exp_bucket(self, experience: int) -> str:
+        start = (experience // 50) * 50
+        return f"{start}-{start + 49}"
 
     def _clamp(self, p: float) -> float:
         return max(0.001, min(0.999, p))
@@ -26,17 +46,26 @@ class BayesianSuspicionModel:
     # Priors
     # ------------------------------------------------------------------
     def compute_prior(self, rating: Optional[int], experience: int) -> float:
-        """Compute prior P(suspicious) from rating and experience.
+        """Compute prior :math:`P(\text{suspicious})` using a Beta-Binomial model.
 
-        Low rated or very inexperienced players get a slightly higher prior,
-        whereas experienced players get a lower prior.
+        Historical counts of suspicious games are stored in
+        ``data/suspicion_priors.json`` grouped by rating and experience buckets.
+        For a given player we look up the corresponding hyper-parameters
+        (:math:`\alpha`, :math:`\beta`).  Player experience adds extra
+        (assumed non-suspicious) trials to the beta distribution which shrinks
+        the prior as more clean games are observed.
         """
-        p = self.base_prior
-        if rating:
-            # Players well above 2000 have a bit lower prior; beginners slightly higher
-            p += (1500 - rating) / 10000  # rating 2500 -> -0.1, rating 1000 -> +0.05
-        if experience:
-            p -= min(experience / 1000, 0.05)  # up to -0.05 for very experienced players
+        r_bucket = self._rating_bucket(rating)
+        e_bucket = self._exp_bucket(experience)
+        params = self.priors.get(r_bucket, {}).get(e_bucket)
+        if params:
+            alpha = params["alpha"]
+            beta = params["beta"]
+            start = int(e_bucket.split('-')[0])
+            extra = max(0, experience - start)
+            p = alpha / (alpha + beta + extra)
+        else:
+            p = self.base_prior
         return self._clamp(p)
 
     # ------------------------------------------------------------------

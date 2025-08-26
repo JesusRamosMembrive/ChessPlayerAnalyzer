@@ -1,0 +1,96 @@
+{
+  "0-199": {
+    "0-49": {
+      "alpha": 6,
+      "beta": 1,
+      "suspicious": 5,
+      "total": 5
+    },
+    "50-99": {
+      "alpha": 17,
+      "beta": 1,
+      "suspicious": 16,
+      "total": 16
+    }
+  },
+  "1200-1399": {
+    "0-49": {
+      "alpha": 13,
+      "beta": 1,
+      "suspicious": 12,
+      "total": 12
+    },
+    "150-199": {
+      "alpha": 2,
+      "beta": 1,
+      "suspicious": 1,
+      "total": 1
+    },
+    "50-99": {
+      "alpha": 2,
+      "beta": 1,
+      "suspicious": 1,
+      "total": 1
+    }
+  },
+  "200-399": {
+    "0-49": {
+      "alpha": 189,
+      "beta": 1,
+      "suspicious": 188,
+      "total": 188
+    },
+    "100-149": {
+      "alpha": 33,
+      "beta": 1,
+      "suspicious": 32,
+      "total": 32
+    },
+    "150-199": {
+      "alpha": 30,
+      "beta": 1,
+      "suspicious": 29,
+      "total": 29
+    },
+    "200-249": {
+      "alpha": 37,
+      "beta": 1,
+      "suspicious": 36,
+      "total": 36
+    },
+    "250-299": {
+      "alpha": 6,
+      "beta": 1,
+      "suspicious": 5,
+      "total": 5
+    },
+    "50-99": {
+      "alpha": 135,
+      "beta": 1,
+      "suspicious": 134,
+      "total": 134
+    }
+  },
+  "400-599": {
+    "0-49": {
+      "alpha": 7,
+      "beta": 1,
+      "suspicious": 6,
+      "total": 6
+    }
+  },
+  "600-799": {
+    "200-249": {
+      "alpha": 2,
+      "beta": 1,
+      "suspicious": 1,
+      "total": 1
+    },
+    "50-99": {
+      "alpha": 4,
+      "beta": 1,
+      "suspicious": 3,
+      "total": 3
+    }
+  }
+}
