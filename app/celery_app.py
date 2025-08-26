@@ -833,9 +833,9 @@ def process_player_enhanced(self, username: str, months: int = 12, priority: int
             analyze_game_task.s(g["pgn"], gid, move_times=g.get("move_times"), player=username)
             .set(priority=priority)
         )
-    if redis_client.get(f"cancel:{username}"):
-        logger.info(f"process_player_enhanced detected cancellation before scheduling chord for {username}")
-        return {"status": "revoked", "username": username, "games_queued": len(games)}
+        if redis_client.get(f"cancel:{username}"):
+            logger.info(f"process_player_enhanced detected cancellation before scheduling chain for {username}")
+            return {"status": "revoked", "username": username, "games_queued": len(games)}
 
         detailed = (
             analyze_game_detailed.si(gid, username)
