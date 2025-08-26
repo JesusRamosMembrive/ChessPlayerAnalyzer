@@ -18,6 +18,8 @@ from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.isotonic import IsotonicRegression
 
 try:  # pragma: no cover - fallback for standalone usage
     from .causal_fairness import check_fairness_thresholds
@@ -43,6 +45,7 @@ class MLSuspicionClassifier:
     model_path: Optional[Path] = None
     model: Optional[Pipeline] = None
     feature_names: Optional[Iterable[str]] = None
+    calibrator: Optional[object] = None
 
     def __post_init__(self) -> None:
         if self.model_path is None:
@@ -52,6 +55,7 @@ class MLSuspicionClassifier:
             data = joblib.load(self.model_path)
             self.model = data["model"]
             self.feature_names = data.get("features")
+            self.calibrator = data.get("calibrator")
 
     # ------------------------------------------------------------------
     def train(
@@ -62,6 +66,8 @@ class MLSuspicionClassifier:
         cv: int = 5,
         sensitive_features: Optional[Iterable[int]] = None,
         fairness_thresholds: Optional[Dict[str, float]] = None,
+        calibrate: bool = True,
+        calibration_method: str = "sigmoid",
     ) -> Dict[str, float]:
         """Train the classifier and persist it to disk.
 
@@ -107,9 +113,28 @@ class MLSuspicionClassifier:
         self.model = pipeline
         self.feature_names = list(X.columns)
 
+        # Optional probability calibration
+        self.calibrator = None
+        if calibrate:
+            ml_probs = pipeline.predict_proba(X)[:, 1]
+            if calibration_method == "isotonic":
+                cal = IsotonicRegression(out_of_bounds="clip")
+                cal.fit(ml_probs, y)
+            else:
+                cal = LogisticRegression()
+                cal.fit(ml_probs.reshape(-1, 1), y)
+            self.calibrator = cal
+
         # Persist model and feature ordering
         self.model_path.parent.mkdir(parents=True, exist_ok=True)
-        joblib.dump({"model": self.model, "features": self.feature_names}, self.model_path)
+        joblib.dump(
+            {
+                "model": self.model,
+                "features": self.feature_names,
+                "calibrator": self.calibrator,
+            },
+            self.model_path,
+        )
 
         result: Dict[str, float] = {
             "cv_mean": float(scores.mean()),
@@ -145,3 +170,21 @@ class MLSuspicionClassifier:
         X = pd.DataFrame([row], columns=self.feature_names)
         proba = self.model.predict_proba(X)[0, 1]
         return float(proba)
+
+    # ------------------------------------------------------------------
+    def calibrate_prob(self, bayes_prob: float, ml_prob: float) -> float:
+        """Apply the trained calibrator to an ML probability.
+
+        Parameters
+        ----------
+        bayes_prob:
+            Currently unused, reserved for future multi-model calibration.
+        ml_prob:
+            Probability predicted by the ML model.
+        """
+
+        if self.calibrator is None:
+            return ml_prob
+        if isinstance(self.calibrator, IsotonicRegression):
+            return float(self.calibrator.predict([ml_prob])[0])
+        return float(self.calibrator.predict_proba([[ml_prob]])[0, 1])
