@@ -688,7 +688,8 @@ class ChessAnalysisEngine:
         ml_prob = bayes_prob
         try:
             ml_clf = MLSuspicionClassifier()
-            ml_prob = ml_clf.predict_proba(features)
+            raw_ml_prob = ml_clf.predict_proba(features)
+            ml_prob = ml_clf.calibrate_prob(bayes_prob, raw_ml_prob)
         except Exception as exc:
             logger.warning("ML classifier unavailable: %s", exc)
 
