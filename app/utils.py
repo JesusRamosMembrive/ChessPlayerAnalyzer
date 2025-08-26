@@ -146,11 +146,12 @@ def update_progress(username: str, *, increment: int = 1) -> None:
         if not pl:
             return
 
-        pl.done_games = (pl.done_games or 0) + increment
+        pl.done_tasks = (pl.done_tasks or 0) + increment
+        pl.done_games = pl.done_tasks // 2
         expected = (pl.total_games or 0) * 2  # básico + detallado
-        pl.progress = int(pl.done_games / expected * 100) if expected else 0
+        pl.progress = int(pl.done_tasks / expected * 100) if expected else 0
 
-        if expected and pl.done_games >= expected:
+        if expected and pl.done_tasks >= expected:
             pl.status = "ready"
             pl.finished_at = datetime.now(UTC)
 
