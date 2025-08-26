@@ -761,6 +761,7 @@ def process_player_enhanced(self, username: str, months: int = 12, priority: int
                 requested_at=datetime.now(timezone.utc),
                 progress=0,
                 total_games=len(games),
+                done_tasks=0,
                 done_games=0,
             )
             s.add(player)
@@ -769,6 +770,7 @@ def process_player_enhanced(self, username: str, months: int = 12, priority: int
             player.requested_at = datetime.now(timezone.utc)
             player.progress = 0
             player.total_games = len(games)
+            player.done_tasks = 0
             player.done_games = 0
         s.commit()
         logger.info(f"DEBUG CELERY: Created/updated player record for {username}")

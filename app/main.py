@@ -400,7 +400,7 @@ def get_player(username: str, session: Session = Depends(get_session)):
         "status": player.status,
         "progress": player.progress,
         "total_games": player.total_games,
-        "done_games": player.done_games,
+        "done_games": (player.done_tasks or 0) // 2,
         "requested_at": player.requested_at.isoformat() if player.requested_at else None,
         "finished_at": player.finished_at.isoformat() if player.finished_at else None,
         "error": player.error,
@@ -481,6 +481,7 @@ def analyze_player(
             now = datetime.now(UTC)
             player.status = models.PlayerStatus.pending
             player.progress = 0
+            player.done_tasks = 0
             player.done_games = 0
             player.total_games = 0
             player.requested_at = now
@@ -563,7 +564,7 @@ def list_players(
             "status": p.status,
             "progress": p.progress,
             "total_games": p.total_games,
-            "done_games": p.done_games,
+            "done_games": (p.done_tasks or 0) // 2,
             "requested_at": p.requested_at.isoformat() if p.requested_at else None,
             "finished_at": p.finished_at.isoformat() if p.finished_at else None,
         }
@@ -826,6 +827,7 @@ def reset_player(username: str, session: Session = Depends(get_session)):
     player.status = models.PlayerStatus.not_analyzed
     player.progress = 0
     player.total_games = None
+    player.done_tasks = None
     player.done_games = None
     player.requested_at = None
     player.finished_at = None

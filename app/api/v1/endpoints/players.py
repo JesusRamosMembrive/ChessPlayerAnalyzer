@@ -40,7 +40,7 @@ async def get_player(username: str, session: Session = Depends(get_session)):
         "status": player.status,
         "progress": player.progress,
         "total_games": player.total_games,
-        "done_games": player.done_games,
+        "done_games": (player.done_tasks or 0) // 2,
         "requested_at": player.requested_at.isoformat() if player.requested_at else None,
         "finished_at": player.finished_at.isoformat() if player.finished_at else None,
         "error": player.error,
@@ -72,12 +72,14 @@ async def analyze_player(
             }
             
         if not player:
-            player = models.Player(username=username, status="pending")
+            player = models.Player(username=username, status="pending", done_tasks=0, done_games=0)
             session.add(player)
         else:
             player.status = "pending"
             player.progress = 0
             player.error = None
+            player.done_tasks = 0
+            player.done_games = 0
             
         player.requested_at = datetime.now(timezone.utc)
         player.finished_at = None
@@ -134,7 +136,7 @@ async def list_players(
             "status": p.status,
             "progress": p.progress,
             "total_games": p.total_games,
-            "done_games": p.done_games,
+            "done_games": (p.done_tasks or 0) // 2,
             "requested_at": p.requested_at.isoformat() if p.requested_at else None,
             "finished_at": p.finished_at.isoformat() if p.finished_at else None,
         }
