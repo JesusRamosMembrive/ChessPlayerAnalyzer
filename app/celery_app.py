@@ -548,6 +548,10 @@ def analyze_game_detailed(game_id: int, username: str) -> dict[str, int | str | 
     # -- sesión cerrada -----------------------------------------------
 
     # Llamadas a agregadores
+    if redis_client.get(cancellation_key):
+        logger.info(f"analyze_game_detailed detected Redis cancellation flag for {username} after quality stage")
+        return {"status": "cancelled", "game_id": game_id, "username": username}
+
     logger.info("DEBUG DETAILED: Starting quality features calculation")
     q = q_feats(game_df, elo=game.white_elo if player_color == 'white' else game.black_elo, player_color=player_color)
     logger.info(f"DEBUG DETAILED: Quality features: {q}")
@@ -559,6 +563,10 @@ def analyze_game_detailed(game_id: int, username: str) -> dict[str, int | str | 
         pass
 
     logger.info("DEBUG DETAILED: Starting timing features calculation")
+    if redis_client.get(cancellation_key):
+        logger.info(f"analyze_game_detailed detected Redis cancellation flag for {username} after timing stage")
+        return {"status": "cancelled", "game_id": game_id, "username": username}
+
     t = t_feats(game_df)
     logger.info(f"DEBUG DETAILED: Timing features: {t}")
 
@@ -568,6 +576,10 @@ def analyze_game_detailed(game_id: int, username: str) -> dict[str, int | str | 
         pass
 
     logger.info("DEBUG DETAILED: Starting opening features calculation")
+    if redis_client.get(cancellation_key):
+        logger.info(f"analyze_game_detailed detected Redis cancellation flag for {username} after opening stage")
+        return {"status": "cancelled", "game_id": game_id, "username": username}
+
     o = o_feats(opening_key, eco_code, game_df, games_df)
     logger.info(f"DEBUG DETAILED: Opening features: {o}")
 
@@ -577,6 +589,10 @@ def analyze_game_detailed(game_id: int, username: str) -> dict[str, int | str | 
         pass
 
     logger.info("DEBUG DETAILED: Starting endgame features calculation")
+    if redis_client.get(cancellation_key):
+        logger.info(f"analyze_game_detailed detected Redis cancellation flag for {username} after endgame stage")
+        return {"status": "cancelled", "game_id": game_id, "username": username}
+
     e = e_feats(game_pgn_obj, game_df, TB_PATH if TB_PATH and Path(TB_PATH).exists() else None)
     logger.info(f"DEBUG DETAILED: Endgame features: {e}")
 
@@ -585,6 +601,9 @@ def analyze_game_detailed(game_id: int, username: str) -> dict[str, int | str | 
     except Exception:
         pass
 
+    if redis_client.get(cancellation_key):
+        logger.info(f"analyze_game_detailed detected Redis cancellation flag for {username} before scoring stage")
+        return {"status": "cancelled", "game_id": game_id, "username": username}
     model = BayesianSuspicionModel()
     rating = game.white_elo if player_color == 'white' else game.black_elo
     experience = len(games_df)
@@ -761,9 +780,20 @@ def process_player_enhanced(self, username: str, months: int = 12, priority: int
 
     total_games = len(games)
     for i, g in enumerate(games):
-        # Verificar revocación cada 5 partidas (más frecuente)
-        if i % 5 == 0 and not self.request.called_directly and _is_aborted(self, username):
+        if not self.request.called_directly and _is_aborted(self, username):
             logger.info(f"Task {self.request.id} has been revoked during game processing, stopping execution")
+            with Session(engine) as s:
+                pl = s.get(models.Player, username)
+                if pl:
+                    try:
+                        pl.status = "error"
+                        pl.error = "stopped_by_user"
+                        pl.finished_at = datetime.now(timezone.utc)
+                        s.add(pl)
+                        s.commit()
+                    except Exception:
+                        s.rollback()
+            notify_ws(username, {"status": "stopped"})
             return {"status": "revoked", "username": username, "games_processed": i}
 
         logger.info(f"DEBUG CELERY: Processing game {i+1}/{len(games)}")
@@ -801,6 +831,10 @@ def process_player_enhanced(self, username: str, months: int = 12, priority: int
             analyze_game_task.s(g["pgn"], gid, move_times=g.get("move_times"), player=username)
             .set(priority=priority)
         )
+    if redis_client.get(f"cancel:{username}"):
+        logger.info(f"process_player_enhanced detected cancellation before scheduling chord for {username}")
+        return {"status": "revoked", "username": username, "games_queued": len(games)}
+
         detailed = (
             analyze_game_detailed.si(gid, username)
             .set(priority=priority)
