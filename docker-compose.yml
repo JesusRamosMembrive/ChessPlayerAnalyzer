@@ -42,19 +42,22 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: ["python", "-m", "app.init_db"]   # o ["alembic", "upgrade", "head"]
+      target: app-base
+    command: ["python", "-m", "app.init_db"]
     working_dir: /app
     environment:
       DATABASE_URL: postgresql+psycopg://chess:chess@postgres:5432/chessdb
     depends_on:
       postgres:
         condition: service_healthy
+    profiles: ["dev"]
 
 # ──────────────────────────────────────────────────────────────
   backend:
     build:
       context: .
       dockerfile: Dockerfile
+      target: app-base
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
       - ./app:/app/app
@@ -77,13 +80,15 @@ services:
         condition: service_completed_successfully
       redis:
         condition: service_healthy
+    profiles: ["dev"]
 
 # ──────────────────────────────────────────────────────────────
   celery:
     build:
       context: .
       dockerfile: Dockerfile
-    command: celery -A app.celery_app worker --loglevel=info
+      target: app-base
+    command: celery -A app.celery_app worker --loglevel=info -Q default
     volumes:
       - ./app:/app/app
       - ./debug_results:/app/debug_results
@@ -101,6 +106,35 @@ services:
         condition: service_completed_successfully
       redis:
         condition: service_healthy
+    profiles: ["dev"]
+  # celery-torch service added below
+
+
+  celery-torch:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: torch
+      args:
+        PYTORCH_IMAGE: pytorch/pytorch:2.3.1-cpu-py3.12
+    command: celery -A app.celery_app worker --loglevel=info -Q torch
+    volumes:
+      - ./app:/app/app
+      - ./debug_results:/app/debug_results
+      - ./model_store:/app/model_store
+    environment:
+      DATABASE_URL: postgresql+psycopg://chess:chess@postgres:5432/chessdb
+      REDIS_URL: redis://redis:6379/0
+      ENABLE_TRACING: "true"
+      OTEL_SERVICE_NAME: chess-analyzer-torch
+      OTEL_EXPORTER_JAEGER_AGENT_HOST: jaeger
+      OTEL_EXPORTER_JAEGER_AGENT_PORT: 6831
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    profiles: ["ml"]
 
 # ──────────────────────────────────────────────────────────────
 volumes:

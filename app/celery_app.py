@@ -79,6 +79,7 @@ celery_app.conf.task_default_queue = "default"
 # El tuple final debe contener únicamente el objeto Queue
 celery_app.conf.task_queues = (
     Queue("default", max_priority=10),
+    Queue("torch", max_priority=10),
 )
 
 ENGINE_PATH = os.getenv("STOCKFISH_PATH", "stockfish")
@@ -92,17 +93,16 @@ TASK_TIME_LIMIT      = int(os.getenv("TASK_TIME_LIMIT", "1860"))      # hard lim
 TASK_MAX_RETRIES     = int(os.getenv("TASK_MAX_RETRIES", "3"))         # default max retries
 
 celery_app.conf.update(
-    # When a worker is lost (OOM/timeout) we want the broker to re-queue the task
     task_reject_on_worker_lost=True,
-    # Force ACK *after* the task finishes so it can be retried on crash
     task_acks_late=True,
-    # Apply global time limits – individual tasks can override these
     task_soft_time_limit=TASK_SOFT_TIME_LIMIT,
     task_time_limit=TASK_TIME_LIMIT,
-    # Global retry defaults (used by autoretry_for)
-    task_default_retry_delay=60,  # seconds between automatic retries
+    task_default_retry_delay=60,
     task_default_max_retries=TASK_MAX_RETRIES,
 )
+celery_app.conf.task_routes = {
+    "app.ml_tasks.*": {"queue": "torch"},
+}
 
 def export_analysis_to_json(data_obj, username: str, analysis_type: str = "analysis"):
     """
