@@ -122,3 +122,8 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Model checkpoints
+models/*.pt
+models/*.pth
+models/*.pkl
