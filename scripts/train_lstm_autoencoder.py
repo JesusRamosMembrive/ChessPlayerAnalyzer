@@ -55,7 +55,7 @@ def load_training_data(path: Path, seq_len: int) -> tuple[torch.Tensor, float, f
 
 def main() -> None:
     seq_len = 10
-    dataset, mean, std = load_training_data(Path("test/data/input.json"), seq_len)
+    dataset, mean, std = load_training_data(Path(r"C:\Users\jesus\Documents\ChessPlayerAnalyzer\archives\Affan_khan123_20250625_130253.json"), seq_len)
     loader = DataLoader(TensorDataset(dataset, dataset), batch_size=32, shuffle=True)
     model = LSTMAutoencoder(seq_len)
     criterion = nn.MSELoss()
