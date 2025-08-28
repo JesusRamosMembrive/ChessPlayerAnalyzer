@@ -20,8 +20,7 @@ FROM deps-base AS app-base
 COPY . /app
 ENV PATH="/root/.local/bin:${PATH}"
 
-ARG PYTORCH_IMAGE=pytorch/pytorch:2.3.1-cpu-py3.12
-FROM ${PYTORCH_IMAGE} AS torch
+FROM pytorch/pytorch:2.3.1-cpu-py3.12 AS torch
 WORKDIR /app
 COPY requirements-ml.txt .
 RUN --mount=type=cache,target=/root/.cache/pip pip install -U pip setuptools wheel && \
