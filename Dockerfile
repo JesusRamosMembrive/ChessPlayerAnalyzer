@@ -20,10 +20,12 @@ FROM deps-base AS app-base
 COPY . /app
 ENV PATH="/root/.local/bin:${PATH}"
 
-FROM pytorch/pytorch:2.3.1-cpu-py3.12 AS torch
+FROM python:${PYTHON_VERSION}-slim AS torch
+
 WORKDIR /app
 COPY requirements-ml.txt .
-RUN --mount=type=cache,target=/root/.cache/pip pip install -U pip setuptools wheel && \
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -U pip setuptools wheel && \
     pip install --no-cache-dir -r requirements-ml.txt
 COPY --from=deps-base /usr/local /usr/local
 COPY . /app

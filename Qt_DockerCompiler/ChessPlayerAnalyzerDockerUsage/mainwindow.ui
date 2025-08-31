@@ -1,0 +1,308 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>644</width>
+    <height>421</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">/* ──────────────────────────────────────────────────────────────
+   Minimal Dark Theme · Qt Widgets QSS
+   Paleta base:
+     bg        #121417
+     surface   #1A1D21
+     surface+  #20252B
+     border    #2B3036
+     text      #E6E6E6
+     text-2    #A6A6A6
+     text-dis  #6B6F76
+     accent    #4C8DFF
+     accent-2  #2E6CF3
+   Radios/bordes pequeños, sin sombras, sin degradados.
+   ────────────────────────────────────────────────────────────── */
+
+/* Base */
+QWidget {
+  background: #121417;
+  color: #E6E6E6;
+  font-size: 16px;
+}
+
+*:disabled {
+  color: #6B6F76;
+}
+
+/* Ventanas y contenedores */
+QMainWindow, QDialog, QFrame, QStackedWidget, QSplitter {
+  background: #121417;
+  border: none;
+}
+
+/* Barras y menús */
+QMenuBar {
+  background: #121417;
+  border: none;
+}
+QMenuBar::item {
+  padding: 4px 8px;
+  background: transparent;
+}
+QMenuBar::item:selected {
+  background: #20252B;
+  border-radius: 6px;
+}
+QMenu {
+  background: #181B20;
+  border: 1px solid #2B3036;
+}
+QMenu::item {
+  padding: 6px 10px;
+}
+QMenu::item:selected {
+  background: #20252B;
+}
+
+/* Botones */
+QPushButton, QToolButton {
+  background: #1A1D21;
+  color: #E6E6E6;
+  border: 1px solid #2B3036;
+  border-radius: 8px;
+  padding: 6px 12px;
+}
+QPushButton:hover, QToolButton:hover {
+  background: #20252B;
+  border-color: #3A4048;
+}
+QPushButton:pressed, QToolButton:pressed {
+  background: #15181D;
+}
+QPushButton:default {
+  background: #4C8DFF;
+  color: #FFFFFF;
+  border: 1px solid #4C8DFF;
+}
+QPushButton:disabled, QToolButton:disabled {
+  background: #1A1D21;
+  color: #6B6F76;
+  border-color: #24292F;
+}
+
+/* Campos de texto */
+QLineEdit, QTextEdit, QPlainTextEdit, QSpinBox, QDoubleSpinBox,
+QDateTimeEdit, QDateEdit, QTimeEdit {
+  background: #0F1216;
+  color: #E6E6E6;
+  border: 1px solid #2B3036;
+  border-radius: 8px;
+  padding: 6px 8px;
+  selection-background-color: #2E6CF3;
+  selection-color: #FFFFFF;
+}
+QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus,
+QSpinBox:focus, QDoubleSpinBox:focus, QDateTimeEdit:focus,
+QDateEdit:focus, QTimeEdit:focus {
+  border-color: #4C8DFF;
+}
+
+/* SpinBox up/down */
+QSpinBox::up-button, QDoubleSpinBox::up-button,
+QDateTimeEdit::up-button, QDateEdit::up-button, QTimeEdit::up-b
+</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QGridLayout" name="gridLayout">
+    <item row="0" column="0">
+     <widget class="QLabel" name="labelStatusDocker">
+      <property name="text">
+       <string>Status of Docker: Not running</string>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="1">
+     <widget class="QPushButton" name="pushButtonStartDocker">
+      <property name="text">
+       <string>Start Docker</string>
+      </property>
+     </widget>
+    </item>
+    <item row="3" column="0" colspan="2">
+     <widget class="QLabel" name="labelTitleLogsOperation">
+      <property name="text">
+       <string>Log operations</string>
+      </property>
+     </widget>
+    </item>
+    <item row="4" column="0" colspan="2">
+     <widget class="QPlainTextEdit" name="plainTextEditLogsOperation"/>
+    </item>
+    <item row="1" column="0" colspan="2">
+     <widget class="QGroupBox" name="groupBox">
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>150</height>
+       </size>
+      </property>
+      <property name="title">
+       <string>Create container</string>
+      </property>
+      <property name="flat">
+       <bool>false</bool>
+      </property>
+      <layout class="QGridLayout" name="gridLayout_4">
+       <item row="0" column="0">
+        <layout class="QVBoxLayout" name="verticalLayoutContainer">
+         <item>
+          <widget class="QLabel" name="labelTitleContainer">
+           <property name="text">
+            <string>Container</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QComboBox" name="comboBoxContainer">
+           <property name="maximumSize">
+            <size>
+             <width>150</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <item>
+            <property name="text">
+             <string>app-base</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>celery-torch</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>App-base + celery-torch</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item row="0" column="1">
+        <layout class="QVBoxLayout" name="verticalLayoutAction">
+         <item>
+          <widget class="QLabel" name="labelTitleAction">
+           <property name="text">
+            <string>Action</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QComboBox" name="comboBoxAction">
+           <item>
+            <property name="text">
+             <string>build</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>up</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>down</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item row="0" column="2">
+        <widget class="QStackedWidget" name="stackedWidget">
+         <property name="currentIndex">
+          <number>0</number>
+         </property>
+         <widget class="QWidget" name="pageBuild">
+          <layout class="QGridLayout" name="gridLayout_2">
+           <item row="0" column="0">
+            <widget class="QCheckBox" name="checkBoxPull">
+             <property name="text">
+              <string>--pull</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QCheckBox" name="checkBoxNoCache">
+             <property name="text">
+              <string>--no-cache</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="2">
+            <layout class="QVBoxLayout" name="verticalLayoutProfile">
+             <item>
+              <widget class="QLabel" name="labelTitleProfile">
+               <property name="text">
+                <string>Profile</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QComboBox" name="comboBoxProfile">
+               <item>
+                <property name="text">
+                 <string>ml</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>dev</string>
+                </property>
+               </item>
+              </widget>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </widget>
+         <widget class="QWidget" name="pageUp">
+          <layout class="QGridLayout" name="gridLayout_5">
+           <item row="0" column="0">
+            <widget class="QCheckBox" name="checkBoxUp">
+             <property name="text">
+              <string>-d</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+         <widget class="QWidget" name="pageDown">
+          <layout class="QGridLayout" name="gridLayout_3">
+           <item row="0" column="0">
+            <widget class="QCheckBox" name="checkBoxDownVolume">
+             <property name="text">
+              <string>-v</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
