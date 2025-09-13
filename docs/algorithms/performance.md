@@ -39,7 +39,7 @@ def acpl_optimized(game_df: pd.DataFrame) -> float:
 - **Optimization**: Pre-check for constant arrays
 
 **Lag Spike Detection**:
-- **Time Complexity**: O(n × w) where w = window size
+- **Time Complexity**: O(n Ã— w) where w = window size
 - **Space Complexity**: O(w) - sliding window buffer
 - **Optimization**: Early termination conditions
 
@@ -67,14 +67,14 @@ def detect_lag_spikes_optimized(game_df: pd.DataFrame) -> int:
 #### Anomaly Detection (`anomaly.py`)
 
 **STL Decomposition**:
-- **Time Complexity**: O(n × k) where k = number of iterations
+- **Time Complexity**: O(n Ã— k) where k = number of iterations
 - **Space Complexity**: O(n) - for decomposed components
 - **Dependencies**: statsmodels library performance
 - **Optimization**: Robust parameter tuning, early convergence
 
 **Isolation Forest**:
-- **Time Complexity**: O(t × È × log È) where t = trees, È = subsample size
-- **Space Complexity**: O(t × È) - tree storage
+- **Time Complexity**: O(t Ã— Ãˆ Ã— log Ãˆ) where t = trees, Ãˆ = subsample size
+- **Space Complexity**: O(t Ã— Ãˆ) - tree storage
 - **Scalability**: Good for large datasets
 - **Optimization**: Feature selection, tree count tuning
 
@@ -114,7 +114,7 @@ def benchmark_isolation_forest():
 #### Performance Modeling (`performance_model.py`)
 
 **GARCH Model Fitting**:
-- **Time Complexity**: O(n × k) where k = convergence iterations
+- **Time Complexity**: O(n Ã— k) where k = convergence iterations
 - **Space Complexity**: O(n) - series storage
 - **Convergence**: Typically 10-50 iterations
 - **Optimization**: Moment-based initialization, numerical stability
@@ -155,13 +155,13 @@ def benchmark_time_series_models():
 #### Clustering Analysis (`clustering.py`)
 
 **K-Means**:
-- **Time Complexity**: O(n × k × d × i) where n=points, k=clusters, d=dimensions, i=iterations
-- **Space Complexity**: O(n × d + k × d) - data + centroids
+- **Time Complexity**: O(n Ã— k Ã— d Ã— i) where n=points, k=clusters, d=dimensions, i=iterations
+- **Space Complexity**: O(n Ã— d + k Ã— d) - data + centroids
 - **Typical Performance**: ~0.1s for 1000 players, 3 features, 3 clusters
 
 **Gaussian Mixture Models**:
-- **Time Complexity**: O(n × k × d² × i) - higher due to covariance computation
-- **Space Complexity**: O(k × d²) - covariance matrices
+- **Time Complexity**: O(n Ã— k Ã— dÂ² Ã— i) - higher due to covariance computation
+- **Space Complexity**: O(k Ã— dÂ²) - covariance matrices
 - **Performance**: ~0.5s for same dataset as K-Means
 
 #### Change Point Detection (`change_point.py`)
@@ -173,8 +173,8 @@ def benchmark_time_series_models():
 - **Performance**: ~0.001s for 1000 data points
 
 **Bayesian Online Change Point Detection**:
-- **Time Complexity**: O(n²) - maintains full run-length distribution
-- **Space Complexity**: O(n²) - probability matrix
+- **Time Complexity**: O(nÂ²) - maintains full run-length distribution
+- **Space Complexity**: O(nÂ²) - probability matrix
 - **Limitation**: Memory intensive for long series
 - **Optimization**: Truncation strategies, approximate inference
 
@@ -402,7 +402,7 @@ Throughput: ~37 games/second single-threaded
 ```
 Player with 100 games:
    Game Loading:        ~50ms
-   Individual Games:    ~2.65s (100 × 26.5ms)
+   Individual Games:    ~2.65s (100 Ã— 26.5ms)
    Longitudinal:        ~100ms
    Clustering:          ~10ms
    Performance Model:   ~20ms

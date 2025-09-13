@@ -1,32 +1,32 @@
 # API Endpoints - ChessPlayerAnalyzer
 
 **Audiencia:** Desarrolladores, Integradores
-**Última actualización:** 2025-09-13
+**Ãšltima actualizaciÃ³n:** 2025-09-13
 **Estado:** Completo
 
-Documentación completa de los endpoints REST de la API v1 de ChessPlayerAnalyzer.
+DocumentaciÃ³n completa de los endpoints REST de la API v1 de ChessPlayerAnalyzer.
 
-## <¯ Objetivo
+## <Â¯ Objetivo
 
 La API FastAPI proporciona endpoints para:
-- **Análisis de jugadores** - Procesamiento completo de historial de partidas
-- **Análisis de partidas** - Evaluación individual de archivos PGN
-- **Consulta de métricas** - Acceso a resultados de análisis
-- **Monitoreo de tareas** - Control de procesamiento asíncrono
+- **AnÃ¡lisis de jugadores** - Procesamiento completo de historial de partidas
+- **AnÃ¡lisis de partidas** - EvaluaciÃ³n individual de archivos PGN
+- **Consulta de mÃ©tricas** - Acceso a resultados de anÃ¡lisis
+- **Monitoreo de tareas** - Control de procesamiento asÃ­ncrono
 - **Estado del sistema** - Health checks y diagnostics
 
-## =Ë Base URL y Versionado
+## =Ã‹ Base URL y Versionado
 
 **Base URL:** `http://localhost:8000`
 **API v1:** `/api/v1/`
-**Documentación:** `/api/v1/docs` (Swagger UI)
+**DocumentaciÃ³n:** `/api/v1/docs` (Swagger UI)
 
-## =€ Endpoints Principales
+## =Â€ Endpoints Principales
 
 ### 1. **Health Check**
 
 #### `GET /health`
-Verificación básica de estado del sistema.
+VerificaciÃ³n bÃ¡sica de estado del sistema.
 
 **Response:**
 ```json
@@ -56,10 +56,10 @@ Health check detallado con estado de servicios.
 }
 ```
 
-### 2. **Players - Análisis de Jugadores**
+### 2. **Players - AnÃ¡lisis de Jugadores**
 
 #### `GET /api/v1/players/{username}`
-Obtiene el estado actual del análisis de un jugador.
+Obtiene el estado actual del anÃ¡lisis de un jugador.
 
 **Parameters:**
 - `username` (path) - Nombre de usuario en Chess.com
@@ -80,17 +80,17 @@ Obtiene el estado actual del análisis de un jugador.
 ```
 
 **Status Values:**
-- `not_analyzed` - Jugador no analizado aún
-- `pending` - Análisis en progreso
-- `ready` - Análisis completado
+- `not_analyzed` - Jugador no analizado aÃºn
+- `pending` - AnÃ¡lisis en progreso
+- `ready` - AnÃ¡lisis completado
 - `error` - Error en el procesamiento
 
 #### `POST /api/v1/players/{username}`
-Inicia el análisis completo de un jugador.
+Inicia el anÃ¡lisis completo de un jugador.
 
 **Parameters:**
 - `username` (path) - Nombre de usuario en Chess.com
-- `months` (query, default=12) - Meses hacia atrás a analizar
+- `months` (query, default=12) - Meses hacia atrÃ¡s a analizar
 
 **Response (202 Accepted):**
 ```json
@@ -105,7 +105,7 @@ Inicia el análisis completo de un jugador.
 ```
 
 #### `POST /api/v1/players/{username}/refresh`
-Fuerza un nuevo análisis completo del jugador.
+Fuerza un nuevo anÃ¡lisis completo del jugador.
 
 **Response:**
 ```json
@@ -118,7 +118,7 @@ Fuerza un nuevo análisis completo del jugador.
 ```
 
 #### `DELETE /api/v1/players/{username}`
-Elimina completamente un jugador y todos sus análisis.
+Elimina completamente un jugador y todos sus anÃ¡lisis.
 
 **Response:**
 ```json
@@ -131,13 +131,13 @@ Elimina completamente un jugador y todos sus análisis.
 }
 ```
 
-### 3. **Games - Análisis de Partidas**
+### 3. **Games - AnÃ¡lisis de Partidas**
 
 #### `GET /api/v1/games/{game_id}`
 Obtiene los detalles de una partida analizada.
 
 **Parameters:**
-- `game_id` (path) - ID único de la partida
+- `game_id` (path) - ID Ãºnico de la partida
 
 **Response:**
 ```json
@@ -184,10 +184,10 @@ Analiza una partida individual desde PGN.
 }
 ```
 
-### 4. **Analysis - Métricas y Resultados**
+### 4. **Analysis - MÃ©tricas y Resultados**
 
 #### `GET /api/v1/analysis/metrics/game/{game_id}`
-Obtiene métricas detalladas de una partida.
+Obtiene mÃ©tricas detalladas de una partida.
 
 **Response:**
 ```json
@@ -229,7 +229,7 @@ Obtiene métricas detalladas de una partida.
 ```
 
 #### `GET /api/v1/analysis/metrics/player/{username}`
-Obtiene métricas agregadas de un jugador.
+Obtiene mÃ©tricas agregadas de un jugador.
 
 **Response:**
 ```json
@@ -290,7 +290,7 @@ Obtiene el estado de una tarea Celery.
 ```
 
 #### `POST /api/v1/tasks/{task_id}/cancel`
-Cancela una tarea en ejecución.
+Cancela una tarea en ejecuciÃ³n.
 
 **Response:**
 ```json
@@ -324,12 +324,12 @@ event: error
 data: {"username": "hikaru", "error": "Chess.com API rate limit exceeded"}
 ```
 
-## =' Parámetros Globales
+## =' ParÃ¡metros Globales
 
 ### Query Parameters Comunes
-- `months` (int, 1-36) - Rango temporal para análisis de jugadores
+- `months` (int, 1-36) - Rango temporal para anÃ¡lisis de jugadores
 - `priority` (int, 0-9) - Prioridad de cola Celery (0=alta, 9=baja)
-- `force_refresh` (bool) - Forzar nuevo análisis ignorando cache
+- `force_refresh` (bool) - Forzar nuevo anÃ¡lisis ignorando cache
 
 ### Headers Recomendados
 ```
@@ -339,11 +339,11 @@ User-Agent: YourApp/1.0
 X-Request-ID: unique-request-id
 ```
 
-##   Rate Limiting
+## Â  Rate Limiting
 
-**Límites por defecto:**
+**LÃ­mites por defecto:**
 - **100 requests/minuto** por IP
-- **Endpoints de análisis:** 10 requests/minuto adicional
+- **Endpoints de anÃ¡lisis:** 10 requests/minuto adicional
 - **Headers de respuesta:**
   ```
   X-RateLimit-Limit: 100
@@ -351,14 +351,14 @@ X-Request-ID: unique-request-id
   X-RateLimit-Reset: 1694606400
   ```
 
-## = Códigos de Error
+## = CÃ³digos de Error
 
 ### HTTP Status Codes
 - `200` - Success
-- `202` - Accepted (análisis encolado)
-- `400` - Bad Request (PGN inválido, parámetros incorrectos)
+- `202` - Accepted (anÃ¡lisis encolado)
+- `400` - Bad Request (PGN invÃ¡lido, parÃ¡metros incorrectos)
 - `404` - Not Found (jugador/partida no encontrada)
-- `422` - Validation Error (schema inválido)
+- `422` - Validation Error (schema invÃ¡lido)
 - `429` - Rate Limit Exceeded
 - `500` - Internal Server Error
 - `503` - Service Unavailable (workers offline)
@@ -378,19 +378,19 @@ X-Request-ID: unique-request-id
 }
 ```
 
-## =Ú Referencias
+## =Ãš Referencias
 
 - [Esquemas de Datos](./schemas.md) - Modelos de request/response
-- [Ejemplos de Uso](./examples.md) - Casos de uso prácticos
-- [Arquitectura](../architecture/overview.md) - Diseño del sistema
-- [Flujo Celery](../architecture/celery-workflow.md) - Procesamiento asíncrono
+- [Ejemplos de Uso](./examples.md) - Casos de uso prÃ¡cticos
+- [Arquitectura](../architecture/overview.md) - DiseÃ±o del sistema
+- [Flujo Celery](../architecture/celery-workflow.md) - Procesamiento asÃ­ncrono
 
 ## = Historial de Cambios
 
-- **2025-09-13:** Documentación inicial de endpoints v1
-- **2025-09-13:** Adición de ejemplos y códigos de error
+- **2025-09-13:** DocumentaciÃ³n inicial de endpoints v1
+- **2025-09-13:** AdiciÃ³n de ejemplos y cÃ³digos de error
 
 ---
 
-**Siguiente acción:** Documentar esquemas de datos detallados
+**Siguiente acciÃ³n:** Documentar esquemas de datos detallados
 **Responsable:** Equipo de API

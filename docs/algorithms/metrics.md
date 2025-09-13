@@ -106,7 +106,7 @@ correlation = spearman_rank(move_time, legal_moves_count)
 **Mathematical Framework**:
 ```
 X(t) = Trend(t) + Seasonal(t) + Residual(t)
-Z-score = (Residual - ¼) / Ã
+Z-score = (Residual - Î¼) / Ïƒ
 ```
 
 **Code Location**: `anomaly.py:39-67`
@@ -137,7 +137,7 @@ Z-score = (Residual - ¼) / Ã
 
 **Mathematical Framework**:
 ```
-P(suspicious | rating, experience) = ± / (± + ² + extra_games)
+P(suspicious | rating, experience) = Î± / (Î± + Î² + extra_games)
 ```
 
 **Beta-Binomial Model**:
@@ -151,7 +151,7 @@ P(suspicious | rating, experience) = ± / (± + ² + extra_games)
 
 **Evidence Integration**:
 ```
-posterior_odds = prior_odds × (likelihood_ratios)
+posterior_odds = prior_odds Ã— (likelihood_ratios)
 ```
 
 **Likelihood Rules**:
@@ -170,13 +170,13 @@ posterior_odds = prior_odds × (likelihood_ratios)
 
 **Mathematical Definition**:
 ```
-Ã²(t) = É + ± × µ²(t-1) + ² × Ã²(t-1)
+ÏƒÎ²(t) = Î¼ + Î± Ã— ÎµÎ²(t-1) + Î² Ã— ÏƒÎ²(t-1)
 ```
 
 **Parameter Estimation**:
-- `± = 0.1` (ARCH coefficient)
-- `² = 0.8` (GARCH coefficient)
-- `É = variance × (1 - ± - ²)` (long-term variance)
+- `Î± = 0.1` (ARCH coefficient)
+- `Î² = 0.8` (GARCH coefficient)
+- `Î¼ = variance Ã— (1 - Î± - Î²)` (long-term variance)
 
 **Code Location**: `performance_model.py:6-38`
 
@@ -203,8 +203,8 @@ z(t) = x(t) + v(t)      [observation]
 **Update Equations**:
 ```
 K(t) = P(t|t-1) / (P(t|t-1) + R)          [Kalman gain]
-x(t|t) = x(t|t-1) + K(t) × (z(t) - x(t|t-1))  [state update]
-P(t|t) = (1 - K(t)) × P(t|t-1)            [covariance update]
+x(t|t) = x(t|t-1) + K(t) Ã— (z(t) - x(t|t-1))  [state update]
+P(t|t) = (1 - K(t)) Ã— P(t|t-1)            [covariance update]
 ```
 
 **Code Location**: `performance_model.py:80-90`
@@ -215,7 +215,7 @@ P(t|t) = (1 - K(t)) × P(t|t-1)            [covariance update]
 
 **Mathematical Definition**:
 ```
-ROI = 800 × match_rate - 0.5 × acpl + 2000
+ROI = 800 Ã— match_rate - 0.5 Ã— acpl + 2000
 ```
 
 **Code Location**: `longitudinal.py:45-50`
@@ -230,13 +230,13 @@ MATCH_SD_BY_ELO = {1200: 7.5, 1600: 7.0, 2000: 6.5, 2400: 5.5, 2800: 5.0}
 
 **CUSUM Algorithm**:
 ```
-Sz(t) = max(0, Sz(t-1) + (x(t) - ¼ - ´))
-S{(t) = min(0, S{(t-1) + (x(t) - ¼ + ´))
+Sz(t) = max(0, Sz(t-1) + (x(t) - Î¼ - Â´))
+S{(t) = min(0, S{(t-1) + (x(t) - Î¼ + Â´))
 ```
 
 **Bayesian Online Change Point Detection**:
 - Adams & MacKay (2007) algorithm
-- Constant hazard function with » = 250
+- Constant hazard function with Â» = 250
 - Student-t likelihood model
 
 **Code Location**: `change_point.py:7-80`
@@ -270,14 +270,14 @@ features = [mean_move_time, avg_acpl, mean_entropy]
 
 **X-bar Chart** (process mean):
 ```
-UCL = ¼ + 3Ã/n
-LCL = ¼ - 3Ã/n
+UCL = Î¼ + 3Ïƒ/âˆšn
+LCL = Î¼ - 3Ïƒ/âˆšn
 ```
 
 **R Chart** (process range):
 ```
-UCL = D„ × R
-LCL = Dƒ × R
+UCL = DÂ„ Ã— R
+LCL = DÂƒ Ã— R
 ```
 
 **Individual-Moving Range Chart**:
@@ -289,8 +289,8 @@ LCL = Dƒ × R
 
 **Capability Indices**:
 ```
-Cp = (USL - LSL) / (6Ã)
-Cpk = min((USL - ¼)/3Ã, (¼ - LSL)/3Ã)
+Cp = (USL - LSL) / (6Ïƒ)
+Cpk = min((USL - Î¼)/3Ïƒ, (Î¼ - LSL)/3Ïƒ)
 ```
 
 ## Machine Learning Features (`ml_classifier.py`)

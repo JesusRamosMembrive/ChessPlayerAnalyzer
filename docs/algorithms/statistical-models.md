@@ -12,16 +12,16 @@ This document provides detailed mathematical foundations for the statistical mod
 
 **Mathematical Specification**:
 ```
-r(t) = ¼ + µ(t)
-µ(t) = Ã(t) × z(t),  z(t) ~ N(0,1)
-Ã²(t) = É + ± × µ²(t-1) + ² × Ã²(t-1)
+r(t) = Â¼ + Âµ(t)
+Âµ(t) = Ãƒ(t) Ã— z(t),  z(t) ~ N(0,1)
+ÃƒÂ²(t) = Ã‰ + Â± Ã— ÂµÂ²(t-1) + Â² Ã— ÃƒÂ²(t-1)
 ```
 
 **Parameter Constraints**:
-- `É > 0` (non-negative long-term variance)
-- `± e 0` (ARCH coefficient)
-- `² e 0` (GARCH coefficient)
-- `± + ² < 1` (stationarity condition)
+- `Ã‰ > 0` (non-negative long-term variance)
+- `Â± e 0` (ARCH coefficient)
+- `Â² e 0` (GARCH coefficient)
+- `Â± + Â² < 1` (stationarity condition)
 
 **Implementation** (`performance_model.py:6-38`):
 ```python
@@ -67,8 +67,8 @@ P(t|t-1) = P(t-1|t-1) + Q
 **Update Step**:
 ```
 K(t) = P(t|t-1) / (P(t|t-1) + R)
-x(t|t) = x(t|t-1) + K(t) × (z(t) - x(t|t-1))
-P(t|t) = (1 - K(t)) × P(t|t-1)
+x(t|t) = x(t|t-1) + K(t) Ã— (z(t) - x(t|t-1))
+P(t|t) = (1 - K(t)) Ã— P(t|t-1)
 ```
 
 **Implementation** (`performance_model.py:80-90`):
@@ -97,17 +97,17 @@ def fit_kalman_filter(series):
 
 **Mathematical Form**:
 ```
-(1 - ÆL - Æ‚L² - ... - ÆšLV)(1 - L)HX(t) = (1 + ¸L + ¸‚L² + ... + ¸‘L`)µ(t)
+(1 - Ã†ÂL - Ã†Â‚LÂ² - ... - Ã†ÂšLV)(1 - L)HX(t) = (1 + Â¸ÂL + Â¸Â‚LÂ² + ... + Â¸Â‘L`)Âµ(t)
 ```
 
 **Simple AR(1) Implementation**:
 ```
-X(t) = c + ÆX(t-1) + µ(t)
+X(t) = c + Ã†X(t-1) + Âµ(t)
 ```
 
 **Parameter Estimation** (Least Squares):
 ```python
-# X(t) = c + ÆX(t-1) + µ(t)
+# X(t) = c + Ã†X(t-1) + Âµ(t)
 y = series.iloc[1:].values
 X = np.vstack([np.ones(len(y)), series.iloc[:-1].values]).T
 c, phi = np.linalg.lstsq(X, y, rcond=None)[0]
@@ -119,15 +119,15 @@ c, phi = np.linalg.lstsq(X, y, rcond=None)[0]
 
 **Mathematical Foundation**:
 ```
-Sz(t) = max(0, Sz(t-1) + (x(t) - ¼€ - k))
-S{(t) = min(0, S{(t-1) + (x(t) - ¼€ + k))
+Sz(t) = max(0, Sz(t-1) + (x(t) - Â¼Â€ - k))
+S{(t) = min(0, S{(t-1) + (x(t) - Â¼Â€ + k))
 
 Change detected when: |Sz(t)| > h or |S{(t)| > h
 ```
 
 **Parameters**:
-- `k`: allowable drift (usually 0.5Ã)
-- `h`: decision threshold (usually 4-5Ã)
+- `k`: allowable drift (usually 0.5Ãƒ)
+- `h`: decision threshold (usually 4-5Ãƒ)
 
 **Implementation** (`change_point.py:7-40`):
 ```python
@@ -154,24 +154,24 @@ def cusum_change_points(series, threshold=None, drift=0.0):
 
 **Prior Distribution**:
 ```
-P(r(t) = Ä) = H(Ä)bŒW{W(1 - H(i))
+P(r(t) = Ã„) = H(Ã„)bÂŒÂW{W(1 - H(i))
 
-where H(Ä) is the hazard function
+where H(Ã„) is the hazard function
 ```
 
 **Posterior Update**:
 ```
-P(r(t)|x:t)  P(x(t)|r(t), x:t-1) × P(r(t)|x:t-1)
+P(r(t)|xÂ:t)  P(x(t)|r(t), xÂ:t-1) Ã— P(r(t)|xÂ:t-1)
 ```
 
 **Student-t Predictive Distribution**:
 ```
-p(x(t)|x_{Ä+1:t-1}) = Student-t(2±, ¼, ²(º+1)/(±º))
+p(x(t)|x_{Ã„+1:t-1}) = Student-t(2Â±, Â¼, Â²(Âº+1)/(Â±Âº))
 
 where:
-¼ = (º¼€ + £x) / (º + t - Ä)
-± = ±€ + (t - Ä) / 2
-² = ²€ + 0.5£(x - ¼)² + º(t-Ä)(x - ¼€)² / (2(º + t - Ä))
+Â¼ = (ÂºÂ¼Â€ + Â£x) / (Âº + t - Ã„)
+Â± = Â±Â€ + (t - Ã„) / 2
+Â² = Â²Â€ + 0.5Â£(x - Â¼)Â² + Âº(t-Ã„)(x - Â¼Â€)Â² / (2(Âº + t - Ã„))
 ```
 
 **Implementation** (`change_point.py:43-120`):
@@ -208,7 +208,7 @@ Anomaly Score = 2^(-E(h(x))/c(n))
 where:
 E(h(x)) = average path length of x over all trees
 c(n) = 2H(n-1) - (2(n-1)/n)  [average path length of BST]
-H(n) = ln(n) + ³  [harmonic number]
+H(n) = ln(n) + Â³  [harmonic number]
 ```
 
 **Implementation Details**:
@@ -237,14 +237,14 @@ R(t) = residual component
 
 **Loess Smoothing** (for trend and seasonal):
 ```
-Weighted regression: w(i) = (1 - (|x - xb|/d)³)³
+Weighted regression: w(i) = (1 - (|x - xb|/d)Â³)Â³
 
 where d is the distance to the q-th nearest neighbor
 ```
 
 **Anomaly Detection**:
 ```
-Z-score = (R(t) - ¼c) / Ãc
+Z-score = (R(t) - Â¼c) / Ãƒc
 Anomaly if |Z-score| > threshold (typically 2-3)
 ```
 
@@ -255,14 +255,14 @@ Anomaly if |Z-score| > threshold (typically 2-3)
 **Model Specification**:
 ```
 Suspicious Games ~ Binomial(n, p)
-p ~ Beta(±, ²)
+p ~ Beta(Â±, Â²)
 
-Posterior: p|data ~ Beta(± + successes, ² + failures)
+Posterior: p|data ~ Beta(Â± + successes, Â² + failures)
 ```
 
 **Prior Update with Experience**:
 ```
-P(suspicious | rating, exp) = ± / (± + ² + extra_exp)
+P(suspicious | rating, exp) = Â± / (Â± + Â² + extra_exp)
 
 where extra_exp = max(0, experience - bucket_start)
 ```
@@ -289,7 +289,7 @@ def compute_prior(self, rating, experience):
 
 **Likelihood Ratio Updates**:
 ```
-Posterior Odds = Prior Odds × b LR(evidenceb)
+Posterior Odds = Prior Odds Ã— b LR(evidenceb)
 
 where LR(e) = P(e|suspicious) / P(e|not_suspicious)
 ```
@@ -310,7 +310,7 @@ likelihood_rules = {
 
 **Objective Function**:
 ```
-J = £bŒ £|ŒO wb| ||xb - ¼|||²
+J = Â£bÂŒÂ Â£|ÂŒÂO wb| ||xb - Â¼|||Â²
 
 where wb| = 1 if xb assigned to cluster j, 0 otherwise
 ```
@@ -318,7 +318,7 @@ where wb| = 1 if xb assigned to cluster j, 0 otherwise
 **Lloyd's Algorithm**:
 1. Initialize k centroids randomly
 2. Assign points to nearest centroid
-3. Update centroids: `¼| = (1/|C||) £“bC| xb`
+3. Update centroids: `Â¼| = (1/|C||) Â£Â“bC| xb`
 4. Repeat until convergence
 
 **Implementation**:
@@ -333,25 +333,25 @@ kmeans.fit(features)  # [mean_move_time, avg_acpl, mean_entropy]
 
 **Model Specification**:
 ```
-P(x) = £–Œ7 À– N(x | ¼–, £–)
+P(x) = Â£Â–ÂŒÂ7 Ã€Â– N(x | Â¼Â–, Â£Â–)
 
 where:
-À– = mixing coefficients (£À– = 1)
-N(x|¼–,£–) = multivariate Gaussian
+Ã€Â– = mixing coefficients (Â£Ã€Â– = 1)
+N(x|Â¼Â–,Â£Â–) = multivariate Gaussian
 ```
 
 **EM Algorithm**:
 
 **E-Step** (Expectation):
 ```
-³(z™–) = À–N(x™|¼–,£–) / £| À|N(x™|¼|,£|)
+Â³(zÂ™Â–) = Ã€Â–N(xÂ™|Â¼Â–,Â£Â–) / Â£| Ã€|N(xÂ™|Â¼|,Â£|)
 ```
 
 **M-Step** (Maximization):
 ```
-À– = (1/N) £™ ³(z™–)
-¼– = £™ ³(z™–)x™ / £™ ³(z™–)
-£– = £™ ³(z™–)(x™-¼–)(x™-¼–)@ / £™ ³(z™–)
+Ã€Â– = (1/N) Â£Â™ Â³(zÂ™Â–)
+Â¼Â– = Â£Â™ Â³(zÂ™Â–)xÂ™ / Â£Â™ Â³(zÂ™Â–)
+Â£Â– = Â£Â™ Â³(zÂ™Â–)(xÂ™-Â¼Â–)(xÂ™-Â¼Â–)@ / Â£Â™ Â³(zÂ™Â–)
 ```
 
 ## Statistical Process Control
@@ -361,32 +361,32 @@ N(x|¼–,£–) = multivariate Gaussian
 **Shewhart Control Charts**:
 ```
 X-bar chart:
-UCL = ¼ + 3Ã/n
-CL = ¼
-LCL = ¼ - 3Ã/n
+UCL = Â¼ + 3Ãƒ/n
+CL = Â¼
+LCL = Â¼ - 3Ãƒ/n
 
 R chart:
-UCL = D„ × R
+UCL = DÂ„ Ã— R
 CL = R
-LCL = Dƒ × R
+LCL = DÂƒ Ã— R
 ```
 
 **EWMA (Exponentially Weighted Moving Average)**:
 ```
-EWMA(t) = »X(t) + (1-»)EWMA(t-1)
+EWMA(t) = Â»X(t) + (1-Â»)EWMA(t-1)
 
 Control Limits:
-UCL/LCL = ¼ ± L(»/(2-»)[1-(1-»)²W])Ã
+UCL/LCL = Â¼ Â± L(Â»/(2-Â»)[1-(1-Â»)Â²W])Ãƒ
 ```
 
 ### 2. Process Capability Indices
 
 **Capability Indices**:
 ```
-Cp = (USL - LSL) / (6Ã)          [potential capability]
+Cp = (USL - LSL) / (6Ãƒ)          [potential capability]
 Cpk = min(CPU, CPL)              [actual capability]
-CPU = (USL - ¼) / (3Ã)           [upper capability]
-CPL = (¼ - LSL) / (3Ã)           [lower capability]
+CPU = (USL - Â¼) / (3Ãƒ)           [upper capability]
+CPL = (Â¼ - LSL) / (3Ãƒ)           [lower capability]
 ```
 
 **Performance Indices**:
@@ -405,11 +405,11 @@ def auto_select_model(series):
     volatility = np.std(series.diff().dropna())
 
     if volatility > 1.0:
-        return "garch"      # High volatility ’ GARCH
+        return "garch"      # High volatility Â’ GARCH
     elif volatility > 0.1:
-        return "arima"      # Medium volatility ’ ARIMA
+        return "arima"      # Medium volatility Â’ ARIMA
     else:
-        return "kalman"     # Low volatility ’ Kalman
+        return "kalman"     # Low volatility Â’ Kalman
 ```
 
 ### 2. Information Criteria
@@ -423,7 +423,7 @@ where k = number of parameters, L = likelihood
 
 **Bayesian Information Criterion (BIC)**:
 ```
-BIC = k×ln(n) - 2ln(L)
+BIC = kÃ—ln(n) - 2ln(L)
 
 where n = sample size
 ```
@@ -474,9 +474,9 @@ def log_likelihood(data, params):
 
 **EM Algorithm Convergence**:
 ```
-|L(¸^(t+1)) - L(¸^(t))| < µ
+|L(Â¸^(t+1)) - L(Â¸^(t))| < Âµ
 
-where L(¸) is the log-likelihood
+where L(Â¸) is the log-likelihood
 ```
 
 **GARCH Parameter Constraints**:

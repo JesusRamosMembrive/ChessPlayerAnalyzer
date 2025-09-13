@@ -1,26 +1,26 @@
 # Utilidades y Helpers - ChessPlayerAnalyzer
 
 **Audiencia:** Desarrolladores
-**Última actualización:** 2025-09-13
+**Ãšltima actualizaciÃ³n:** 2025-09-13
 **Estado:** Completo
 
-Documentación completa de las utilidades, helpers y middleware que proporcionan funcionalidad de soporte al sistema ChessPlayerAnalyzer.
+DocumentaciÃ³n completa de las utilidades, helpers y middleware que proporcionan funcionalidad de soporte al sistema ChessPlayerAnalyzer.
 
-## <¯ Objetivo
+## <Â¯ Objetivo
 
 Las utilidades proporcionan:
-- **Conexión de base de datos** con pooling y reintentos
-- **Integración Chess.com API** para descarga de partidas
+- **ConexiÃ³n de base de datos** con pooling y reintentos
+- **IntegraciÃ³n Chess.com API** para descarga de partidas
 - **Sistema de notificaciones** Redis/WebSocket en tiempo real
 - **Progress tracking** para tareas Celery
 - **Rate limiting** y middleware de seguridad
-- **Sanitización de datos** y validación
+- **SanitizaciÃ³n de datos** y validaciÃ³n
 - **Cache** y utilidades de desarrollo
 
-## =à Módulos Principales
+## =Ã  MÃ³dulos Principales
 
 ### 1. **utils.py** - Utilidades Core
-Funciones principales para integración externa y comunicaciones.
+Funciones principales para integraciÃ³n externa y comunicaciones.
 
 #### Descarga de Partidas Chess.com
 ```python
@@ -30,7 +30,7 @@ def fetch_games(username: str, months: int = 12) -> List[Dict]:
 
     Args:
         username: Nombre de usuario de Chess.com
-        months: Meses hacia atrás a descargar (default: 12)
+        months: Meses hacia atrÃ¡s a descargar (default: 12)
 
     Returns:
         Lista de diccionarios con 'pgn', 'move_times', metadatos
@@ -40,9 +40,9 @@ def fetch_games(username: str, months: int = 12) -> List[Dict]:
     """
 ```
 
-**Características:**
-- **User-Agent personalizado** para identificación
-- **Extracción de tiempos** desde comentarios `[%clk]` en PGN
+**CaracterÃ­sticas:**
+- **User-Agent personalizado** para identificaciÃ³n
+- **ExtracciÃ³n de tiempos** desde comentarios `[%clk]` en PGN
 - **Timeout configurables** (10 segundos default)
 - **Archivo local** de backup en `/archives`
 - **Manejo de errores** robusto con logs detallados
@@ -75,10 +75,10 @@ def notify_ws(username: str, payload: dict) -> None:
 
 def update_progress(username: str, *, increment: int = 1) -> None:
     """
-    Actualización atómica de progreso de análisis.
+    ActualizaciÃ³n atÃ³mica de progreso de anÃ¡lisis.
 
     - Actualiza Player.done_tasks, done_games, progress
-    - Envía notificación WebSocket automática
+    - EnvÃ­a notificaciÃ³n WebSocket automÃ¡tica
     - Maneja concurrencia con SELECT FOR UPDATE
     """
 ```
@@ -90,8 +90,8 @@ def task_progress(task: Task, current: int, total: int, username: str = None) ->
     Reporta progreso de tarea Celery en tiempo real.
 
     - Actualiza estado Celery con PROGRESS
-    - Envía notificación WebSocket si username proporcionado
-    - Calcula porcentaje automáticamente
+    - EnvÃ­a notificaciÃ³n WebSocket si username proporcionado
+    - Calcula porcentaje automÃ¡ticamente
     """
 ```
 
@@ -110,23 +110,23 @@ def player_lock(username: str):
 def player_lock(username: str):
     """
     Context manager para bloqueo por jugador usando Redis.
-    Previene análisis concurrentes del mismo usuario.
+    Previene anÃ¡lisis concurrentes del mismo usuario.
     """
 ```
 
-### 2. **database.py** - Gestión de Base de Datos
-Conexión robusta a PostgreSQL con pool de conexiones y reintentos.
+### 2. **database.py** - GestiÃ³n de Base de Datos
+ConexiÃ³n robusta a PostgreSQL con pool de conexiones y reintentos.
 
-#### Configuración de Engine
+#### ConfiguraciÃ³n de Engine
 ```python
 # Pool de conexiones
 POOL_SIZE = 10              # Conexiones persistentes
 MAX_OVERFLOW = 20           # Conexiones adicionales temporales
-POOL_TIMEOUT = 30           # Segundos espera conexión libre
-POOL_RECYCLE = 1800         # Reciclar después de 30 min
+POOL_TIMEOUT = 30           # Segundos espera conexiÃ³n libre
+POOL_RECYCLE = 1800         # Reciclar despuÃ©s de 30 min
 
-# Reintentos de conexión
-MAX_RETRIES = 5             # Número máximo de reintentos
+# Reintentos de conexiÃ³n
+MAX_RETRIES = 5             # NÃºmero mÃ¡ximo de reintentos
 INITIAL_RETRY_DELAY = 2.0   # Delay inicial entre reintentos
 ```
 
@@ -136,20 +136,20 @@ def _create_engine_retry(url: str, **kwargs) -> Engine:
     """
     Crea Engine con reintentos exponenciales.
     - Backoff exponencial (2x delay)
-    - Máximo 5 reintentos por defecto
+    - MÃ¡ximo 5 reintentos por defecto
     - Logs detallados de intentos
     """
 
 def get_session() -> SQLModelSession:
     """
-    Dependency para FastAPI que proporciona sesión SQLModel.
+    Dependency para FastAPI que proporciona sesiÃ³n SQLModel.
     Usado en endpoints con Depends(get_session)
     """
 
 def init_db() -> None:
     """
     Inicializa tablas de base de datos.
-    Ejecutado en startup de aplicación.
+    Ejecutado en startup de aplicaciÃ³n.
     """
 ```
 
@@ -164,7 +164,7 @@ DB_MAX_RETRIES=5
 DB_RETRY_DELAY=2.0
 ```
 
-### 3. **utils_sanitize.py** - Sanitización de Datos
+### 3. **utils_sanitize.py** - SanitizaciÃ³n de Datos
 Limpieza de datos para almacenamiento JSON seguro.
 
 ```python
@@ -173,9 +173,9 @@ def clean_json_numbers(obj):
     Limpia objetos Python para almacenamiento JSON.
 
     Transformaciones:
-    - NaN, ±Inf ’ None
-    - numpy.floating ’ float nativo
-    - numpy.integer ’ int nativo
+    - NaN, Â±Inf Â’ None
+    - numpy.floating Â’ float nativo
+    - numpy.integer Â’ int nativo
     - Procesamiento recursivo de dict/list
 
     Uso: Antes de insertar JSON en PostgreSQL
@@ -209,9 +209,9 @@ clean_data = clean_json_numbers(data)
 ## = Middleware de Seguridad
 
 ### 4. **rate_limiter.py** - Rate Limiting
-Middleware de limitación de peticiones con algoritmo sliding window.
+Middleware de limitaciÃ³n de peticiones con algoritmo sliding window.
 
-#### Configuración
+#### ConfiguraciÃ³n
 ```python
 # Variables de entorno
 RATE_LIMIT_MAX_REQUESTS = 100    # Peticiones por ventana
@@ -228,7 +228,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
 #### Algoritmo
 - **Sliding window** con timestamps
-- **Limpieza automática** de ventanas expiradas
+- **Limpieza automÃ¡tica** de ventanas expiradas
 - **Storage en memoria** (no requiere Redis)
 - **Headers de respuesta:**
   ```
@@ -276,7 +276,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 ```
 
 ### 6. **trace_context.py** - Distributed Tracing
-Middleware para añadir headers de tracing distribuido.
+Middleware para aÃ±adir headers de tracing distribuido.
 
 ```python
 class TraceContextMiddleware(BaseHTTPMiddleware):
@@ -288,7 +288,7 @@ class TraceContextMiddleware(BaseHTTPMiddleware):
     """
 ```
 
-**Headers añadidos:**
+**Headers aÃ±adidos:**
 ```
 X-Trace-Id: abc123-def456-789ghi
 traceparent: 00-abc123def456789ghi-def456789ghiabc-01
@@ -298,7 +298,7 @@ traceparent: 00-abc123def456789ghi-def456789ghiabc-01
 
 ### Redis Client
 ```python
-# Configuración global
+# ConfiguraciÃ³n global
 REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
 redis_client = redis.Redis.from_url(REDIS_URL, decode_responses=True)
 
@@ -328,7 +328,7 @@ def bulk_insert_or_update(session, model, data: List[dict]) -> None:
     """Efficient bulk operations with conflict resolution"""
 ```
 
-## =€ Configuración y Variables de Entorno
+## =Â€ ConfiguraciÃ³n y Variables de Entorno
 
 ### Redis/Cache
 ```bash
@@ -360,7 +360,7 @@ USER_AGENT="chess-analyzer/0.2"
 SYZYGY_PATH="/data/syzygy"        # Tablebase files (opcional)
 ```
 
-## =Ê Métricas y Monitoreo
+## =ÃŠ MÃ©tricas y Monitoreo
 
 ### Request Metrics
 - **Response times** por endpoint
@@ -378,11 +378,12 @@ SYZYGY_PATH="/data/syzygy"        # Tablebase files (opcional)
 - **TTL effectiveness**
 - **Memory usage** Redis
 
-## = Debugging y Logging
+## =
+ Debugging y Logging
 
 ### Log Levels
 ```python
-# Configuración en logging_config.py
+# ConfiguraciÃ³n en logging_config.py
 LOGGING_CONFIG = {
     'version': 1,
     'handlers': {
@@ -419,19 +420,19 @@ logger.error("Database connection failed", extra={
 })
 ```
 
-## =Ú Referencias
+## =Ãš Referencias
 
 - [Utils Core](../../app/utils.py) - Utilidades principales
-- [Database Config](../../app/database.py) - Configuración BD
+- [Database Config](../../app/database.py) - ConfiguraciÃ³n BD
 - [Rate Limiter](../../app/middleware/rate_limiter.py) - Middleware seguridad
 - [Sanitization](../../app/utils_sanitize.py) - Limpieza de datos
 
 ## = Historial de Cambios
 
-- **2025-09-13:** Documentación inicial de utilidades y helpers
+- **2025-09-13:** DocumentaciÃ³n inicial de utilidades y helpers
 - **2025-09-13:** Middleware de seguridad y configuraciones
 
 ---
 
-**Siguiente acción:** Documentar módulos ML y configuración avanzada
+**Siguiente acciÃ³n:** Documentar mÃ³dulos ML y configuraciÃ³n avanzada
 **Responsable:** Equipo de infraestructura
