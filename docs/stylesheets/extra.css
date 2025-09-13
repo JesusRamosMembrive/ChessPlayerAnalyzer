@@ -1,0 +1,200 @@
+/* Custom styles for ChessPlayerAnalyzer documentation */
+
+/* Chess-themed accents */
+:root {
+  --md-primary-fg-color: #37474f;
+  --md-primary-fg-color--light: #62727b;
+  --md-primary-fg-color--dark: #102027;
+  --md-accent-fg-color: #ff5722;
+  --md-accent-fg-color--transparent: #ff572210;
+}
+
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #455a64;
+  --md-primary-fg-color--light: #718792;
+  --md-primary-fg-color--dark: #1c313a;
+}
+
+/* Code block enhancements */
+.highlight .filename {
+  background: var(--md-code-bg-color);
+  color: var(--md-code-fg-color);
+  border-bottom: 1px solid var(--md-default-fg-color--lighter);
+  padding: 0.5em 1em;
+  margin: 0;
+  font-size: 0.75em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Algorithm notation */
+.math {
+  font-size: 1.1em;
+}
+
+/* Status badges */
+.status-badge {
+  display: inline-block;
+  padding: 0.2em 0.6em;
+  font-size: 0.75em;
+  font-weight: 700;
+  border-radius: 0.2em;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.status-active {
+  background: #4caf50;
+  color: white;
+}
+
+.status-pending {
+  background: #ff9800;
+  color: white;
+}
+
+.status-deprecated {
+  background: #9e9e9e;
+  color: white;
+}
+
+/* Performance metrics styling */
+.metrics-table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+}
+
+.metrics-table th,
+.metrics-table td {
+  padding: 0.75em;
+  text-align: left;
+  border-bottom: 1px solid var(--md-default-fg-color--lighter);
+}
+
+.metrics-table th {
+  background: var(--md-default-bg-color--light);
+  font-weight: 700;
+}
+
+/* Chess diagrams placeholder */
+.chess-diagram {
+  width: 300px;
+  height: 300px;
+  background: repeating-conic-gradient(#f0d9b5 0% 25%, #b58863 0% 50%);
+  background-size: 37.5px 37.5px;
+  border: 2px solid var(--md-default-fg-color--light);
+  margin: 1em auto;
+  display: block;
+}
+
+/* API endpoint styling */
+.endpoint {
+  background: var(--md-code-bg-color);
+  border-left: 4px solid var(--md-accent-fg-color);
+  padding: 1em;
+  margin: 1em 0;
+  border-radius: 0 0.2em 0.2em 0;
+}
+
+.endpoint-method {
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.8em;
+  padding: 0.2em 0.5em;
+  border-radius: 0.2em;
+  margin-right: 0.5em;
+}
+
+.method-get { background: #4caf50; color: white; }
+.method-post { background: #2196f3; color: white; }
+.method-put { background: #ff9800; color: white; }
+.method-delete { background: #f44336; color: white; }
+
+/* Phase completion indicators */
+.phase-status {
+  list-style: none;
+  padding-left: 0;
+}
+
+.phase-status li {
+  position: relative;
+  padding-left: 2em;
+  margin: 0.5em 0;
+}
+
+.phase-status li:before {
+  content: "❌";
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.phase-status li.completed:before {
+  content: "✅";
+}
+
+.phase-status li.in-progress:before {
+  content: "🔄";
+}
+
+/* Architecture diagrams */
+.architecture-box {
+  background: var(--md-default-bg-color--light);
+  border: 1px solid var(--md-default-fg-color--lighter);
+  padding: 1em;
+  margin: 0.5em;
+  border-radius: 0.2em;
+  text-align: center;
+  font-weight: 500;
+}
+
+/* Performance optimization callouts */
+.optimization-tip {
+  background: linear-gradient(90deg, #e8f5e8, transparent);
+  border-left: 4px solid #4caf50;
+  padding: 1em;
+  margin: 1em 0;
+  border-radius: 0 0.2em 0.2em 0;
+}
+
+.security-warning {
+  background: linear-gradient(90deg, #fff3e0, transparent);
+  border-left: 4px solid #ff9800;
+  padding: 1em;
+  margin: 1em 0;
+  border-radius: 0 0.2em 0.2em 0;
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 768px) {
+  .chess-diagram {
+    width: 250px;
+    height: 250px;
+  }
+
+  .metrics-table {
+    font-size: 0.9em;
+  }
+
+  .metrics-table th,
+  .metrics-table td {
+    padding: 0.5em;
+  }
+}
+
+/* Print styles */
+@media print {
+  .chess-diagram {
+    background: white;
+    border: 2px solid black;
+  }
+
+  .status-badge,
+  .endpoint-method {
+    background: white !important;
+    color: black !important;
+    border: 1px solid black;
+  }
+}

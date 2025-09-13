@@ -1,0 +1,189 @@
+site_name: ChessPlayerAnalyzer Documentation
+site_description: Complete documentation for ChessPlayerAnalyzer - Advanced chess game analysis system
+site_author: ChessPlayerAnalyzer Team
+site_url: https://your-domain.github.io/ChessPlayerAnalyzer
+
+repo_name: ChessPlayerAnalyzer
+repo_url: https://github.com/your-username/ChessPlayerAnalyzer
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  language: en
+  palette:
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: blue grey
+      accent: deep orange
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: blue grey
+      accent: deep orange
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.path
+    - navigation.indexes
+    - toc.integrate
+    - toc.follow
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - header.autohide
+    - announce.dismiss
+
+  icon:
+    repo: fontawesome/brands/github
+    logo: material/chess-king
+
+  font:
+    text: Inter
+    code: JetBrains Mono
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - tables
+  - footnotes
+  - md_in_html
+  - attr_list
+  - def_list
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.mark
+  - pymdownx.tilde
+  - pymdownx.keys
+  - pymdownx.emoji:
+      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
+
+plugins:
+  - search:
+      lang: en
+  - mermaid2:
+      arguments:
+        theme: |
+          ^(JSON.parse(__md_get("__palette").index == 1)) ?
+          'dark' : 'light'
+
+extra_javascript:
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+  - https://unpkg.com/mermaid/dist/mermaid.min.js
+
+extra_css:
+  - stylesheets/extra.css
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/your-username/ChessPlayerAnalyzer
+    - icon: fontawesome/brands/docker
+      link: https://hub.docker.com/r/your-username/chess-analyzer
+
+  version:
+    provider: mike
+    default: latest
+
+  generator: false
+
+copyright: |
+  Copyright &copy; 2025 ChessPlayerAnalyzer Team –
+  <a href="#__consent">Change cookie settings</a>
+
+nav:
+  - Home:
+    - index.md
+    - Plan de Acción: plan_de_accion.md
+
+  - Getting Started:
+    - Quick Start: guides/setup/README-original.md
+    - Development Setup: guides/development.md
+    - Claude Code Setup: guides/setup/CLAUDE.md
+    - Docker Configuration: guides/setup/docker-setup.md
+    - Syzygy Tablebases: guides/SYZYGY_SETUP.md
+
+  - Architecture:
+    - System Overview: architecture/overview.md
+    - Database Schema: architecture/database-schema.md
+    - API Design: architecture/api-design.md
+    - Celery Workflow: architecture/celery-workflow.md
+
+  - API Reference:
+    - Endpoints: api/endpoints.md
+    - Schemas: api/schemas.md
+    - Examples: api/examples.md
+
+  - Analysis Modules:
+    - Overview: modules/analysis/README.md
+    - Quality Analysis: modules/analysis/quality.md
+    - Timing Analysis: modules/analysis/timing.md
+    - Opening Analysis: modules/analysis/openings.md
+    - Endgame Analysis: modules/analysis/endgame.md
+    - Anomaly Detection: modules/analysis/anomaly.md
+    - Bayesian Models: modules/analysis/bayesian.md
+    - Longitudinal Analysis: modules/analysis/longitudinal.md
+    - Clustering: modules/analysis/clustering.md
+    - ML Classifier: modules/analysis/ml-classifier.md
+
+  - Core Modules:
+    - Utils & Helpers: modules/utils/README.md
+    - Configuration: modules/configuration/README.md
+    - ML Pipeline: modules/ml/README.md
+    - Database Layer: modules/database/README.md
+
+  - Algorithms:
+    - Overview: algorithms/README.md
+    - Metrics Reference: algorithms/metrics.md
+    - Statistical Models: algorithms/statistical-models.md
+    - Performance Analysis: algorithms/performance.md
+    - Performance Optimizations: algorithms/performance-optimizations.md
+    - External Integrations: algorithms/external-integrations.md
+    - Security & Best Practices: algorithms/security-best-practices.md
+    - Advanced Models: algorithms/advanced-statistical-models.md
+    - Cross-Game Correlation: algorithms/cross-game-correlation.md
+    - Timing Patterns: algorithms/enhanced-timing-patterns.md
+    - Pattern Recognition: algorithms/positional-pattern-recognition.md
+
+  - Operations:
+    - Deployment Guide: guides/deployment.md
+    - Testing & CI/CD: guides/testing.md
+    - Troubleshooting: guides/troubleshooting.md
+    - Performance Analysis: guides/PERFORMANCE_ANALYSIS.md
+    - Enhancement Plan: guides/analysis-enhancement-plan.md
+
+  - Legacy:
+    - Migration Guide: legacy/migration-guide.md
+    - Old Documentation: legacy/old/
