@@ -99,7 +99,7 @@ class AnalysisEngineFacade:
 
             # Analyze player
             result = player_analyzer.analyze_player(username)
-            logger.info(f"ENGINE_FACADE: Player analysis completed - risk score: {result.risk_score}, total games: {result.total_games}")
+            logger.info(f"ENGINE_FACADE: Player analysis completed - risk score: {result.risk_score}, total games: {result.games_analyzed}")
 
             return result
 

@@ -53,7 +53,7 @@ from app.analysis.benchmark import compute_benchmark
 from app.analysis.endgame import aggregate_endgame_efficiency
 
 # New utility imports
-from app.utils.analysis_helpers import calculate_suspicion_score, calculate_basic_risk_score
+from app.analysis_helpers import calculate_suspicion_score, calculate_basic_risk_score
 
 # Debug tracing
 try:
@@ -652,8 +652,16 @@ class ChessAnalysisEngine:
                 last_game_date=long_features.get("last_game_date"),
                 analyzed_at=datetime.now(timezone.utc),
             )
+            logger.info(f"DEBUG ENGINE: About to add analysis for {username} to session")
             session.add(analysis)
-            session.commit()
+            logger.info(f"DEBUG ENGINE: About to commit analysis for {username}")
+            try:
+                session.commit()
+                logger.info(f"DEBUG ENGINE: Successfully committed analysis for {username}")
+            except Exception as e:
+                logger.error(f"DEBUG ENGINE: Failed to commit analysis for {username}: {e}")
+                session.rollback()
+                raise
             return analysis
     @trace
     def prepare_moves_dataframe(self, game: Game, username: Optional[str] = None) -> pd.DataFrame:

@@ -8,7 +8,7 @@ from numpy.typing import NDArray
 import logging
 
 # Import optimized utilities
-from app.utils.data_processing import (
+from app.data_processing import (
     aggregate_basic_metrics,
     safe_divide,
     group_by_phase,

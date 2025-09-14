@@ -85,6 +85,24 @@ def register_analysis_tasks(app):
         'extract_game_id': extract_game_id_task,
     }
 
+def _update_player_final_status(username: str, analysis_result: dict):
+    """Update player status to ready and set final completion data."""
+    try:
+        with Session(engine) as s:
+            player = s.get(models.Player, username)
+            if player:
+                player.status = "ready"
+                player.progress = 100
+                player.finished_at = datetime.now(timezone.utc)
+                s.add(player)
+                s.commit()
+        from app.api.legacy_endpoints import clear_analysis_in_progress
+        clear_analysis_in_progress()
+        logger.info(f"Analysis completed for user {username} - system ready for new requests")
+        notify_ws(username, {"status": "ready", "progress": 100})
+    except Exception as e:
+        logger.error(f"Failed to update player final status for {username}: {e}")
+
 def analyze_player_detailed(_, username: str):
     """
     Análisis longitudinal detallado de un jugador.
@@ -93,9 +111,12 @@ def analyze_player_detailed(_, username: str):
     logger.info(f"DEBUG PLAYER: Starting player detailed analysis for {username}")
     cached = cache_get("analyze_player_detailed", [username], {})
     if cached:
-        logger.info("DEBUG PLAYER: Returning cached result for analyze_player_detailed")
+        logger.info("DEBUG PLAYER: Using cached result for analyze_player_detailed, but will still update player status")
+        # Update player status even with cached result
+        _update_player_final_status(username, cached)
         return cached
 
+    # Perform fresh analysis
     try:
         # Verificar que hay suficientes partidas analizadas
         with Session(engine) as s:
@@ -125,7 +146,17 @@ def analyze_player_detailed(_, username: str):
 
         with Session(engine) as s:
            pa = s.get(models.PlayerAnalysisDetailed, username)
-           logger.info(f"DEBUG PLAYER: Retrieved player analysis from DB for {username}: risk_score={pa.risk_score}, games_analyzed={pa.games_analyzed} (this count reflects games with completed analysis in GameAnalysisDetailed table)")
+           if pa is None:
+               logger.error(f"DEBUG PLAYER: No analysis found in DB for {username} after analysis_engine.analyze_player completed")
+               logger.info(f"DEBUG PLAYER: player_analysis result was: {player_analysis}")
+               # Use the result from the analysis engine directly if DB record doesn't exist
+               if player_analysis:
+                   logger.info(f"DEBUG PLAYER: Using analysis result directly: risk_score={player_analysis.risk_score}, games_analyzed={player_analysis.games_analyzed}")
+                   pa = player_analysis
+               else:
+                   raise Exception(f"No player analysis found for {username} and analysis engine returned None")
+           else:
+               logger.info(f"DEBUG PLAYER: Retrieved player analysis from DB for {username}: risk_score={pa.risk_score}, games_analyzed={pa.games_analyzed} (this count reflects games with completed analysis in GameAnalysisDetailed table)")
 
            export_analysis_to_json(pa, username, "player")
 
@@ -143,21 +174,16 @@ def analyze_player_detailed(_, username: str):
             "analyzed_at": pa.analyzed_at.isoformat()
         }
 
-        with Session(engine) as s:
-            player = s.get(models.Player, username)
-            if player:
-                player.status = "ready"
-                player.progress = 100
-                player.finished_at = datetime.now(timezone.utc)
-                s.add(player)
-                s.commit()
-        from app.main import clear_analysis_in_progress
-        clear_analysis_in_progress()
-        logger.info(f"Analysis completed for user {username} - system ready for new requests")
-
-        notify_ws(username, {"status": "ready", "progress": 100})
+        # Update player final status
+        _update_player_final_status(username, result)
 
         logger.info(f"DEBUG PLAYER: Final analysis result for {username}: risk_score={result['risk_score']}, games_analyzed={result['games_analyzed']} (total games processed in this analysis session)")
+
+        # Final verification: check if record still exists in database right before task ends
+        with Session(engine) as verify_session:
+            final_check = verify_session.get(models.PlayerAnalysisDetailed, username)
+            logger.info(f"DEBUG PLAYER: FINAL VERIFICATION - PlayerAnalysisDetailed record exists in DB: {final_check is not None}")
+
         # Store result in cache
         cache_set("analyze_player_detailed", [username], {}, result)
         return result

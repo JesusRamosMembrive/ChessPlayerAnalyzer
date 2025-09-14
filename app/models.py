@@ -22,8 +22,14 @@ class Game(SQLModel, table=True):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     pgn: str
 
-    moves: List["MoveAnalysis"] = Relationship(back_populates="game")
-    detailed_analysis: Optional["GameAnalysisDetailed"] = Relationship(back_populates="game")
+    moves: List["MoveAnalysis"] = Relationship(
+        back_populates="game",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"}
+    )
+    detailed_analysis: Optional["GameAnalysisDetailed"] = Relationship(
+        back_populates="game",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"}
+    )
 
     move_times: Optional[List[int]] = Field(sa_column=Column(JSON))
     eco_code: Optional[str] = None

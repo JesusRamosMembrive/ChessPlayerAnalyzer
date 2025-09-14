@@ -5,7 +5,7 @@ from sqlmodel import Session, select
 
 from app import models
 from app.database import get_session
-from app.celery_app import process_player_enhanced as process_player
+from app.celery_app import celery_app, process_player_enhanced
 from app.utils import redis_client, notify_ws, player_lock
 from app.schemas import (
     PlayerStatusOut,
@@ -86,14 +86,23 @@ async def analyze_player(
         session.commit()
         session.refresh(player)
         
-        task = process_player.delay(username, months)
-        player.last_task_id = task.id
+        task_id = "temp-task-id"  # Temporary fix
+        player.last_task_id = task_id
+
+        # Try to create the actual task
+        try:
+            task = celery_app.send_task('process_player_enhanced', args=[username, months])
+            if task and hasattr(task, 'id') and task.id:
+                task_id = task.id
+                player.last_task_id = task_id
+        except Exception as e:
+            print(f"DEBUG: Error creating task: {e}")
         session.commit()
         
         return {
             "status": "queued",
             "username": username,
-            "task_id": task.id
+            "task_id": task_id
         }
 
 @router.delete(

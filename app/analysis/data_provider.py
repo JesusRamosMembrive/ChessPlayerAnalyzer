@@ -169,7 +169,7 @@ class AnalysisDataProvider:
                 Game.created_at,
                 Game.white_username,
                 Game.black_username,
-                Game.result,
+                Game.termination,
                 GameAnalysisDetailed.acpl,
                 GameAnalysisDetailed.match_rate,
                 GameAnalysisDetailed.overall_suspicion_score,
@@ -227,11 +227,11 @@ class AnalysisDataProvider:
 
         # 2. Buscar en análisis recientes
         stmt = (
-            select(GameAnalysisDetailed.estimated_rating)
+            select(GameAnalysisDetailed.ipr)
             .join(Game, GameAnalysisDetailed.game_id == Game.id)
             .where(
                 ((Game.white_username == username) | (Game.black_username == username)) &
-                (GameAnalysisDetailed.estimated_rating.is_not(None))
+                (GameAnalysisDetailed.ipr.is_not(None))
             )
             .order_by(Game.created_at.desc())
             .limit(5)

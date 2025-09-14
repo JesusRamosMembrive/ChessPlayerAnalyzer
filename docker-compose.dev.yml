@@ -2,6 +2,22 @@
 # Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
 
 services:
+  # Migration service for development
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: app-base
+    command: ["python", "-m", "app.init_db"]
+    working_dir: /app
+    environment:
+      DATABASE_URL: postgresql+psycopg://chess:chess@postgres:5432/chessdb
+      REDIS_URL: redis://redis:6379/0
+      DEBUG: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   # Override backend service for development
   backend:
     build:

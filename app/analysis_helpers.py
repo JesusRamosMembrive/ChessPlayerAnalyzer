@@ -7,7 +7,7 @@ from __future__ import annotations
 import logging
 import numpy as np
 from typing import Dict, Optional, Tuple, List, Any
-from app.utils.data_processing import aggregate_basic_metrics, safe_divide
+from app.data_processing import aggregate_basic_metrics, safe_divide
 
 logger = logging.getLogger(__name__)
 
@@ -260,7 +260,7 @@ def aggregate_performance_metrics(games_metrics: Dict[str, np.ndarray]) -> Dict[
 
     # Correlaciones importantes
     if 'acpl' in games_metrics and 'match_rate' in games_metrics:
-        from app.utils.data_processing import correlation_coefficient
+        from app.data_processing import correlation_coefficient
         result['acpl_match_correlation'] = correlation_coefficient(
             games_metrics['acpl'], games_metrics['match_rate']
         )

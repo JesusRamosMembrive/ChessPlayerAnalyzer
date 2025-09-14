@@ -253,14 +253,14 @@ def analyze_player(
     • Fiable: si el análisis previo murió, lo detecta y lo relanza.
     """
     if is_cleanup_in_progress():
-        cleanup_user = redis_client.get(CLEANUP_IN_PROGRESS_KEY).decode("utf-8")
+        cleanup_user = redis_client.get(CLEANUP_IN_PROGRESS_KEY)
         raise HTTPException(
             status_code=423,
             detail=f"System is currently cleaning up player '{cleanup_user}'. Please wait and try again.",
         )
 
     if is_analysis_in_progress():
-        active_user = redis_client.get(ANALYSIS_IN_PROGRESS_KEY).decode("utf-8")
+        active_user = redis_client.get(ANALYSIS_IN_PROGRESS_KEY)
         if active_user != username:
             raise HTTPException(
                 status_code=423,
@@ -323,7 +323,7 @@ def analyze_player(
             session.commit()
 
             # Publicar tarea única
-            task = process_player_enhanced.delay(username, months)
+            task = celery_app.send_task('process_player_enhanced', args=[username, months])
             player.last_task_id = task.id
             session.add(player)
             session.commit()
@@ -359,7 +359,7 @@ def refresh_player(username: str, session: Session = Depends(get_session)):
         player.error = None
         session.commit()
         # Lanzar tarea
-        task = process_player_enhanced.delay(username, 12)  # 12 meses por defecto
+        task = celery_app.send_task('process_player_enhanced', args=[username, 12])
 
         return {"status": "queued", "username": username, "task_id": task.id}
     except Exception as e:
@@ -466,7 +466,21 @@ def game_metrics(game_id: int, session: Session = Depends(get_session)):
 
 @legacy_router.get("/metrics/player/{username}", response_model=PlayerMetricsOut)
 def player_metrics(username: str, session: Session = Depends(get_session)):
-    obj = session.get(models.PlayerAnalysisDetailed, username)
+    # Debug: Try to find the record with a different approach
+    from sqlmodel import select
+    stmt = select(models.PlayerAnalysisDetailed).where(models.PlayerAnalysisDetailed.username == username)
+    obj = session.exec(stmt).first()
+
+    print(f"DEBUG METRICS: Looking for username '{username}', found: {obj is not None}")
+    if obj:
+        print(f"DEBUG METRICS: Record found - risk_score: {obj.risk_score}, games_analyzed: {obj.games_analyzed}")
+    else:
+        # Try to see what records exist
+        all_records = session.exec(select(models.PlayerAnalysisDetailed)).all()
+        print(f"DEBUG METRICS: Total records in table: {len(all_records)}")
+        for record in all_records:
+            print(f"DEBUG METRICS: Existing record: username='{record.username}'")
+
     if not obj:
         raise HTTPException(status_code=404, detail="No metrics yet")
 
@@ -500,16 +514,15 @@ def player_metrics(username: str, session: Session = Depends(get_session)):
             return {k: clean_nan_values(v) for k, v in value.items()}
         return value
 
-    risk_data = None
-    if obj.risk_score > 0 or obj.risk_factors:
-        risk_data = {
-            "risk_score": obj.risk_score,
-            "risk_factors": obj.risk_factors,
-            "confidence_level": obj.confidence_level,
-            "suspicious_games_count": (
-                len(obj.suspicious_games_ids) if obj.suspicious_games_ids else 0
-            ),
-        }
+    # Always include risk data for API compatibility
+    risk_data = {
+        "risk_score": obj.risk_score,
+        "risk_factors": obj.risk_factors or {},
+        "confidence_level": obj.confidence_level,
+        "suspicious_games_count": (
+            len(obj.suspicious_games_ids) if obj.suspicious_games_ids else 0
+        ),
+    }
 
     response_data = obj.dict()
     response_data["risk"] = risk_data

@@ -6,7 +6,11 @@
       "Bash(python:*)",
       "Bash(mkdocs build:*)",
       "Bash(chcp 65001)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(chmod:*)",
+      "Bash(docker-compose:*)",
+      "Bash(curl:*)",
+      "Bash(docker exec:*)"
     ],
     "deny": [],
     "ask": []

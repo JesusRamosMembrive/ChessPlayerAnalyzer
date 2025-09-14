@@ -11,7 +11,6 @@ from .endpoints import (
 
 # Create the API router
 api_router = APIRouter(
-    prefix="/v1",
     tags=["v1"]
 )
 

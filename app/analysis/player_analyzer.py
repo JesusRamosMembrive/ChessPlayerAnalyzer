@@ -13,8 +13,8 @@ import pandas as pd
 
 # Core imports
 from app.models import Game, PlayerAnalysisDetailed
-from app.database import engine as db_engine
 from sqlmodel import Session
+from app.database import engine as db_engine
 
 # Analysis modules
 from . import timing, longitudinal
@@ -283,12 +283,16 @@ class PlayerAnalyzer:
         all_features = {**long_features, **trend_feats}
         all_features = clean_json_numbers(all_features)
 
-        return PlayerAnalysisDetailed(
+        analysis_result = PlayerAnalysisDetailed(
             username=username,
-            total_games=len(games_df),
+            games_analyzed=len(games_df),
             avg_acpl=self.data_provider.safe_mean(games_df, 'acpl', 50.0),
+            avg_wdl_loss=self.data_provider.safe_mean(games_df, 'wdl_loss', 0.0),
             avg_match_rate=self.data_provider.safe_mean(games_df, 'match_rate', 0.5),
+            avg_ipr=self.data_provider.safe_mean(games_df, 'ipr', 1500.0),
             avg_suspicion_score=self.data_provider.safe_mean(games_df, 'overall_suspicion_score', 0.0),
+            std_acpl=games_df['acpl'].std() if len(games_df) > 1 else 0.0,
+            std_match_rate=games_df['match_rate'].std() if len(games_df) > 1 else 0.0,
 
             # Longitudinal features
             opening_entropy=long_features.get('mean_entropy', 0.0),
@@ -314,14 +318,68 @@ class PlayerAnalyzer:
             risk_score=risk_score,
             risk_factors=risk_factors,
 
-            # Estimate rating
-            estimated_rating=self.data_provider.estimate_player_elo(username),
 
             # Analysis metadata
             analyzed_at=datetime.now(timezone.utc),
             analysis_period_start=games_df['created_at'].min() if not games_df.empty else None,
             analysis_period_end=games_df['created_at'].max() if not games_df.empty else None,
 
+            # Nested pattern dictionaries for API compatibility
+            time_patterns={
+                'mean_move_time': long_features.get('mean_move_time', 3.0),
+                'time_variance': long_features.get('time_variance', 1.0),
+                'uniformity_score': long_features.get('uniformity_score', 0.8),
+            },
+            opening_patterns={
+                'mean_entropy': long_features.get('mean_entropy', 0.0),
+                'novelty_depth': long_features.get('novelty_depth', 0),
+                'opening_breadth': long_features.get('opening_breadth', 0),
+            },
+            time_management={
+                'mean_move_time': long_features.get('mean_move_time', 3.0),
+                'time_variance': long_features.get('time_variance', 1.0),
+                'uniformity_score': long_features.get('uniformity_score', 0.8),
+                'lag_spike_count': long_features.get('lag_spike_count', 0),
+            },
+
             # All features as JSON
             all_features=all_features
         )
+
+        # Save to database and return
+        logger.info(f"DEBUG PLAYER_ANALYZER: Saving analysis result for {username} to database")
+        try:
+            with Session(db_engine) as session:
+                # Check if analysis already exists and delete it
+                existing = session.get(PlayerAnalysisDetailed, username)
+                if existing:
+                    logger.info(f"DEBUG PLAYER_ANALYZER: Deleting existing analysis for {username}")
+                    session.delete(existing)
+
+                # Add new analysis
+                session.add(analysis_result)
+                session.commit()
+                session.refresh(analysis_result)  # Refresh to get the latest state
+                logger.info(f"DEBUG PLAYER_ANALYZER: Successfully saved analysis for {username}")
+
+                # Verify record exists immediately after commit
+                verify_record = session.get(PlayerAnalysisDetailed, username)
+                logger.info(f"DEBUG PLAYER_ANALYZER: Verification check - record exists: {verify_record is not None}")
+
+                # Create a detached copy to return
+                result_dict = {
+                    'username': analysis_result.username,
+                    'games_analyzed': analysis_result.games_analyzed,
+                    'risk_score': analysis_result.risk_score,
+                    'analyzed_at': analysis_result.analyzed_at
+                }
+
+                # Return a new instance not bound to session
+                return PlayerAnalysisDetailed(**{
+                    key: getattr(analysis_result, key)
+                    for key in analysis_result.__dict__
+                    if not key.startswith('_')
+                })
+        except Exception as e:
+            logger.error(f"DEBUG PLAYER_ANALYZER: Failed to save analysis for {username}: {e}")
+            raise
