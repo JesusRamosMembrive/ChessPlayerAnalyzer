@@ -1,0 +1,378 @@
+# docker-compose.prod.yml - Production deployment configuration
+# Usage: docker-compose -f docker-compose.prod.yml up -d
+
+services:
+  # === Load Balancer / Reverse Proxy ===
+  nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+      target: prod-nginx
+    ports:
+      - "80:80"
+      - "443:443"  # For SSL (configure certificates)
+    volumes:
+      - ./nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - nginx_logs:/var/log/nginx
+      # SSL certificates (uncomment if using HTTPS)
+      # - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - frontend
+      - backend
+
+  # === Application Backend ===
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+      target: prod-app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4 --worker-class uvicorn.workers.UvicornWorker
+    environment:
+      # Database configuration
+      DATABASE_URL: postgresql+psycopg://chess:${POSTGRES_PASSWORD}@postgres:5432/chessdb
+      # Connection pool optimization for production
+      DB_POOL_SIZE: "20"
+      DB_MAX_OVERFLOW: "40"
+      DB_POOL_TIMEOUT: "30"
+      DB_POOL_RECYCLE: "3600"  # 1 hour
+
+      # Redis configuration
+      REDIS_URL: redis://redis:6379/0
+
+      # Stockfish configuration
+      STOCKFISH_PATH: /usr/games/stockfish
+      STOCKFISH_DEPTH: "15"  # Higher depth for production
+
+      # Observability
+      ENABLE_TRACING: "true"
+      OTEL_SERVICE_NAME: chess-analyzer-api-prod
+      OTEL_EXPORTER_JAEGER_AGENT_HOST: jaeger
+      OTEL_EXPORTER_JAEGER_AGENT_PORT: 6831
+
+      # Production settings
+      LOG_LEVEL: "INFO"
+      DEBUG: "false"
+
+      # Performance tuning
+      UVICORN_BACKLOG: "2048"
+      UVICORN_ACCESS_LOG: "false"  # Handled by nginx
+    volumes:
+      - app_logs:/app/logs
+      - debug_results:/app/debug_results
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    networks:
+      - backend
+    deploy:
+      replicas: 2  # Horizontal scaling
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # === Database Migration ===
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+      target: prod-app
+    command: ["python", "-m", "app.init_db"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://chess:${POSTGRES_PASSWORD}@postgres:5432/chessdb
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    networks:
+      - backend
+
+  # === Celery Workers ===
+  celery:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+      target: prod-app
+    command: celery -A app.celery_app worker --loglevel=info -Q default --pool=prefork --concurrency=4 --max-tasks-per-child=1000
+    environment:
+      DATABASE_URL: postgresql+psycopg://chess:${POSTGRES_PASSWORD}@postgres:5432/chessdb
+      REDIS_URL: redis://redis:6379/0
+      STOCKFISH_PATH: /usr/games/stockfish
+      STOCKFISH_DEPTH: "15"
+
+      # Connection pool for workers
+      DB_POOL_SIZE: "10"
+      DB_MAX_OVERFLOW: "20"
+      DB_POOL_TIMEOUT: "30"
+      DB_POOL_RECYCLE: "3600"
+
+      # Observability
+      ENABLE_TRACING: "true"
+      OTEL_SERVICE_NAME: chess-analyzer-worker-prod
+      OTEL_EXPORTER_JAEGER_AGENT_HOST: jaeger
+      OTEL_EXPORTER_JAEGER_AGENT_PORT: 6831
+
+      # Production settings
+      LOG_LEVEL: "INFO"
+
+      # Celery optimization
+      CELERY_WORKER_PREFETCH_MULTIPLIER: "2"
+      CELERY_TASK_ACKS_LATE: "true"
+      CELERY_WORKER_MAX_TASKS_PER_CHILD: "1000"
+    volumes:
+      - app_logs:/app/logs
+      - debug_results:/app/debug_results
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    networks:
+      - backend
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+
+  # === PyTorch Workers ===
+  celery-torch:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+      target: prod-torch
+    command: celery -A app.celery_app worker --loglevel=info -Q torch --pool=threads --concurrency=2 --max-tasks-per-child=100
+    environment:
+      DATABASE_URL: postgresql+psycopg://chess:${POSTGRES_PASSWORD}@postgres:5432/chessdb
+      REDIS_URL: redis://redis:6379/0
+
+      # Connection pool for ML workers
+      DB_POOL_SIZE: "5"
+      DB_MAX_OVERFLOW: "10"
+      DB_POOL_TIMEOUT: "30"
+      DB_POOL_RECYCLE: "3600"
+
+      # Observability
+      ENABLE_TRACING: "true"
+      OTEL_SERVICE_NAME: chess-analyzer-torch-prod
+      OTEL_EXPORTER_JAEGER_AGENT_HOST: jaeger
+      OTEL_EXPORTER_JAEGER_AGENT_PORT: 6831
+
+      # Production settings
+      LOG_LEVEL: "INFO"
+
+      # PyTorch optimization
+      OMP_NUM_THREADS: "2"
+      MKL_NUM_THREADS: "2"
+    volumes:
+      - app_logs:/app/logs
+      - model_store:/app/model_store:ro
+      - debug_results:/app/debug_results
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
+
+  # === Database ===
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: chess
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: chessdb
+      # Production PostgreSQL optimization
+      POSTGRES_INITDB_ARGS: "--data-checksums --wal-segsize=32"
+    command: >
+      postgres
+      -c max_connections=200
+      -c shared_buffers=512MB
+      -c effective_cache_size=1GB
+      -c work_mem=8MB
+      -c maintenance_work_mem=128MB
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c checkpoint_completion_target=0.7
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c log_statement=ddl
+      -c log_checkpoints=on
+      -c log_connections=on
+      -c log_disconnections=on
+      -c log_lock_waits=on
+      -c log_temp_files=0
+      -c track_activities=on
+      -c track_counts=on
+      -c track_functions=pl
+      -c track_io_timing=on
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+      - postgres_logs:/var/log/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chess -d chessdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+
+  # === Redis Cache ===
+  redis:
+    image: redis:7-alpine
+    command: >
+      redis-server
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --appendonly yes
+      --appendfsync everysec
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+      --tcp-keepalive 300
+      --timeout 300
+      --tcp-backlog 511
+    volumes:
+      - redis_prod_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  # === Monitoring ===
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+      SPAN_STORAGE_TYPE: "memory"
+      MEMORY_MAX_TRACES: "100000"
+    ports:
+      - "16686:16686"
+    volumes:
+      - jaeger_data:/tmp
+    restart: unless-stopped
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # === Prometheus (Optional) ===
+  prometheus:
+    image: prom/prometheus:latest
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+    networks:
+      - backend
+    profiles: ["monitoring"]
+
+  # === Grafana (Optional) ===
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    networks:
+      - backend
+    profiles: ["monitoring"]
+
+# === Networks ===
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
+    internal: true
+
+# === Volumes ===
+volumes:
+  postgres_prod_data:
+    driver: local
+  postgres_logs:
+    driver: local
+  redis_prod_data:
+    driver: local
+  app_logs:
+    driver: local
+  debug_results:
+    driver: local
+  model_store:
+    driver: local
+  nginx_logs:
+    driver: local
+  jaeger_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local

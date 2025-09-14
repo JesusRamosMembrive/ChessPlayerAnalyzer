@@ -1,0 +1,194 @@
+# docker-compose.dev.yml - Optimized for Development with Hot Reload
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  # Override backend service for development
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: app-base
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/app --reload-delay 0.5
+    volumes:
+      # Mount source code for hot reload
+      - ./app:/app/app:cached  # cached for better performance on macOS
+      - ./alembic:/app/alembic:cached
+      - ./tests:/app/tests:cached
+      - ./scripts:/app/scripts:cached
+      - ./debug_results:/app/debug_results:rw
+      - ./archives:/app/archives:rw
+      # Performance: avoid mounting entire root
+      - /app/app/__pycache__  # exclude cache directories
+    environment:
+      DATABASE_URL: postgresql+psycopg://chess:chess@postgres:5432/chessdb
+      REDIS_URL: redis://redis:6379/0
+      STOCKFISH_PATH: /usr/games/stockfish
+      STOCKFISH_DEPTH: 12
+      ENABLE_TRACING: "true"
+      OTEL_SERVICE_NAME: chess-analyzer-api-dev
+      OTEL_EXPORTER_JAEGER_AGENT_HOST: jaeger
+      OTEL_EXPORTER_JAEGER_AGENT_PORT: 6831
+      # Development specific settings
+      DEBUG: "true"
+      LOG_LEVEL: "DEBUG"
+      UVICORN_LOG_LEVEL: "debug"
+      # Performance optimization for development
+      DB_POOL_SIZE: "5"  # Smaller pool for dev
+      DB_MAX_OVERFLOW: "10"
+      DB_POOL_TIMEOUT: "10"
+    ports:
+      - "8000:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    # Development health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Override celery service for development
+  celery:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: app-base
+    command: celery -A app.celery_app worker --loglevel=debug -Q default --pool=threads --concurrency=2
+    volumes:
+      - ./app:/app/app:cached
+      - ./debug_results:/app/debug_results:rw
+      - ./model_store:/app/model_store:rw
+      - /app/app/__pycache__  # exclude cache directories
+    environment:
+      DATABASE_URL: postgresql+psycopg://chess:chess@postgres:5432/chessdb
+      REDIS_URL: redis://redis:6379/0
+      STOCKFISH_PATH: /usr/games/stockfish
+      STOCKFISH_DEPTH: 8  # Lower depth for faster dev testing
+      ENABLE_TRACING: "true"
+      OTEL_SERVICE_NAME: chess-analyzer-worker-dev
+      OTEL_EXPORTER_JAEGER_AGENT_HOST: jaeger
+      OTEL_EXPORTER_JAEGER_AGENT_PORT: 6831
+      # Development specific settings
+      DEBUG: "true"
+      LOG_LEVEL: "DEBUG"
+      # Celery development settings
+      CELERY_TASK_ALWAYS_EAGER: "false"  # Keep async behavior
+      CELERY_TASK_EAGER_PROPAGATES: "true"
+      # Performance optimization for development
+      DB_POOL_SIZE: "3"  # Smaller pool for dev workers
+      DB_MAX_OVERFLOW: "5"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  # Override celery-torch for development
+  celery-torch:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: torch
+    command: celery -A app.celery_app worker --loglevel=debug -Q torch --pool=threads --concurrency=1
+    volumes:
+      - ./app:/app/app:cached
+      - ./debug_results:/app/debug_results:rw
+      - ./model_store:/app/model_store:rw
+      - /app/app/__pycache__
+    environment:
+      DATABASE_URL: postgresql+psycopg://chess:chess@postgres:5432/chessdb
+      REDIS_URL: redis://redis:6379/0
+      ENABLE_TRACING: "true"
+      OTEL_SERVICE_NAME: chess-analyzer-torch-dev
+      OTEL_EXPORTER_JAEGER_AGENT_HOST: jaeger
+      OTEL_EXPORTER_JAEGER_AGENT_PORT: 6831
+      # Development specific settings
+      DEBUG: "true"
+      LOG_LEVEL: "DEBUG"
+      # Performance optimization for development
+      DB_POOL_SIZE: "2"
+      DB_MAX_OVERFLOW: "3"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  # Development-specific services
+  dev-tools:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: app-base
+    command: sleep infinity  # Keep container running for exec commands
+    volumes:
+      - ./:/app:cached
+      - /app/app/__pycache__
+    environment:
+      DATABASE_URL: postgresql+psycopg://chess:chess@postgres:5432/chessdb
+      REDIS_URL: redis://redis:6379/0
+      STOCKFISH_PATH: /usr/games/stockfish
+      DEBUG: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    profiles: ["tools"]
+
+  # Development database with performance optimizations
+  postgres:
+    environment:
+      POSTGRES_USER: chess
+      POSTGRES_PASSWORD: chess
+      POSTGRES_DB: chessdb
+      # Development-specific postgres optimizations
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+    command: >
+      postgres
+      -c shared_preload_libraries='pg_stat_statements'
+      -c pg_stat_statements.track=all
+      -c max_connections=50
+      -c shared_buffers=128MB
+      -c effective_cache_size=256MB
+      -c work_mem=4MB
+      -c maintenance_work_mem=64MB
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c log_statement=all
+      -c log_duration=on
+      -c log_min_duration_statement=100ms
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      # Optional: mount init scripts
+      # - ./scripts/init-dev-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  # Redis with development optimizations
+  redis:
+    command: >
+      redis-server
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --appendonly yes
+      --appendfsync everysec
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+      --tcp-keepalive 300
+      --tcp-backlog 511
+
+volumes:
+  postgres_dev_data:
+    driver: local
+
+# Development-specific network for better service discovery
+networks:
+  default:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

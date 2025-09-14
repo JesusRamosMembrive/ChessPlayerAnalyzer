@@ -1,0 +1,133 @@
+# Dockerfile.prod - Production-optimized multi-stage build
+# syntax=docker/dockerfile:1.6
+
+ARG PYTHON_VERSION=3.12
+ARG PYTORCH_VERSION=2.3.1
+
+# ===== Production Base Stage =====
+FROM python:${PYTHON_VERSION}-slim AS prod-base
+
+# Production environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=on \
+    PIP_DEFAULT_TIMEOUT=100 \
+    PYTHONPATH=/app
+
+# Install system dependencies with minimal packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    stockfish \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+WORKDIR /app
+
+# ===== Dependencies Stage =====
+FROM prod-base AS prod-deps
+
+# Copy and install base requirements
+COPY requirements-base.txt .
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -U pip setuptools wheel && \
+    pip install --no-deps --no-cache-dir -r requirements-base.txt && \
+    # Handle chess library conflicts
+    pip uninstall -y chess || true && \
+    pip uninstall -y python-chess || true && \
+    pip install --no-cache-dir python-chess==1.999
+
+# Install production requirements
+COPY requirements.txt .
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir -r requirements.txt
+
+# Clean up build dependencies to reduce image size
+RUN apt-get purge -y --auto-remove build-essential \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip cache purge
+
+# ===== Application Stage =====
+FROM prod-base AS prod-app
+
+# Copy installed packages from deps stage
+COPY --from=prod-deps /usr/local /usr/local
+
+# Create non-root user for security
+RUN groupadd --gid 1000 appuser \
+    && useradd --uid 1000 --gid 1000 --create-home --shell /bin/bash appuser
+
+# Copy application code
+COPY --chown=appuser:appuser . /app
+
+# Create necessary directories
+RUN mkdir -p /app/debug_results /app/model_store /app/archives \
+    && chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
+
+# Production health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Default command (can be overridden)
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+
+# ===== PyTorch Production Stage =====
+FROM python:${PYTHON_VERSION}-slim AS prod-torch
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=on \
+    PYTHONPATH=/app
+
+# Install minimal system dependencies for PyTorch
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install PyTorch and ML dependencies
+COPY requirements-ml.txt .
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -U pip setuptools wheel && \
+    pip install --no-cache-dir -r requirements-ml.txt
+
+# Copy base dependencies from prod-deps stage
+COPY --from=prod-deps /usr/local/lib/python*/site-packages /usr/local/lib/python*/site-packages
+COPY --from=prod-deps /usr/local/bin /usr/local/bin
+
+# Create non-root user
+RUN groupadd --gid 1000 appuser \
+    && useradd --uid 1000 --gid 1000 --create-home --shell /bin/bash appuser
+
+# Copy application code
+COPY --chown=appuser:appuser . /app
+
+# Create model store directory
+RUN mkdir -p /app/model_store /app/debug_results \
+    && chown -R appuser:appuser /app
+
+USER appuser
+
+# PyTorch worker command
+CMD ["celery", "-A", "app.celery_app", "worker", "--loglevel=info", "-Q", "torch", "--pool=threads", "--concurrency=2"]
+
+# ===== Nginx Reverse Proxy Stage =====
+FROM nginx:alpine AS prod-nginx
+
+# Copy nginx configuration
+COPY --chown=nginx:nginx nginx.prod.conf /etc/nginx/nginx.conf
+
+# Production nginx for load balancing and static serving
+EXPOSE 80 443
+
+CMD ["nginx", "-g", "daemon off;"]
+
+# ===== Multi-arch Build Support =====
+FROM prod-app AS final
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
+RUN printf "Built on: %s, Target: %s\n" "$BUILDPLATFORM" "$TARGETPLATFORM" > /app/build.info

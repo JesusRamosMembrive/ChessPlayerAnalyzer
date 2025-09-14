@@ -1,0 +1,224 @@
+# alert_rules.yml - Prometheus alerting rules for ChessPlayerAnalyzer
+
+groups:
+  - name: chess_analyzer_alerts
+    rules:
+      # === Performance Regression Alerts ===
+      - alert: PerformanceRegression
+        expr: >
+          (
+            rate(http_request_duration_seconds_sum{job="chess-analyzer-api"}[5m])
+            / rate(http_request_duration_seconds_count{job="chess-analyzer-api"}[5m])
+          ) > 2.0
+        for: 5m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "API response time degraded"
+          description: "Average response time is {{ $value }}s, exceeding 2s threshold"
+
+      - alert: AnalysisPerformanceRegression
+        expr: >
+          histogram_quantile(0.95,
+            rate(analysis_duration_seconds_bucket{job="chess-analyzer-api"}[10m])
+          ) > 30.0
+        for: 5m
+        labels:
+          severity: warning
+          component: analysis
+        annotations:
+          summary: "Analysis performance degraded"
+          description: "95th percentile analysis time is {{ $value }}s, exceeding 30s threshold"
+
+      # === Database Performance Alerts ===
+      - alert: DatabaseConnectionPoolExhaustion
+        expr: >
+          (
+            pg_stat_database_numbackends{datname="chessdb"}
+            / pg_settings_max_connections
+          ) > 0.8
+        for: 2m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "Database connection pool near exhaustion"
+          description: "{{ $value | humanizePercentage }} of database connections in use"
+
+      - alert: DatabaseSlowQueries
+        expr: >
+          rate(pg_stat_database_tup_fetched{datname="chessdb"}[5m])
+          / rate(pg_stat_database_tup_returned{datname="chessdb"}[5m]) > 100
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "Database experiencing slow queries"
+          description: "High ratio of fetched to returned tuples indicates slow queries"
+
+      # === Memory and CPU Alerts ===
+      - alert: HighMemoryUsage
+        expr: >
+          (
+            container_memory_usage_bytes{name=~".*backend.*|.*celery.*"}
+            / container_spec_memory_limit_bytes
+          ) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          component: "{{ $labels.name }}"
+        annotations:
+          summary: "High memory usage in {{ $labels.name }}"
+          description: "Memory usage is {{ $value | humanizePercentage }}"
+
+      - alert: HighCPUUsage
+        expr: >
+          rate(container_cpu_usage_seconds_total{name=~".*backend.*|.*celery.*"}[5m]) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          component: "{{ $labels.name }}"
+        annotations:
+          summary: "High CPU usage in {{ $labels.name }}"
+          description: "CPU usage is {{ $value | humanizePercentage }}"
+
+      # === Error Rate Alerts ===
+      - alert: HighErrorRate
+        expr: >
+          (
+            sum(rate(http_requests_total{job="chess-analyzer-api", status=~"5.."}[5m]))
+            / sum(rate(http_requests_total{job="chess-analyzer-api"}[5m]))
+          ) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          component: api
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }}"
+
+      - alert: CeleryTaskFailures
+        expr: >
+          (
+            sum(rate(celery_task_failed_total[5m]))
+            / sum(rate(celery_task_total[5m]))
+          ) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: celery
+        annotations:
+          summary: "High Celery task failure rate"
+          description: "Task failure rate is {{ $value | humanizePercentage }}"
+
+      # === Service Availability Alerts ===
+      - alert: ServiceDown
+        expr: up{job=~"chess-analyzer-api|postgres|redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: "{{ $labels.job }}"
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "Service has been down for more than 1 minute"
+
+      - alert: DatabaseDown
+        expr: up{job="postgres"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "Database is down"
+          description: "PostgreSQL database is not responding"
+
+      # === Queue Health Alerts ===
+      - alert: CeleryQueueBacklog
+        expr: celery_queue_length > 100
+        for: 5m
+        labels:
+          severity: warning
+          component: celery
+        annotations:
+          summary: "Celery queue backlog"
+          description: "Queue {{ $labels.queue }} has {{ $value }} pending tasks"
+
+      - alert: RedisMemoryUsage
+        expr: >
+          (
+            redis_memory_used_bytes
+            / redis_memory_max_bytes
+          ) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          component: redis
+        annotations:
+          summary: "Redis memory usage high"
+          description: "Redis memory usage is {{ $value | humanizePercentage }}"
+
+      # === Business Logic Alerts ===
+      - alert: UnusualAnalysisVolume
+        expr: >
+          sum(rate(analysis_requests_total[1h])) > 1000
+        for: 10m
+        labels:
+          severity: info
+          component: business
+        annotations:
+          summary: "Unusual analysis request volume"
+          description: "Analysis requests rate is {{ $value }} per hour"
+
+      - alert: LowSuccessfulAnalyses
+        expr: >
+          (
+            sum(rate(analysis_completed_total[1h]))
+            / sum(rate(analysis_requests_total[1h]))
+          ) < 0.8
+        for: 10m
+        labels:
+          severity: warning
+          component: business
+        annotations:
+          summary: "Low analysis success rate"
+          description: "Analysis success rate is {{ $value | humanizePercentage }}"
+
+      # === Performance Regression Detection (4.6x baseline) ===
+      - alert: PerformanceRegressionFromBaseline
+        expr: >
+          (
+            histogram_quantile(0.95,
+              rate(analysis_module_duration_seconds_bucket{module=~"quality|timing|longitudinal"}[10m])
+            )
+          ) > (
+            histogram_quantile(0.95,
+              rate(analysis_module_duration_seconds_bucket{module=~"quality|timing|longitudinal"}[10m] offset 1w)
+            ) * 2.0
+          )
+        for: 5m
+        labels:
+          severity: critical
+          component: performance
+        annotations:
+          summary: "Performance regression detected in optimized modules"
+          description: "Module {{ $labels.module }} performance degraded by >2x from baseline"
+
+  - name: disk_space_alerts
+    rules:
+      - alert: DiskSpaceUsage
+        expr: >
+          (
+            1 - (
+              node_filesystem_avail_bytes{fstype!="tmpfs"}
+              / node_filesystem_size_bytes{fstype!="tmpfs"}
+            )
+          ) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          component: disk
+        annotations:
+          summary: "Disk space usage high"
+          description: "Disk usage is {{ $value | humanizePercentage }} on {{ $labels.mountpoint }}"
