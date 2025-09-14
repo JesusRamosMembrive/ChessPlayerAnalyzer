@@ -324,7 +324,7 @@ event: error
 data: {"username": "hikaru", "error": "Chess.com API rate limit exceeded"}
 ```
 
-## =' Parámetros Globales
+## Parámetros Globales
 
 ### Query Parameters Comunes
 - `months` (int, 1-36) - Rango temporal para análisis de jugadores
@@ -339,7 +339,7 @@ User-Agent: YourApp/1.0
 X-Request-ID: unique-request-id
 ```
 
-##   Rate Limiting
+## Rate Limiting
 
 **Límites por defecto:**
 - **100 requests/minuto** por IP
@@ -351,7 +351,7 @@ X-Request-ID: unique-request-id
   X-RateLimit-Reset: 1694606400
   ```
 
-## = Códigos de Error
+## Códigos de Error
 
 ### HTTP Status Codes
 - `200` - Success
@@ -378,14 +378,14 @@ X-Request-ID: unique-request-id
 }
 ```
 
-## =Ú Referencias
+## Referencias
 
 - [Esquemas de Datos](./schemas.md) - Modelos de request/response
 - [Ejemplos de Uso](./examples.md) - Casos de uso prácticos
 - [Arquitectura](../architecture/overview.md) - Diseño del sistema
 - [Flujo Celery](../architecture/celery-workflow.md) - Procesamiento asíncrono
 
-## = Historial de Cambios
+## Historial de Cambios
 
 - **2025-09-13:** Documentación inicial de endpoints v1
 - **2025-09-13:** Adición de ejemplos y códigos de error

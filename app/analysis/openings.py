@@ -31,9 +31,16 @@ def shannon_entropy(series: pd.Series) -> float:
     if clean_series.empty:
         return 0.0
     
-    counts = clean_series.value_counts()
-    probs  = counts / counts.sum()
-    return -(probs * np.log2(probs)).sum()
+    # Optimized with NumPy operations
+    values = clean_series.values
+    unique_vals, counts = np.unique(values, return_counts=True)
+    counts = counts.astype(float)
+    total_count = np.sum(counts)
+    probs = counts / total_count
+
+    # Avoid log(0) by filtering out zero probabilities
+    probs = probs[probs > 0]
+    return -float(np.sum(probs * np.log2(probs)))
 
 @trace
 def load_reference_book(path: str | Path) -> chess.polyglot.Reader:
@@ -100,10 +107,10 @@ def novelty_depth_stats(games: List[chess.pgn.Game],
     depths = np.array(depths, dtype=int)
 
     return {
-        'mean_tn_depth' : depths.mean(),
-        'median_tn_depth': np.median(depths),
-        'sd_tn_depth'   : depths.std(ddof=1),
-        'pct_late_nov'  : (depths >= 20).mean()     # % de novedades “tardías”
+        'mean_tn_depth' : float(np.mean(depths)),
+        'median_tn_depth': float(np.median(depths)),
+        'sd_tn_depth'   : float(np.std(depths, ddof=1)),
+        'pct_late_nov'  : float(np.mean(depths >= 20))     # % de novedades "tardías"
     }
 
 
@@ -128,7 +135,9 @@ def second_choice_rate(moves_df: pd.DataFrame,
     if not mask.any():
         return {'second_choice_pct': np.nan}
 
-    secondish = moves_df.loc[mask, rank_col].isin([2, 3]).mean()
+    # Optimized with NumPy array operations
+    rank_values = moves_df.loc[mask, rank_col].values
+    secondish = float(np.mean(np.isin(rank_values, [2, 3])))
     return {'second_choice_pct': secondish}
 
 
@@ -145,9 +154,16 @@ def repertoire_breadth_focus(games_df: pd.DataFrame,
       • breadth = nº de códigos ECO diferentes
       • focus   = % de partidas concentradas en tus 3 líneas más jugadas
     """
-    eco_counts = games_df[eco_col].value_counts()
-    breadth = eco_counts.size
-    focus   = eco_counts.head(3).sum() / eco_counts.sum()
+    # Optimized with NumPy operations
+    eco_values = games_df[eco_col].values
+    unique_ecos, counts = np.unique(eco_values, return_counts=True)
+    breadth = len(unique_ecos)
+
+    # Focus: top 3 openings percentage
+    sorted_counts = np.sort(counts)[::-1]  # Descending order
+    top3_sum = np.sum(sorted_counts[:3]) if len(sorted_counts) >= 3 else np.sum(sorted_counts)
+    total_sum = np.sum(counts)
+    focus = float(top3_sum / total_sum) if total_sum > 0 else 0.0
 
     # Optionally flag “hyper‑specialist”
     hyper_specialist = focus > 0.75 and breadth >= min_occurrences
@@ -183,8 +199,8 @@ def aggregate_opening_features(opening_key: str,
     return {
         "opening_entropy": entropy,
         "novelty_depth": novelty_depth,
-        "second_choice_rate": (moves_df.best_rank == 1).mean(),
-        "opening_breadth": moves_df.played[:8].nunique(),
+        "second_choice_rate": float(np.mean(moves_df.best_rank.values == 1)),
+        "opening_breadth": len(np.unique(moves_df.played.values[:8])),
         # peso simple en 0-100
         "opening_score": 100 * (1 - novelty_depth / 50),
     }
@@ -207,7 +223,7 @@ def aggregate_player_opening_patterns(games_df: pd.DataFrame,
 
     # ── 1. Entropía y breadth ─────────────────────────────────────────
     mean_entropy   = shannon_entropy(eco_series)
-    opening_breadth = eco_series.nunique()
+    opening_breadth = len(np.unique(eco_series.values))
 
     # ── 2. Profundidad media de novedad ───────────────────────────────
     nov_depths = []
@@ -225,7 +241,8 @@ def aggregate_player_opening_patterns(games_df: pd.DataFrame,
             continue
         mask = mv_df["delta_eval"] > 50
         if mask.any():
-            ranks.append(mv_df.loc[mask, "best_rank"].isin([2, 3]).mean())
+            rank_values = mv_df.loc[mask, "best_rank"].values
+            ranks.append(float(np.mean(np.isin(rank_values, [2, 3]))))
     second_choice_rate = float(np.mean(ranks)) if ranks else np.nan
 
     return {

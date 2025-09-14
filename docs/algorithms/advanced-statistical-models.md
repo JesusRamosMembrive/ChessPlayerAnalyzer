@@ -546,4 +546,4 @@ ALTER TABLE gamemetrics ADD COLUMN prediction_confidence FLOAT;
 
 ## Conclusion
 
-Este plan proporciona una roadmap comprehensiva para reemplazar el sistema actual de flags binarios con modelos estadísticos avanzados. La implementación será incremental, comenzando con modelos simples y evolucionando hacia sistemas más sofisticados. El enfoque en interpretability, fairness, y continuous monitoring asegura que el sistema sea tanto efectivo como éticamente responsable.
+Este plan proporciona un roadmap comprehensivo para reemplazar el sistema actual de flags binarios con modelos estadísticos avanzados. La implementación será incremental, comenzando con modelos simples y evolucionando hacia sistemas más sofisticados. El enfoque en interpretability, fairness, y continuous monitoring asegura que el sistema sea tanto efectivo como éticamente responsable.

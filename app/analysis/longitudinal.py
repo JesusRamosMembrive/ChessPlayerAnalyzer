@@ -89,10 +89,10 @@ def aggregate_roi(games_df: pd.DataFrame) -> Dict[str, float]:
         }
     
     return {
-        'roi_mean': roi_series.mean() if not roi_series.isna().all() else 0.0,
-        'roi_max': roi_series.max() if not roi_series.isna().all() else 0.0,
-        'roi_sd': roi_series.std(ddof=1) if len(roi_series) > 1 and not roi_series.isna().all() else 0.0,
-        'roi_games>2': (roi_series > 2).sum()    # n partidas ROI > 2 σ
+        'roi_mean': float(np.nanmean(roi_series.values)),
+        'roi_max': float(np.nanmax(roi_series.values)),
+        'roi_sd': float(np.nanstd(roi_series.values, ddof=1)) if len(roi_series) > 1 else 0.0,
+        'roi_games>2': int(np.sum(roi_series.values > 2))    # n partidas ROI > 2 σ
     }
 
 ###############################################################################
@@ -192,8 +192,9 @@ def selectivity_score(
     if match_col is None:
         return {"selectivity_pct": 50.0}
 
-    s = games_df[match_col]
-    pct = (s > s.median()).mean() * 100.0
+    s = games_df[match_col].values
+    s_median = np.nanmedian(s)
+    pct = float(np.nanmean(s > s_median) * 100.0)
     return {"selectivity_pct": pct}
 
 ###############################################################################
@@ -219,8 +220,8 @@ def peer_group_delta(games_df: pd.DataFrame,
         peers = reference_df[(reference_df[elo_col] >= elo-k) & (reference_df[elo_col] <= elo+k)]
         if peers.empty:
             continue
-        deltas_acpl.append(peers[acpl_col].mean() - row[acpl_col])
-        deltas_match.append(row[match_col] - peers[match_col].mean())
+        deltas_acpl.append(np.nanmean(peers[acpl_col].values) - row[acpl_col])
+        deltas_match.append(row[match_col] - np.nanmean(peers[match_col].values))
 
     return {
         'peer_delta_acpl': np.nanmean(deltas_acpl) if deltas_acpl and not np.isnan(np.nanmean(deltas_acpl)) else 0.0,
@@ -238,10 +239,29 @@ def longest_streak(roi_series: pd.Series,
     Longest consecutive streak of ROI ≥ threshold.
     """
     mask = roi_series >= threshold
-    # run-length encoding
-    streaks = (mask != mask.shift()).cumsum()
-    max_streak = mask.groupby(streaks).sum().max()
-    return int(max_streak) if not pd.isna(max_streak) and not np.isnan(max_streak) else 0
+    # Optimized run-length encoding with NumPy
+    mask_values = mask.values.astype(bool)
+
+    if len(mask_values) == 0 or not np.any(mask_values):
+        return 0
+
+    # Find run lengths of consecutive True values
+    # Add False at start and end to handle edge cases
+    padded = np.concatenate(([False], mask_values, [False]))
+    diff = np.diff(padded.astype(int))
+
+    # Start of runs (False to True transitions)
+    starts = np.where(diff == 1)[0]
+    # End of runs (True to False transitions)
+    ends = np.where(diff == -1)[0]
+
+    if len(starts) == 0 or len(ends) == 0:
+        return 0
+
+    # Calculate streak lengths
+    streak_lengths = ends - starts
+    max_streak = int(np.max(streak_lengths)) if len(streak_lengths) > 0 else 0
+    return max_streak
 
 
 ###############################################################################
@@ -278,8 +298,8 @@ def segment_history(games_df: pd.DataFrame) -> Dict[str, list]:
         segment_info = {
             "start": int(start),
             "end": int(cp),
-            "mean_acpl": float(seg["acpl"].mean()) if "acpl" in seg.columns and not seg["acpl"].isna().all() else None,
-            "mean_time": float(seg["mean_move_time"].mean()) if "mean_move_time" in seg.columns and not seg["mean_move_time"].isna().all() else None,
+            "mean_acpl": float(np.nanmean(seg["acpl"].values)) if "acpl" in seg.columns and not seg["acpl"].isna().all() else None,
+            "mean_time": float(np.nanmean(seg["mean_move_time"].values)) if "mean_move_time" in seg.columns and not seg["mean_move_time"].isna().all() else None,
         }
         segments.append(segment_info)
         start = cp
@@ -366,7 +386,8 @@ def aggregate_longitudinal_features(
     roi_series = roi_per_game(games_df)
     logger.info(f"DEBUG LONGITUDINAL: ROI series length: {len(roi_series)}")
     if len(roi_series) > 0:
-        logger.info(f"DEBUG LONGITUDINAL: ROI series stats - mean: {roi_series.mean():.2f}, max: {roi_series.max():.2f}")
+        roi_values = roi_series.values
+        logger.info(f"DEBUG LONGITUDINAL: ROI series stats - mean: {np.nanmean(roi_values):.2f}, max: {np.nanmax(roi_values):.2f}")
     
     roi_features = aggregate_roi(games_df)
     features.update(roi_features)
@@ -472,8 +493,8 @@ def aggregate_longitudinal_features(
     # --- Date range calculations ------------------------------------------
     if "created_at" in games_df.columns and not games_df.empty:
         logger.info("DEBUG LONGITUDINAL: Calculating date range")
-        first_date = games_df["created_at"].min()
-        last_date = games_df["created_at"].max()
+        first_date = np.min(games_df["created_at"].values)
+        last_date = np.max(games_df["created_at"].values)
         features.update({
             "first_game_date": first_date,
             "last_game_date": last_date,

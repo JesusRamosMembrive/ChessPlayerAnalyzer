@@ -1,19 +1,61 @@
 # app/analysis/engine.py
 """
+DEPRECATED - Use engine_facade.py instead.
+This file is kept for backward compatibility during transition.
 Motor principal de análisis que orquesta todos los módulos.
 """
 from __future__ import annotations
 import logging
+import io
+import numpy as np
 from datetime import datetime, timezone
 from typing import Dict, Optional
-import pandas as pd
-import chess.pgn
-import io
-
 from pathlib import Path
 
+import pandas as pd
+import chess.pgn
+
+# Core imports
 from app.models import Game, GameAnalysisDetailed, PlayerAnalysisDetailed
 from app.database import engine as db_engine
+from app import models
+from app.database import engine
+from app.utils import clean_json_numbers
+from sqlmodel import Session, select
+
+# Import from new facade for compatibility
+from .engine_facade import AnalysisEngineFacade, analyze_game as facade_analyze_game, analyze_player as facade_analyze_player
+
+# Analysis modules - consolidate imports
+from . import (
+    quality, timing, openings, endgame,
+    longitudinal, anomaly
+)
+from .clustering import assign_cluster_from_values
+from .bayesian import BayesianSuspicionModel
+from .ml_classifier import MLSuspicionClassifier
+
+# Specific function imports
+from app.analysis.openings import aggregate_player_opening_patterns
+from app.analysis.eco_table import ECO_NAMES
+from app.analysis.longitudinal import compute_trends
+from app.analysis.quality import (
+    compute_phase_quality,
+    aggregate_clutch_accuracy,
+    aggregate_tactical_trends,
+    aggregate_blunders_by_phase,
+)
+from app.analysis.timing import (
+    aggregate_time_management,
+    aggregate_time_complexity_corr,
+)
+from app.analysis.benchmark import compute_benchmark
+from app.analysis.endgame import aggregate_endgame_efficiency
+
+# New utility imports
+from app.utils.analysis_helpers import calculate_suspicion_score, calculate_basic_risk_score
+
+# Debug tracing
 try:
     from app.utils_debugging.tracer import trace
 except Exception:
@@ -23,41 +65,6 @@ except Exception:
                 return f
             return _decorator
         return func
-from sqlmodel import Session, select
-
-# Importar módulos de análisis
-from . import quality
-from . import timing
-from . import openings
-from . import endgame
-from . import longitudinal
-from . import anomaly
-from app import models
-from app.database import engine
-from app.analysis.openings import aggregate_player_opening_patterns
-from app.utils import clean_json_numbers
-from app.analysis.eco_table import ECO_NAMES
-from app.analysis.longitudinal import compute_trends
-from .clustering import assign_cluster_from_values
-from app.analysis.quality import compute_phase_quality
-import numpy as np
-from app.analysis.benchmark import compute_benchmark
-from app.analysis.timing import aggregate_time_management
-from app.analysis.quality import aggregate_clutch_accuracy
-from app.analysis.quality import aggregate_tactical_trends
-from app.analysis.endgame import aggregate_endgame_efficiency
-from .bayesian import BayesianSuspicionModel
-from .ml_classifier import MLSuspicionClassifier
-
-from app.analysis.quality import (
-    aggregate_tactical_trends,
-    aggregate_blunders_by_phase,      # nuevo
-)
-from app.analysis.timing import (
-    aggregate_time_management,
-    aggregate_time_complexity_corr,   # nuevo
-)
-from app.utils_sanitize import clean_json_numbers
 
 logger = logging.getLogger(__name__)
 
@@ -201,6 +208,10 @@ def _safe_mean(df: pd.DataFrame, col: str, default: float = 0.0) -> float:
     return float(val) if pd.notna(val) else default
 
 class ChessAnalysisEngine:
+    """
+    DEPRECATED - Use AnalysisEngineFacade instead.
+    Legacy class maintained for backward compatibility.
+    """
     """Motor principal que coordina todos los análisis."""
 
     def __init__(self,
@@ -234,6 +245,16 @@ class ChessAnalysisEngine:
 
     @trace
     def analyze_game(self, game_id: int, username: str) -> GameAnalysisDetailed:
+        """
+        DEPRECATED - Use AnalysisEngineFacade.analyze_game() instead.
+        """
+        return facade_analyze_game(
+            game_id, username,
+            self.reference_book,
+            self.tablebase_path
+        )
+
+    def _analyze_game_legacy(self, game_id: int, username: str) -> GameAnalysisDetailed:
         """
         Analiza una partida completa con todos los módulos.
 
@@ -371,6 +392,12 @@ class ChessAnalysisEngine:
 
     @trace
     def analyze_player(self, username: str) -> PlayerAnalysisDetailed:
+        """
+        DEPRECATED - Use AnalysisEngineFacade.analyze_player() instead.
+        """
+        return facade_analyze_player(username, self.reference_stats)
+
+    def _analyze_player_legacy(self, username: str) -> PlayerAnalysisDetailed:
         """
         Analiza todas las partidas de un jugador y genera métricas agregadas.
 

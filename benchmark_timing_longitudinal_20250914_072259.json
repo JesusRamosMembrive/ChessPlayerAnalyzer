@@ -1,0 +1,74 @@
+{
+  "timestamp": "2025-09-14 07:22:59",
+  "timing_results": {
+    "100": {
+      "original_duration": 0.8789196014404297,
+      "optimized_duration": 0.3154318332672119,
+      "speedup": 2.7864010817699243,
+      "iterations": 1000
+    },
+    "500": {
+      "original_duration": 0.8623735904693604,
+      "optimized_duration": 0.44766831398010254,
+      "speedup": 1.9263672758123556,
+      "iterations": 1000
+    },
+    "1000": {
+      "original_duration": 0.9457125663757324,
+      "optimized_duration": 0.4135406017303467,
+      "speedup": 2.2868675105144667,
+      "iterations": 1000
+    },
+    "5000": {
+      "original_duration": 0.6957621574401855,
+      "optimized_duration": 0.2395799160003662,
+      "speedup": 2.9040921670542788,
+      "iterations": 500
+    }
+  },
+  "longitudinal_results": {
+    "100": {
+      "roi_speedup": 2.4417324259189357,
+      "selectivity_speedup": 2.527058948712492,
+      "roi_orig_duration": 0.26064157485961914,
+      "roi_opt_duration": 0.10674452781677246,
+      "sel_orig_duration": 0.11324548721313477,
+      "sel_opt_duration": 0.04481315612792969,
+      "iterations": 1000
+    },
+    "500": {
+      "roi_speedup": 2.465719381962268,
+      "selectivity_speedup": 2.7049647625050133,
+      "roi_orig_duration": 0.331890344619751,
+      "roi_opt_duration": 0.13460183143615723,
+      "sel_orig_duration": 0.13506817817687988,
+      "sel_opt_duration": 0.049933433532714844,
+      "iterations": 1000
+    },
+    "1000": {
+      "roi_speedup": 1.8184717954790124,
+      "selectivity_speedup": 3.273188439920033,
+      "roi_orig_duration": 0.35883426666259766,
+      "roi_opt_duration": 0.1973273754119873,
+      "sel_orig_duration": 0.1822965145111084,
+      "sel_opt_duration": 0.055693864822387695,
+      "iterations": 1000
+    },
+    "5000": {
+      "roi_speedup": 1.6198310012348047,
+      "selectivity_speedup": 1.9974202639967724,
+      "roi_orig_duration": 0.20736002922058105,
+      "roi_opt_duration": 0.12801337242126465,
+      "sel_orig_duration": 0.08380889892578125,
+      "sel_opt_duration": 0.04195857048034668,
+      "iterations": 500
+    }
+  },
+  "summary": {
+    "avg_timing_speedup": 2.475932008787756,
+    "avg_roi_speedup": 2.086438651148755,
+    "avg_sel_speedup": 2.625658103783578,
+    "overall_avg_speedup": 2.396009587906697,
+    "performance_grade": "VERY GOOD"
+  }
+}

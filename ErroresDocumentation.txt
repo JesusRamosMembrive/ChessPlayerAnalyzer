@@ -1,0 +1,4 @@
+guides->deployment.md  (Los graficos no se entienden correctamente)
+guides->testing.md  (Los graficos no se entienden correctamente)
+architecture->celeryworkflow (graficos mal representados)
+ml/README.md

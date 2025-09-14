@@ -1,0 +1,34 @@
+{
+  "acpl_small": {
+    "optimized_ms": 0.05794580000838323,
+    "baseline_ms": 0.35228960000586085,
+    "speedup": 6.0796399386132185,
+    "games_tested": 10
+  },
+  "acpl_medium": {
+    "optimized_ms": 0.05338400000346155,
+    "baseline_ms": 0.3224307999935263,
+    "speedup": 6.039839651817381,
+    "games_tested": 10
+  },
+  "acpl_large": {
+    "optimized_ms": 0.05547060000935744,
+    "baseline_ms": 0.3279866000139009,
+    "speedup": 5.9128006540144185,
+    "games_tested": 10
+  },
+  "complexity_match": {
+    "optimized_ms": 0.062311066665036684,
+    "baseline_ms": 0.5033639999983279,
+    "speedup": 8.078243993225847,
+    "games_tested": 15
+  },
+  "integration": {
+    "optimized_total_ms": 1.5937900000608352,
+    "baseline_total_ms": 11.639209999952982,
+    "optimized_per_game_ms": 0.15937900000608352,
+    "baseline_per_game_ms": 1.1639209999952982,
+    "speedup": 7.302850437955259,
+    "games_per_run": 10
+  }
+}

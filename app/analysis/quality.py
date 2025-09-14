@@ -3,11 +3,19 @@ from __future__ import annotations
 import pandas as pd
 import numpy as np
 from sklearn.linear_model import HuberRegressor
-from typing import Tuple, List
+from typing import Tuple, List, Union, Dict, Any
 from numpy.typing import NDArray
 import logging
-logger = logging.getLogger(__name__)
 
+# Import optimized utilities
+from app.utils.data_processing import (
+    aggregate_basic_metrics,
+    safe_divide,
+    group_by_phase,
+    correlation_coefficient
+)
+
+logger = logging.getLogger(__name__)
 
 import sys
 from pathlib import Path
@@ -17,6 +25,43 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 from app.utils_debugging.tracer import trace
+
+
+def _extract_numeric_array(df_or_dict: Union[pd.DataFrame, Dict[str, np.ndarray]],
+                          column: str) -> np.ndarray:
+    """Helper para extraer array numérico de DataFrame o dict de arrays."""
+    if isinstance(df_or_dict, pd.DataFrame):
+        if column in df_or_dict.columns:
+            return pd.to_numeric(df_or_dict[column], errors="coerce").values
+        else:
+            return np.array([])
+    elif isinstance(df_or_dict, dict) and column in df_or_dict:
+        return df_or_dict[column]
+    else:
+        return np.array([])
+
+
+def _robust_aggregate(values: np.ndarray, method: str = "median",
+                     cap_value: float = None) -> float:
+    """Agregación robusta con capping y manejo de NaN."""
+    if len(values) == 0:
+        return 0.0
+
+    # Filtrar NaN
+    valid_values = values[~np.isnan(values)]
+    if len(valid_values) == 0:
+        return 0.0
+
+    # Aplicar cap si se especifica
+    if cap_value is not None:
+        valid_values = np.clip(valid_values, None, cap_value)
+
+    if method == "median":
+        return float(np.median(valid_values))
+    elif method == "mean":
+        return float(np.mean(valid_values))
+    else:
+        raise ValueError(f"Unknown aggregation method: {method}")
 
 
 def eval_to_wdl_prob(evaluation_in_cp: float, k: float = 400.0) -> float:
@@ -60,19 +105,12 @@ def acpl(game_df: pd.DataFrame, player_color: str = 'white', cap_cp: int | None 
     """
     if "delta_eval" in game_df.columns:
         # Usar la pérdida vs. la mejor jugada del motor directamente
-        vals = pd.to_numeric(game_df["delta_eval"], errors="coerce").abs().dropna()
-
-        # Aplicar cap para robustez frente a outliers (mates)
-        if cap_cp is not None:
-            vals = vals.clip(upper=cap_cp)
-
-        if vals.empty:
-            return 0.0
-
-        agg_func = np.median if use_median else np.mean
-        result = float(agg_func(vals))
+        # Optimización: usar NumPy directamente
+        delta_vals = _extract_numeric_array(game_df, "delta_eval")
+        method = "median" if use_median else "mean"
+        result = _robust_aggregate(np.abs(delta_vals), method, cap_cp)
         agg_name = "median" if use_median else "mean"
-        logger.info(f"DEBUG QUALITY: ACPL calculated from 'delta_eval' (L1 loss, cap={cap_cp}, agg={agg_name}): {result:.2f} over {len(vals)} moves.")
+        logger.info(f"DEBUG QUALITY: ACPL calculated from 'delta_eval' (L1 loss, cap={cap_cp}, agg={agg_name}): {result:.2f} over {len(delta_vals)} moves.")
         return result
 
     # --- Fallback si 'delta_eval' no está ---
@@ -81,20 +119,25 @@ def acpl(game_df: pd.DataFrame, player_color: str = 'white', cap_cp: int | None 
         logger.info("DEBUG QUALITY: ACPL fallback unavailable (missing eval columns); returning 0.0")
         return 0.0
 
-    eval_before = pd.to_numeric(game_df["eval_cp_before"], errors="coerce")
-    eval_after = pd.to_numeric(game_df["eval_cp_after"], errors="coerce")
+    # Optimización: usar arrays NumPy directamente
+    eval_before = _extract_numeric_array(game_df, "eval_cp_before")
+    eval_after = _extract_numeric_array(game_df, "eval_cp_after")
+
+    if len(eval_before) == 0 or len(eval_after) == 0:
+        return 0.0
 
     if player_color == 'black':
         eval_before = -eval_before
         eval_after = -eval_after
 
-    diffs = (eval_after - eval_before).abs().dropna()
-
-    if diffs.empty:
+    # Calcular diferencias solo para valores válidos
+    valid_mask = ~np.isnan(eval_before) & ~np.isnan(eval_after)
+    if not np.any(valid_mask):
         return 0.0
 
-    agg_func = np.median if use_median else np.mean
-    result = float(agg_func(diffs))
+    diffs = np.abs(eval_after[valid_mask] - eval_before[valid_mask])
+    method = "median" if use_median else "mean"
+    result = _robust_aggregate(diffs, method, cap_cp)
     agg_name = "median" if use_median else "mean"
     logger.warning(
         f"ACPL calculated using fallback (eval swing) because 'delta_eval' was missing. "
@@ -137,12 +180,13 @@ def wdl_loss(game_df: pd.DataFrame, player_color: str = 'white') -> float:
     wdl_prob_after = eval_to_wdl_prob(eval_after)
 
     # Loss is the difference in win probability
-    wdl_loss_per_move = (wdl_prob_before - wdl_prob_after).dropna()
-
-    if wdl_loss_per_move.empty:
+    # Optimización: operaciones NumPy directas
+    valid_mask = ~(np.isnan(wdl_prob_before) | np.isnan(wdl_prob_after))
+    if not np.any(valid_mask):
         return 0.0
 
-    result = float(wdl_loss_per_move.mean())
+    wdl_loss_per_move = (wdl_prob_before[valid_mask] - wdl_prob_after[valid_mask])
+    result = float(np.mean(wdl_loss_per_move))
     logger.info(f"DEBUG QUALITY: WDL loss calculated for {player_color}: {result:.4f} over {len(wdl_loss_per_move)} moves.")
     return result
 
@@ -297,12 +341,14 @@ def complexity_weighted_match(game_df: pd.DataFrame,
                        if "legal_moves" in game_df.columns
                        else max_moves_cap)
 
-    total_w = weights.sum()
+    total_w = np.sum(weights)
     if total_w == 0 or np.isnan(total_w):
-        # fallback seguro
-        return game_df.is_engine_best.mean()
+        # fallback seguro usando NumPy
+        is_best = _extract_numeric_array(game_df, "is_engine_best")
+        return float(np.mean(is_best)) if len(is_best) > 0 else 0.0
 
-    return np.dot(game_df.is_engine_best, weights) / total_w
+    is_best = _extract_numeric_array(game_df, "is_engine_best")
+    return float(np.dot(is_best, weights) / total_w)
 ###############################################################################
 # 5.  Detección de rachas de precisión ########################################
 ###############################################################################
@@ -372,26 +418,45 @@ def compute_phase_quality(moves_df_list: list[pd.DataFrame]) -> dict:
     vals = pd.to_numeric(combined["delta_eval"], errors="coerce").abs()
     vals = vals.clip(upper=1500)  # cap robusto consistente con acpl()
 
-    tmp = pd.DataFrame({
-        "phase": combined["phase"],
-        "delta": vals,
-    }).dropna()
-
-    # ACPL robusto por fase (mediana)
-    if tmp.empty:
+    # Optimización: usar arrays NumPy directamente
+    if len(vals) == 0:
         phase_acpl = {}
-    else:
-        phase_acpl = tmp.groupby("phase")["delta"].median().to_dict()
-
-    # Tasa de blunders por fase y global
-    is_blunder = tmp["delta"] > BLUNDER_THRESHOLD if not tmp.empty else pd.Series(dtype=bool)
-    if not tmp.empty:
-        tmp2 = tmp.assign(is_blunder=is_blunder)
-        phase_blunders = tmp2.groupby("phase")["is_blunder"].mean().to_dict()
-        overall_blunder_rate = float(is_blunder.mean())
-    else:
         phase_blunders = {}
         overall_blunder_rate = None
+    else:
+        # Crear dict compatible para group_by_phase
+        moves_data = {
+            "phase": combined["phase"],
+            "delta": vals,
+        }
+
+        # Filtrar valores válidos
+        valid_mask = ~np.isnan(vals)
+        if np.any(valid_mask):
+            phases_valid = combined["phase"][valid_mask]
+            vals_valid = vals[valid_mask]
+
+            # Calcular ACPL por fase usando NumPy
+            phase_acpl = {}
+            for phase in ["opening", "middlegame", "endgame"]:
+                phase_mask = phases_valid == phase
+                if np.any(phase_mask):
+                    phase_vals = vals_valid[phase_mask]
+                    phase_acpl[phase] = float(np.median(phase_vals))
+
+            # Calcular blunders por fase
+            is_blunder = vals_valid > BLUNDER_THRESHOLD
+            overall_blunder_rate = float(np.mean(is_blunder))
+
+            phase_blunders = {}
+            for phase in ["opening", "middlegame", "endgame"]:
+                phase_mask = phases_valid == phase
+                if np.any(phase_mask):
+                    phase_blunders[phase] = float(np.mean(is_blunder[phase_mask]))
+        else:
+            phase_acpl = {}
+            phase_blunders = {}
+            overall_blunder_rate = None
 
     return {
         "opening_acpl": float(phase_acpl.get("opening")) if "opening" in phase_acpl else None,
@@ -447,11 +512,22 @@ def phase_blunder_rate_single(game_df: pd.DataFrame) -> dict:
     if "phase" not in game_df.columns or "delta_eval" not in game_df.columns:
         return {}
 
-    is_blunder = game_df["delta_eval"].abs() > BLUNDER
-    temp_df = game_df.assign(is_blunder=is_blunder)
+    # Optimización: usar NumPy arrays directamente
+    delta_eval = _extract_numeric_array(game_df, "delta_eval")
+    phases = _extract_numeric_array(game_df, "phase")
 
-    phase_rates = temp_df.groupby("phase")["is_blunder"].mean().to_dict()
-    overall_blunder_rate = float(is_blunder.mean())
+    if len(delta_eval) == 0 or len(phases) == 0:
+        return {}
+
+    is_blunder = np.abs(delta_eval) > BLUNDER
+    overall_blunder_rate = float(np.mean(is_blunder))
+
+    # Calcular por fases usando loops NumPy
+    phase_rates = {}
+    for phase in ["opening", "middlegame", "endgame"]:
+        phase_mask = phases == phase
+        if np.any(phase_mask):
+            phase_rates[phase] = float(np.mean(is_blunder[phase_mask]))
 
     return {
         "opening_blunder_rate":    float(phase_rates.get("opening", np.nan)),

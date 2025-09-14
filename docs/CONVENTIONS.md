@@ -78,16 +78,16 @@ Descripción breve del contenido y propósito del documento.
 ## 🎯 Objetivo
 Qué problema resuelve este documento.
 
-## 📋 Prerequisitos
+## Prerequisitos
 Conocimientos o setup requerido.
 
-## 🚀 Contenido Principal
+## Contenido Principal
 Desarrollo del tema con subsecciones.
 
-## 📚 Referencias
+## Referencias
 Enlaces a documentación relacionada.
 
-## 🔄 Historial de Cambios
+## Historial de Cambios
 - YYYY-MM-DD: Descripción del cambio
 ```
 

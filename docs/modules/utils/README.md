@@ -6,7 +6,7 @@
 
 Documentación completa de las utilidades, helpers y middleware que proporcionan funcionalidad de soporte al sistema ChessPlayerAnalyzer.
 
-## <¯ Objetivo
+## Objetivo
 
 Las utilidades proporcionan:
 - **Conexión de base de datos** con pooling y reintentos
@@ -17,7 +17,7 @@ Las utilidades proporcionan:
 - **Sanitización de datos** y validación
 - **Cache** y utilidades de desarrollo
 
-## =à Módulos Principales
+## Módulos Principales
 
 ### 1. **utils.py** - Utilidades Core
 Funciones principales para integración externa y comunicaciones.
@@ -206,7 +206,7 @@ clean_data = clean_json_numbers(data)
 # }
 ```
 
-## = Middleware de Seguridad
+## Middleware de Seguridad
 
 ### 4. **rate_limiter.py** - Rate Limiting
 Middleware de limitación de peticiones con algoritmo sliding window.
@@ -294,7 +294,7 @@ X-Trace-Id: abc123-def456-789ghi
 traceparent: 00-abc123def456789ghi-def456789ghiabc-01
 ```
 
-## =' Utilidades de Desarrollo
+## Utilidades de Desarrollo
 
 ### Redis Client
 ```python
@@ -328,7 +328,7 @@ def bulk_insert_or_update(session, model, data: List[dict]) -> None:
     """Efficient bulk operations with conflict resolution"""
 ```
 
-## = Configuración y Variables de Entorno
+## Configuración y Variables de Entorno
 
 ### Redis/Cache
 ```bash
@@ -360,7 +360,7 @@ USER_AGENT="chess-analyzer/0.2"
 SYZYGY_PATH="/data/syzygy"        # Tablebase files (opcional)
 ```
 
-## =Ê Métricas y Monitoreo
+## Métricas y Monitoreo
 
 ### Request Metrics
 - **Response times** por endpoint
@@ -378,8 +378,7 @@ SYZYGY_PATH="/data/syzygy"        # Tablebase files (opcional)
 - **TTL effectiveness**
 - **Memory usage** Redis
 
-## =
- Debugging y Logging
+## Debugging y Logging
 
 ### Log Levels
 ```python
@@ -420,14 +419,14 @@ logger.error("Database connection failed", extra={
 })
 ```
 
-## =Ú Referencias
+## Referencias
 
 - [Utils Core](../../app/utils.py) - Utilidades principales
 - [Database Config](../../app/database.py) - Configuración BD
 - [Rate Limiter](../../app/middleware/rate_limiter.py) - Middleware seguridad
 - [Sanitization](../../app/utils_sanitize.py) - Limpieza de datos
 
-## = Historial de Cambios
+## Historial de Cambios
 
 - **2025-09-13:** Documentación inicial de utilidades y helpers
 - **2025-09-13:** Middleware de seguridad y configuraciones

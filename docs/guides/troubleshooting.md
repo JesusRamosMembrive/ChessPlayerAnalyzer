@@ -6,7 +6,7 @@
 
 Guía completa de resolución de problemas basada en issues reales encontrados durante el desarrollo, con soluciones probadas y procedimientos de debugging.
 
-## <¯ Categorías de Problemas
+## Categorías de Problemas
 
 Este documento cubre problemas comunes organizados por categorías:
 
@@ -18,7 +18,7 @@ Este documento cubre problemas comunes organizados por categorías:
 6. **Análisis y Cálculos** - ACPL, métricas, Stockfish
 7. **Performance** - Memory leaks, slow queries, timeouts
 
-## =3 Problemas de Docker
+## Problemas de Docker
 
 ### Error: Port Already in Use
 ```bash
@@ -82,7 +82,7 @@ docker network prune
 docker-compose --profile dev up --build
 ```
 
-## =Ä Problemas de Base de Datos
+## Problemas de Base de Datos
 
 ### Error: Database Connection Failed
 ```bash
@@ -157,7 +157,7 @@ CREATE INDEX CONCURRENTLY idx_game_created_at ON game(created_at);
 ANALYZE; -- Update statistics
 ```
 
-## = Problemas de Celery
+## Problemas de Celery
 
 ### Error: Worker Not Processing Tasks
 ```bash
@@ -246,7 +246,7 @@ grep -r "queue=" app/
 docker-compose restart celery celery-torch
 ```
 
-## = Problemas de API/Backend
+## Problemas de API/Backend
 
 ### Error: FastAPI Import Errors
 ```bash
@@ -382,7 +382,7 @@ app.add_middleware(
 )
 ```
 
-## =Ê Problemas de Análisis
+## Problemas de Análisis
 
 ### Error: ACPL Valores Absurdos
 Este es un problema conocido documentado en `docs/guides/troubleshooting/ERRORES_Y_SOLUCIONES.md`:
@@ -443,7 +443,7 @@ python test/run_local_analysis.py \
     --suppress-warnings
 ```
 
-## ¡ Problemas de Performance
+## Problemas de Performance
 
 ### Error: Memory Leaks
 ```bash
@@ -595,7 +595,7 @@ docker-compose exec redis redis-cli ping
 docker-compose exec celery celery -A app.celery_app inspect ping
 ```
 
-## =Ë Checklist de Troubleshooting
+## Checklist de Troubleshooting
 
 ### Problema General
 1.  Verificar logs: `docker-compose logs [service]`
@@ -618,7 +618,7 @@ docker-compose exec celery celery -A app.celery_app inspect ping
 4.  Engine test: `--engine-enable --engine-path`
 5.  Review fixes: `docs/guides/troubleshooting/ERRORES_Y_SOLUCIONES.md`
 
-## =Ú Referencias
+## Referencias
 
 - [Development Guide](development.md) - Setup y comandos básicos
 - [Local Testing](troubleshooting/LOCAL_TESTING.md) - Testing sin Docker
@@ -626,7 +626,7 @@ docker-compose exec celery celery -A app.celery_app inspect ping
 - [Error Analysis](troubleshooting/ERRORES_Y_SOLUCIONES.md) - Problemas de cálculo
 - [Architecture](../architecture/overview.md) - Diseño del sistema
 
-## = Historial de Cambios
+## Historial de Cambios
 
 - **2025-09-13:** Documentación inicial de troubleshooting
 - **2025-09-13:** Problemas comunes basados en issues reales

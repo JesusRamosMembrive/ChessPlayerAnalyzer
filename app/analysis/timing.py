@@ -35,12 +35,12 @@ from app.utils_debugging.tracer import trace
 @trace
 def time_stats(game_df: pd.DataFrame) -> Tuple[float, float, float]:
     """Devuelve media, desviación típica y coef. de variación del tiempo por jugada."""
-    times = pd.to_numeric(game_df.get("move_time", pd.Series(dtype=float)), errors="coerce")
-    times = times[np.isfinite(times)]
-    if times.empty:
+    times_series = pd.to_numeric(game_df.get("move_time", pd.Series(dtype=float)), errors="coerce")
+    times = times_series[np.isfinite(times_series)].values  # Extract NumPy array
+    if len(times) == 0:
         return np.nan, np.nan, np.nan
-    mean = float(times.mean())
-    std = float(times.std(ddof=1)) if len(times) > 1 else 0.0
+    mean = float(np.mean(times))
+    std = float(np.std(times, ddof=1)) if len(times) > 1 else 0.0
     cv = (std / mean) if mean else np.nan
     return mean, std, cv
 
@@ -66,9 +66,9 @@ def time_complexity_correlation(game_df: pd.DataFrame,
     if "move_time" not in game_df or "legal_moves" not in game_df:
         return 0.0
 
-    mt = pd.to_numeric(game_df["move_time"], errors="coerce")
-    lm = pd.to_numeric(game_df["legal_moves"], errors="coerce")
-    mask = mt.notna() & lm.notna() & np.isfinite(mt) & np.isfinite(lm)
+    mt = pd.to_numeric(game_df["move_time"], errors="coerce").values
+    lm = pd.to_numeric(game_df["legal_moves"], errors="coerce").values
+    mask = ~np.isnan(mt) & ~np.isnan(lm) & np.isfinite(mt) & np.isfinite(lm)
     if not mask.any():
         return 0.0
 
@@ -76,7 +76,7 @@ def time_complexity_correlation(game_df: pd.DataFrame,
     lm = lm[mask]
 
     if method == "spearman":
-        if mt.std(ddof=0) == 0 or lm.std(ddof=0) == 0:
+        if np.std(mt, ddof=0) == 0 or np.std(lm, ddof=0) == 0:
             return 0.0
         try:
             corr, _ = spearmanr(mt, lm)
@@ -85,7 +85,10 @@ def time_complexity_correlation(game_df: pd.DataFrame,
             return 0.0
 
     try:
-        corr = mt.corr(lm, method=method)
+        # For non-spearman methods, convert back to pandas for .corr()
+        mt_series = pd.Series(mt)
+        lm_series = pd.Series(lm)
+        corr = mt_series.corr(lm_series, method=method)
         return float(corr) if corr is not None and np.isfinite(corr) else 0.0
     except Exception:
         return 0.0
@@ -145,27 +148,28 @@ def clutch_accuracy(game_df: pd.DataFrame,
     non_mask = ~clutch_mask
 
     if "delta_eval" in game_df.columns:
-        d = pd.to_numeric(game_df["delta_eval"], errors="coerce").abs()
-        clutch = d[clutch_mask].mean(skipna=True) if clutch_mask.any() else np.nan
-        normal = d[non_mask].mean(skipna=True)    if non_mask.any()    else np.nan
+        d = pd.to_numeric(game_df["delta_eval"], errors="coerce").abs().values
+        clutch = np.nanmean(d[clutch_mask]) if clutch_mask.any() else np.nan
+        normal = np.nanmean(d[non_mask]) if non_mask.any() else np.nan
         diff = (normal - clutch) if np.isfinite(normal) and np.isfinite(clutch) else 0.0
         logger.info(f"DEBUG TIMING: clutch_accuracy using delta_eval: normal={normal}, clutch={clutch}, diff={diff}")
         return float(diff)
 
     if {'eval_cp_before', 'eval_cp_after'} <= set(game_df.columns):
-        before = pd.to_numeric(game_df["eval_cp_before"], errors="coerce")
-        after  = pd.to_numeric(game_df["eval_cp_after"], errors="coerce")
-        diffs = (after - before).abs()
-        clutch = diffs[clutch_mask].mean(skipna=True) if clutch_mask.any() else np.nan
-        normal = diffs[non_mask].mean(skipna=True)    if non_mask.any()    else np.nan
+        before = pd.to_numeric(game_df["eval_cp_before"], errors="coerce").values
+        after  = pd.to_numeric(game_df["eval_cp_after"], errors="coerce").values
+        diffs = np.abs(after - before)
+        clutch = np.nanmean(diffs[clutch_mask]) if clutch_mask.any() else np.nan
+        normal = np.nanmean(diffs[non_mask]) if non_mask.any() else np.nan
         diff = (normal - clutch) if np.isfinite(normal) and np.isfinite(clutch) else 0.0
         logger.info(f"DEBUG TIMING: clutch_accuracy using eval swing: normal={normal}, clutch={clutch}, diff={diff}")
         return float(diff)
 
     if "is_engine_best" in game_df.columns:
-        clutch = game_df["is_engine_best"][clutch_mask].mean() if clutch_mask.any() else np.nan
-        normal = game_df["is_engine_best"][non_mask].mean()    if non_mask.any()    else np.nan
-        if pd.notna(clutch) and pd.notna(normal):
+        engine_best = game_df["is_engine_best"].values.astype(float)
+        clutch = np.nanmean(engine_best[clutch_mask]) if clutch_mask.any() else np.nan
+        normal = np.nanmean(engine_best[non_mask]) if non_mask.any() else np.nan
+        if not (np.isnan(clutch) or np.isnan(normal)):
             diff = float(clutch - normal)
             logger.info(f"DEBUG TIMING: clutch_accuracy using is_engine_best: normal={normal}, clutch={clutch}, diff={diff}")
             return diff
@@ -226,30 +230,30 @@ def aggregate_time_features(game_df: pd.DataFrame) -> dict:
         df = df.assign(legal_moves=0)
         logger.info("DEBUG TIMING: Added default legal_moves column")
 
-    mt = pd.to_numeric(df["move_time"], errors="coerce")
-    mean_t = float(mt.mean(skipna=True))
-    var_t  = float(mt.var(skipna=True))
-    valid_time = int(mt.notna().sum())
+    mt = pd.to_numeric(df["move_time"], errors="coerce").values
+    mean_t = float(np.nanmean(mt))
+    var_t  = float(np.nanvar(mt, ddof=1))
+    valid_time = int(np.sum(~np.isnan(mt)))
     logger.info(f"DEBUG TIMING: Mean move time: {mean_t}, Variance: {var_t}, valid_time_rows={valid_time}")
 
     try:
-        q10 = float(mt.quantile(0.10, interpolation="linear"))
-        q50 = float(mt.quantile(0.50, interpolation="linear"))
-        q90 = float(mt.quantile(0.90, interpolation="linear"))
+        q10 = float(np.nanquantile(mt, 0.10))
+        q50 = float(np.nanquantile(mt, 0.50))
+        q90 = float(np.nanquantile(mt, 0.90))
         logger.info(f"DEBUG TIMING: move_time quantiles p10={q10}, p50={q50}, p90={q90}")
     except Exception:
         logger.info("DEBUG TIMING: move_time quantiles unavailable")
 
     if "delta_eval" in df.columns:
-        de = pd.to_numeric(df["delta_eval"], errors="coerce").abs()
-        if de.notna().any():
+        de = np.abs(pd.to_numeric(df["delta_eval"], errors="coerce").values)
+        if np.any(~np.isnan(de)):
             try:
-                de_q10 = float(de.quantile(0.10, interpolation="linear"))
-                de_q50 = float(de.quantile(0.50, interpolation="linear"))
-                de_q90 = float(de.quantile(0.90, interpolation="linear"))
+                de_q10 = float(np.nanquantile(de, 0.10))
+                de_q50 = float(np.nanquantile(de, 0.50))
+                de_q90 = float(np.nanquantile(de, 0.90))
                 logger.info(f"DEBUG TIMING: delta_eval(abs) quantiles p10={de_q10}, p50={de_q50}, p90={de_q90}")
                 CAP = 1500
-                extremes = int((de > CAP).sum())
+                extremes = int(np.sum(de > CAP))
                 logger.info(f"DEBUG TIMING SANITY: suspected mate-driven extremes (> {CAP}cp): {extremes}")
             except Exception:
                 logger.info("DEBUG TIMING: delta_eval quantiles unavailable")
@@ -257,8 +261,8 @@ def aggregate_time_features(game_df: pd.DataFrame) -> dict:
     corr = time_complexity_correlation(df)
     logger.info(f"DEBUG TIMING: Time-complexity correlation: {corr}")
 
-    lm = pd.to_numeric(df["legal_moves"], errors="coerce")
-    valid_corr = int((mt.notna() & lm.notna()).sum())
+    lm = pd.to_numeric(df["legal_moves"], errors="coerce").values
+    valid_corr = int(np.sum(~np.isnan(mt) & ~np.isnan(lm)))
     total_rows = int(df.shape[0]) if hasattr(df, "shape") else len(df)
     corr_pct = 100.0 * valid_corr / max(total_rows, 1)
     logger.info(f"DEBUG TIMING SANITY: Valid rows for correlation: {valid_corr}/{total_rows} ({corr_pct:.1f}%)")
@@ -294,10 +298,10 @@ def aggregate_time_management(moves_dfs):
     if not moves_dfs:
         return {}
 
-    mt = np.concatenate([df["move_time"] for df in moves_dfs if "move_time" in df])
-    mean_t  = float(mt.mean())
-    var_t   = float(mt.var())
-    spikes  = (mt > 5 * mean_t).sum()
+    mt = np.concatenate([df["move_time"].values for df in moves_dfs if "move_time" in df])
+    mean_t  = float(np.mean(mt))
+    var_t   = float(np.var(mt, ddof=1))
+    spikes  = int(np.sum(mt > 5 * mean_t))
 
     uniformity = 1 - (np.std(mt) / mean_t) if mean_t else 0
 
@@ -305,13 +309,14 @@ def aggregate_time_management(moves_dfs):
         "mean_move_time": mean_t,
         "time_variance": var_t,
         "uniformity_score": round(uniformity, 3),
-        "lag_spike_count": int(spikes),
+        "lag_spike_count": spikes,
     }
 @trace
 def aggregate_time_complexity_corr(games_df: pd.DataFrame) -> dict:
     if games_df.empty or "time_complexity_corr" not in games_df:
         return {}
-    mean_corr = games_df["time_complexity_corr"].mean(skipna=True)
+    corr_values = games_df["time_complexity_corr"].values
+    mean_corr = np.nanmean(corr_values)
     return {"time_complexity_corr": float(mean_corr)}
 # --------------------------------------------------------------------------- #
 # 7.  Ejemplo mínimo (ejecución directa)                                      #
