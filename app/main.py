@@ -661,14 +661,15 @@ def player_metrics(username: str, session: Session = Depends(get_session)):
             return {k: clean_nan_values(v) for k, v in value.items()}
         return value
 
-    risk_data = None
-    if obj.risk_score > 0 or obj.risk_factors:
-        risk_data = {
-            "risk_score": obj.risk_score,
-            "risk_factors": obj.risk_factors,
-            "confidence_level": obj.confidence_level,
-            "suspicious_games_count": len(obj.suspicious_games_ids) if obj.suspicious_games_ids else 0
-        }
+    # Always include risk data for API compatibility
+    risk_data = {
+        "risk_score": obj.risk_score,
+        "risk_factors": obj.risk_factors or {},
+        "confidence_level": obj.confidence_level,
+        "suspicious_games_count": (
+            len(obj.suspicious_games_ids) if obj.suspicious_games_ids else 0
+        ),
+    }
 
     response_data = obj.dict()
     response_data["risk"] = risk_data
