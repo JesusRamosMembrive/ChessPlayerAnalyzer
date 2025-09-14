@@ -1,0 +1,1521 @@
+
+<!DOCTYPE html>
+
+<html class="no-js" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="Complete documentation for ChessPlayerAnalyzer - Advanced chess game analysis system" name="description"/>
+<meta content="ChessPlayerAnalyzer Team" name="author"/>
+<link href="https://your-domain.github.io/ChessPlayerAnalyzer/algorithms/cross-game-correlation/" rel="canonical"/>
+<link href="../advanced-statistical-models/" rel="prev"/>
+<link href="../enhanced-timing-patterns/" rel="next"/>
+<link href="../../assets/images/favicon.png" rel="icon"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.6.19" name="generator"/>
+<title>Cross-Game Correlation - ChessPlayerAnalyzer Documentation</title>
+<link href="../../assets/stylesheets/main.7e37652d.min.css" rel="stylesheet"/>
+<link href="../../assets/stylesheets/palette.06af60db.min.css" rel="stylesheet"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
+<style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+<link href="../../stylesheets/extra.css" rel="stylesheet"/>
+<script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+</head>
+<body data-md-color-accent="deep-orange" data-md-color-primary="blue-grey" data-md-color-scheme="default" dir="ltr">
+<input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
+<input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
+<label class="md-overlay" for="__drawer"></label>
+<div data-md-component="skip">
+<a class="md-skip" href="#cross-game-correlation-plan-de-implementacion">
+          Skip to content
+        </a>
+</div>
+<div data-md-component="announce">
+</div>
+<div data-md-color-scheme="default" data-md-component="outdated" hidden="">
+</div>
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+<nav aria-label="Header" class="md-header__inner md-grid">
+<a aria-label="ChessPlayerAnalyzer Documentation" class="md-header__button md-logo" data-md-component="logo" href="../.." title="ChessPlayerAnalyzer Documentation">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 22H5v-2h14zm-2-12c-1.42 0-2.74.77-3.45 2H13V7h3V5h-3V2h-2v3H8v2h3v5h-.55C9.35 10.09 6.9 9.43 5 10.54A4.013 4.013 0 0 0 3.5 16c.74 1.24 2.07 2 3.5 2h10a4 4 0 0 0 4-4 4 4 0 0 0-4-4"></path></svg>
+</a>
+<label class="md-header__button md-icon" for="__drawer">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+</label>
+<div class="md-header__title" data-md-component="header-title">
+<div class="md-header__ellipsis">
+<div class="md-header__topic">
+<span class="md-ellipsis">
+            ChessPlayerAnalyzer Documentation
+          </span>
+</div>
+<div class="md-header__topic" data-md-component="header-topic">
+<span class="md-ellipsis">
+            
+              Cross-Game Correlation
+            
+          </span>
+</div>
+</div>
+</div>
+<form class="md-header__option" data-md-component="palette">
+<input aria-label="Switch to dark mode" class="md-option" data-md-color-accent="deep-orange" data-md-color-media="(prefers-color-scheme: light)" data-md-color-primary="blue-grey" data-md-color-scheme="default" id="__palette_0" name="__palette" type="radio"/>
+<label class="md-header__button md-icon" for="__palette_1" hidden="" title="Switch to dark mode">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+</label>
+<input aria-label="Switch to light mode" class="md-option" data-md-color-accent="deep-orange" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-primary="blue-grey" data-md-color-scheme="slate" id="__palette_1" name="__palette" type="radio"/>
+<label class="md-header__button md-icon" for="__palette_0" hidden="" title="Switch to light mode">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+</label>
+</form>
+<script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+<label class="md-header__button md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+</label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input aria-label="Search" autocapitalize="off" autocomplete="off" autocorrect="off" class="md-search__input" data-md-component="search-query" name="query" placeholder="Search" required="" spellcheck="false" type="text"/>
+<label class="md-search__icon md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+</label>
+<nav aria-label="Search" class="md-search__options">
+<button aria-label="Clear" class="md-search__icon md-icon" tabindex="-1" title="Clear" type="reset">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+</button>
+</nav>
+<div class="md-search__suggest" data-md-component="search-suggest"></div>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix="" tabindex="0">
+<div class="md-search-result" data-md-component="search-result">
+<div class="md-search-result__meta">
+            Initializing search
+          </div>
+<ol class="md-search-result__list" role="presentation"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="md-header__source">
+<a class="md-source" data-md-component="source" href="https://github.com/your-username/ChessPlayerAnalyzer" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2" fill="currentColor"></path></svg>
+</div>
+<div class="md-source__repository">
+    ChessPlayerAnalyzer
+  </div>
+</a>
+</div>
+</nav>
+<nav aria-label="Tabs" class="md-tabs" data-md-component="tabs">
+<div class="md-grid">
+<ul class="md-tabs__list">
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../..">
+          
+  
+  
+    
+  
+  Home
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../guides/setup/README-original/">
+          
+  
+  
+    
+  
+  Getting Started
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../architecture/overview/">
+          
+  
+  
+    
+  
+  Architecture
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../api/endpoints/">
+          
+  
+  
+    
+  
+  API Reference
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../modules/analysis/">
+          
+  
+  
+    
+  
+  Analysis Modules
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../modules/utils/">
+          
+  
+  
+    
+  
+  Core Modules
+
+        </a>
+</li>
+<li class="md-tabs__item md-tabs__item--active">
+<a class="md-tabs__link" href="../">
+          
+  
+  
+    
+  
+  Algorithms
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../guides/deployment/">
+          
+  
+  
+    
+  
+  Operations
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../legacy/migration-guide/">
+          
+  
+  
+    
+  
+  Legacy
+
+        </a>
+</li>
+</ul>
+</div>
+</nav>
+</header>
+<div class="md-container" data-md-component="container">
+<main class="md-main" data-md-component="main">
+<div class="md-main__inner md-grid">
+<div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Navigation" class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" data-md-level="0">
+<label class="md-nav__title" for="__drawer">
+<a aria-label="ChessPlayerAnalyzer Documentation" class="md-nav__button md-logo" data-md-component="logo" href="../.." title="ChessPlayerAnalyzer Documentation">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 22H5v-2h14zm-2-12c-1.42 0-2.74.77-3.45 2H13V7h3V5h-3V2h-2v3H8v2h3v5h-.55C9.35 10.09 6.9 9.43 5 10.54A4.013 4.013 0 0 0 3.5 16c.74 1.24 2.07 2 3.5 2h10a4 4 0 0 0 4-4 4 4 0 0 0-4-4"></path></svg>
+</a>
+    ChessPlayerAnalyzer Documentation
+  </label>
+<div class="md-nav__source">
+<a class="md-source" data-md-component="source" href="https://github.com/your-username/ChessPlayerAnalyzer" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2" fill="currentColor"></path></svg>
+</div>
+<div class="md-source__repository">
+    ChessPlayerAnalyzer
+  </div>
+</a>
+</div>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../..">
+<span class="md-ellipsis">
+    Home
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_1_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_1">
+<span class="md-nav__icon md-icon"></span>
+            Home
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../plan_de_accion/">
+<span class="md-ellipsis">
+    Plan de Acción
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+<span class="md-ellipsis">
+    Getting Started
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_2_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_2">
+<span class="md-nav__icon md-icon"></span>
+            Getting Started
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../guides/setup/README-original/">
+<span class="md-ellipsis">
+    Quick Start
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../guides/development/">
+<span class="md-ellipsis">
+    Development Setup
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../guides/setup/CLAUDE/">
+<span class="md-ellipsis">
+    Claude Code Setup
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../guides/setup/docker-setup/">
+<span class="md-ellipsis">
+    Docker Configuration
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../guides/SYZYGY_SETUP/">
+<span class="md-ellipsis">
+    Syzygy Tablebases
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_3" type="checkbox"/>
+<label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+<span class="md-ellipsis">
+    Architecture
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_3_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_3">
+<span class="md-nav__icon md-icon"></span>
+            Architecture
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../architecture/overview/">
+<span class="md-ellipsis">
+    System Overview
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../architecture/database-schema/">
+<span class="md-ellipsis">
+    Database Schema
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../architecture/api-design/">
+<span class="md-ellipsis">
+    API Design
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../architecture/celery-workflow/">
+<span class="md-ellipsis">
+    Celery Workflow
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_4" type="checkbox"/>
+<label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+<span class="md-ellipsis">
+    API Reference
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_4_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_4">
+<span class="md-nav__icon md-icon"></span>
+            API Reference
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../api/endpoints/">
+<span class="md-ellipsis">
+    Endpoints
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../api/schemas/">
+<span class="md-ellipsis">
+    Schemas
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../api/examples/">
+<span class="md-ellipsis">
+    Examples
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_5" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../../modules/analysis/">
+<span class="md-ellipsis">
+    Analysis Modules
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_5_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_5">
+<span class="md-nav__icon md-icon"></span>
+            Analysis Modules
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/analysis/quality.md">
+<span class="md-ellipsis">
+    Quality Analysis
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/analysis/timing.md">
+<span class="md-ellipsis">
+    Timing Analysis
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/analysis/openings.md">
+<span class="md-ellipsis">
+    Opening Analysis
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/analysis/endgame.md">
+<span class="md-ellipsis">
+    Endgame Analysis
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/analysis/anomaly.md">
+<span class="md-ellipsis">
+    Anomaly Detection
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/analysis/bayesian.md">
+<span class="md-ellipsis">
+    Bayesian Models
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/analysis/longitudinal.md">
+<span class="md-ellipsis">
+    Longitudinal Analysis
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/analysis/clustering.md">
+<span class="md-ellipsis">
+    Clustering
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/analysis/ml-classifier.md">
+<span class="md-ellipsis">
+    ML Classifier
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_6" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../../modules/utils/">
+<span class="md-ellipsis">
+    Core Modules
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_6_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_6">
+<span class="md-nav__icon md-icon"></span>
+            Core Modules
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/configuration/">
+<span class="md-ellipsis">
+    Configuration
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/ml/">
+<span class="md-ellipsis">
+    ML Pipeline
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/database/README.md">
+<span class="md-ellipsis">
+    Database Layer
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_7" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../">
+<span class="md-ellipsis">
+    Algorithms
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="true" aria-labelledby="__nav_7_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_7">
+<span class="md-nav__icon md-icon"></span>
+            Algorithms
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../metrics/">
+<span class="md-ellipsis">
+    Metrics Reference
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../statistical-models/">
+<span class="md-ellipsis">
+    Statistical Models
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../performance/">
+<span class="md-ellipsis">
+    Performance Analysis
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../performance-optimizations/">
+<span class="md-ellipsis">
+    Performance Optimizations
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../external-integrations/">
+<span class="md-ellipsis">
+    External Integrations
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../security-best-practices/">
+<span class="md-ellipsis">
+    Security &amp; Best Practices
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../advanced-statistical-models/">
+<span class="md-ellipsis">
+    Advanced Models
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--active">
+<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
+<label class="md-nav__link md-nav__link--active" for="__toc">
+<span class="md-ellipsis">
+    Cross-Game Correlation
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<a class="md-nav__link md-nav__link--active" href="./">
+<span class="md-ellipsis">
+    Cross-Game Correlation
+    
+  </span>
+</a>
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#objetivo">
+<span class="md-ellipsis">
+      Objetivo
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#arquitectura-actual">
+<span class="md-ellipsis">
+      Arquitectura Actual
+    </span>
+</a>
+<nav aria-label="Arquitectura Actual" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#componentes-existentes">
+<span class="md-ellipsis">
+      Componentes Existentes
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#codigo-base-relevante">
+<span class="md-ellipsis">
+      Código Base Relevante
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#nuevas-funcionalidades">
+<span class="md-ellipsis">
+      Nuevas Funcionalidades
+    </span>
+</a>
+<nav aria-label="Nuevas Funcionalidades" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#1-analisis-de-consistencia-temporal">
+<span class="md-ellipsis">
+      1. Análisis de Consistencia Temporal
+    </span>
+</a>
+<nav aria-label="1. Análisis de Consistencia Temporal" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#11-patrones-de-rendimiento-over-time">
+<span class="md-ellipsis">
+      1.1 Patrones de Rendimiento Over Time
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#12-correlacion-con-factores-temporales">
+<span class="md-ellipsis">
+      1.2 Correlación con Factores Temporales
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#2-analisis-por-control-de-tiempo">
+<span class="md-ellipsis">
+      2. Análisis por Control de Tiempo
+    </span>
+</a>
+<nav aria-label="2. Análisis por Control de Tiempo" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#21-rendimiento-across-time-controls">
+<span class="md-ellipsis">
+      2.1 Rendimiento Across Time Controls
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#22-correlacion-de-timing-patterns">
+<span class="md-ellipsis">
+      2.2 Correlación de Timing Patterns
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#3-analisis-por-tipo-de-oponente">
+<span class="md-ellipsis">
+      3. Análisis por Tipo de Oponente
+    </span>
+</a>
+<nav aria-label="3. Análisis por Tipo de Oponente" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#31-rendimiento-vs-rating-del-oponente">
+<span class="md-ellipsis">
+      3.1 Rendimiento vs Rating del Oponente
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#32-patrones-de-juego-vs-estilos-de-oponente">
+<span class="md-ellipsis">
+      3.2 Patrones de Juego vs Estilos de Oponente
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#4-analisis-de-fases-de-juego">
+<span class="md-ellipsis">
+      4. Análisis de Fases de Juego
+    </span>
+</a>
+<nav aria-label="4. Análisis de Fases de Juego" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#41-consistencia-por-fase-de-partida">
+<span class="md-ellipsis">
+      4.1 Consistencia por Fase de Partida
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#42-correlacion-de-errores-por-fase">
+<span class="md-ellipsis">
+      4.2 Correlación de Errores por Fase
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#5-deteccion-de-anomalias-cross-game">
+<span class="md-ellipsis">
+      5. Detección de Anomalías Cross-Game
+    </span>
+</a>
+<nav aria-label="5. Detección de Anomalías Cross-Game" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#51-identificacion-de-outlier-games">
+<span class="md-ellipsis">
+      5.1 Identificación de Outlier Games
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#52-analisis-de-streaks-y-patterns">
+<span class="md-ellipsis">
+      5.2 Análisis de Streaks y Patterns
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#migraciones-de-base-de-datos">
+<span class="md-ellipsis">
+      Migraciones de Base de Datos
+    </span>
+</a>
+<nav aria-label="Migraciones de Base de Datos" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#extension-de-playermetrics">
+<span class="md-ellipsis">
+      Extensión de PlayerMetrics
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#nueva-tabla-gamecorrelations">
+<span class="md-ellipsis">
+      Nueva Tabla: GameCorrelations
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#nueva-tabla-playertrends">
+<span class="md-ellipsis">
+      Nueva Tabla: PlayerTrends
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#nueva-tabla-crossgamepatterns">
+<span class="md-ellipsis">
+      Nueva Tabla: CrossGamePatterns
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#nuevos-celery-tasks">
+<span class="md-ellipsis">
+      Nuevos Celery Tasks
+    </span>
+</a>
+<nav aria-label="Nuevos Celery Tasks" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#compute_cross_game_correlations">
+<span class="md-ellipsis">
+      compute_cross_game_correlations
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#analyze_player_trends">
+<span class="md-ellipsis">
+      analyze_player_trends
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#detect_behavioral_patterns">
+<span class="md-ellipsis">
+      detect_behavioral_patterns
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#update_player_profile">
+<span class="md-ellipsis">
+      update_player_profile
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#api-extensions">
+<span class="md-ellipsis">
+      API Extensions
+    </span>
+</a>
+<nav aria-label="API Extensions" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#nuevos-endpoints">
+<span class="md-ellipsis">
+      Nuevos Endpoints
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#machine-learning-integration">
+<span class="md-ellipsis">
+      Machine Learning Integration
+    </span>
+</a>
+<nav aria-label="Machine Learning Integration" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#pattern-recognition-models">
+<span class="md-ellipsis">
+      Pattern Recognition Models
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#anomaly-detection-models">
+<span class="md-ellipsis">
+      Anomaly Detection Models
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#testing-strategy">
+<span class="md-ellipsis">
+      Testing Strategy
+    </span>
+</a>
+<nav aria-label="Testing Strategy" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#statistical-validation">
+<span class="md-ellipsis">
+      Statistical Validation
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#performance-testing">
+<span class="md-ellipsis">
+      Performance Testing
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#consideraciones-de-implementacion">
+<span class="md-ellipsis">
+      Consideraciones de Implementación
+    </span>
+</a>
+<nav aria-label="Consideraciones de Implementación" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#performance-optimization">
+<span class="md-ellipsis">
+      Performance Optimization
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#statistical-rigor">
+<span class="md-ellipsis">
+      Statistical Rigor
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#privacy-y-ethics">
+<span class="md-ellipsis">
+      Privacy y Ethics
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#cronograma-de-implementacion">
+<span class="md-ellipsis">
+      Cronograma de Implementación
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#dependencias">
+<span class="md-ellipsis">
+      Dependencias
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../enhanced-timing-patterns/">
+<span class="md-ellipsis">
+    Timing Patterns
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../positional-pattern-recognition/">
+<span class="md-ellipsis">
+    Pattern Recognition
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_8" type="checkbox"/>
+<label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+<span class="md-ellipsis">
+    Operations
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_8_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_8">
+<span class="md-nav__icon md-icon"></span>
+            Operations
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../guides/deployment/">
+<span class="md-ellipsis">
+    Deployment Guide
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../guides/testing/">
+<span class="md-ellipsis">
+    Testing &amp; CI/CD
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../guides/troubleshooting/">
+<span class="md-ellipsis">
+    Troubleshooting
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../guides/PERFORMANCE_ANALYSIS/">
+<span class="md-ellipsis">
+    Performance Analysis
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../guides/analysis-enhancement-plan/">
+<span class="md-ellipsis">
+    Enhancement Plan
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_9" type="checkbox"/>
+<label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
+<span class="md-ellipsis">
+    Legacy
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_9_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_9">
+<span class="md-nav__icon md-icon"></span>
+            Legacy
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../legacy/migration-guide/">
+<span class="md-ellipsis">
+    Migration Guide
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../legacy/old/">
+<span class="md-ellipsis">
+    Old Documentation
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-content" data-md-component="content">
+<article class="md-content__inner md-typeset">
+<h1 id="cross-game-correlation-plan-de-implementacion">Cross-Game Correlation - Plan de Implementación</h1>
+<h2 id="objetivo">Objetivo</h2>
+<p>Extender el framework actual de PlayerMetrics para detectar patrones de consistencia across diferentes controles de tiempo, oponentes, y fases de juego, proporcionando análisis longitudinal del comportamiento del jugador.</p>
+<h2 id="arquitectura-actual">Arquitectura Actual</h2>
+<h3 id="componentes-existentes">Componentes Existentes</h3>
+<ul>
+<li><strong>PlayerMetrics</strong>: username, game_count, opening_entropy, most_played, low_entropy</li>
+<li><strong>Game Model</strong>: eco_code, opening_key, move_times</li>
+<li><strong>GameMetrics</strong>: pct_top1, pct_top3, acl, suspicious, timing metrics</li>
+<li><strong>Cross-Game Analysis</strong>: compute_player_metrics task con opening entropy</li>
+</ul>
+<h3 id="codigo-base-relevante">Código Base Relevante</h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a href="#__codelineno-0-1" id="__codelineno-0-1" name="__codelineno-0-1"></a><span class="c1"># celery_app.py - Análisis actual cross-game</span>
+</span><span id="__span-0-2"><a href="#__codelineno-0-2" id="__codelineno-0-2" name="__codelineno-0-2"></a><span class="n">rows</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">exec</span><span class="p">(</span>
+</span><span id="__span-0-3"><a href="#__codelineno-0-3" id="__codelineno-0-3" name="__codelineno-0-3"></a>    <span class="n">select</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Game</span><span class="o">.</span><span class="n">opening_key</span><span class="p">)</span>
+</span><span id="__span-0-4"><a href="#__codelineno-0-4" id="__codelineno-0-4" name="__codelineno-0-4"></a>    <span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">or_</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Game</span><span class="o">.</span><span class="n">white</span> <span class="o">==</span> <span class="n">username</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">Game</span><span class="o">.</span><span class="n">black</span> <span class="o">==</span> <span class="n">username</span><span class="p">))</span>
+</span><span id="__span-0-5"><a href="#__codelineno-0-5" id="__codelineno-0-5" name="__codelineno-0-5"></a>    <span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Game</span><span class="o">.</span><span class="n">opening_key</span><span class="o">.</span><span class="n">is_not</span><span class="p">(</span><span class="kc">None</span><span class="p">))</span>
+</span><span id="__span-0-6"><a href="#__codelineno-0-6" id="__codelineno-0-6" name="__codelineno-0-6"></a><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+</span><span id="__span-0-7"><a href="#__codelineno-0-7" id="__codelineno-0-7" name="__codelineno-0-7"></a><span class="n">entropy</span> <span class="o">=</span> <span class="o">-</span><span class="nb">sum</span><span class="p">(</span><span class="n">p</span> <span class="o">*</span> <span class="n">log2</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">probs</span><span class="p">)</span>
+</span></code></pre></div>
+<h2 id="nuevas-funcionalidades">Nuevas Funcionalidades</h2>
+<h3 id="1-analisis-de-consistencia-temporal">1. Análisis de Consistencia Temporal</h3>
+<h4 id="11-patrones-de-rendimiento-over-time">1.1 Patrones de Rendimiento Over Time</h4>
+<p><strong>Subtarea</strong>: Implementar tracking de evolución de métricas
+<em>Objetivo</em>: Detectar cambios graduales o súbitos en el rendimiento del jugador que podrían indicar uso de asistencia externa o cambios en habilidad natural.
+<em>Enfoque</em>: Calcular moving averages de pct_top3, acl por ventanas temporales (semanal, mensual), usar statistical process control para detectar trends significativos, y aplicar change point detection algorithms para identificar momentos específicos de cambio.
+- Calcular moving averages de pct_top3, acl por períodos
+- Detectar trends de mejora/deterioro over time
+- Identificar períodos de rendimiento anómalo</p>
+<p><strong>Subtarea</strong>: Análisis de estabilidad de rendimiento
+<em>Objetivo</em>: Identificar jugadores cuyo rendimiento es artificialmente consistente, lo cual puede indicar uso de software de asistencia que mantiene un nivel constante.
+<em>Enfoque</em>: Calcular coeficiente de variación para métricas clave, comparar con distribuciones esperadas para jugadores de similar rating, y usar statistical tests para detectar consistency anómala que exceda variabilidad humana normal.
+- Calcular variance de métricas key across partidas
+- Detectar jugadores con rendimiento "demasiado estable"
+- Identificar cambios súbitos en nivel de juego</p>
+<h4 id="12-correlacion-con-factores-temporales">1.2 Correlación con Factores Temporales</h4>
+<p><strong>Subtarea</strong>: Análisis por hora del día/día de semana
+<em>Objetivo</em>: Detectar patrones de rendimiento que correlacionen con factores temporales, identificando posible uso de asistencia en horarios específicos o fatiga natural.
+<em>Enfoque</em>: Extraer features temporales de game timestamps, aplicar análisis de correlación entre hora/día y métricas de rendimiento, y usar clustering para identificar "optimal windows" que podrían indicar uso programado de asistencia.
+- Correlacionar rendimiento con timestamp de partidas
+- Detectar patrones de rendimiento por horario
+- Identificar "optimal playing times" por jugador</p>
+<p><strong>Subtarea</strong>: Análisis de fatiga y sesiones de juego
+<em>Objetivo</em>: Identificar jugadores que no muestran fatiga natural esperada durante sesiones largas, lo cual puede indicar asistencia automatizada.
+<em>Enfoque</em>: Agrupar partidas en sesiones basadas en timestamps, calcular decline rate de métricas durante sesiones, y comparar con curvas de fatiga esperadas para detectar ausencia anómala de deterioro por cansancio.
+- Detectar deterioro de rendimiento en sesiones largas
+- Calcular "fatigue coefficient" basado en partidas consecutivas
+- Identificar patrones de recuperación entre sesiones</p>
+<h3 id="2-analisis-por-control-de-tiempo">2. Análisis por Control de Tiempo</h3>
+<h4 id="21-rendimiento-across-time-controls">2.1 Rendimiento Across Time Controls</h4>
+<p><strong>Subtarea</strong>: Implementar métricas específicas por time control
+<em>Objetivo</em>: Detectar jugadores que muestran rendimiento inconsistente entre diferentes time controls, especialmente aquellos que juegan mejor en controles más rápidos (indicativo de asistencia).
+<em>Enfoque</em>: Segmentar análisis por categorías de time control, calcular rating performance relativo para cada categoría, y usar statistical tests para detectar diferencias significativas que excedan variabilidad esperada.
+- Separar análisis por blitz, rapid, classical
+- Calcular relative strength por control de tiempo
+- Detectar inconsistencias sospechosas entre controles</p>
+<p><strong>Subtarea</strong>: Análisis de adaptación a time controls
+<em>Objetivo</em>: Identificar jugadores que no adaptan su gestión de tiempo apropiadamente a diferentes controles, lo cual puede indicar dependencia de asistencia externa.
+<em>Enfoque</em>: Analizar distribución de move_times por time control, calcular efficiency ratios (tiempo usado vs tiempo disponible), y detectar patrones de timing que no se adaptan naturalmente a las restricciones temporales.
+- Medir eficiencia de uso de tiempo por control
+- Detectar jugadores que no adaptan estilo a tiempo disponible
+- Calcular "time management score" por control</p>
+<h4 id="22-correlacion-de-timing-patterns">2.2 Correlación de Timing Patterns</h4>
+<p><strong>Subtarea</strong>: Comparar patrones de timing across controles
+<em>Objetivo</em>: Detectar jugadores cuyo timing signature se mantiene artificialmente similar across diferentes time controls, indicando posible automatización.
+<em>Enfoque</em>: Extraer timing fingerprints por control de tiempo, calcular similarity scores entre fingerprints, y detectar consistency anómala que no refleje adaptación natural a diferentes presiones temporales.
+- Analizar si timing patterns se mantienen consistentes
+- Detectar cambios artificiales en timing behavior
+- Calcular "timing consistency score" cross-control</p>
+<h3 id="3-analisis-por-tipo-de-oponente">3. Análisis por Tipo de Oponente</h3>
+<h4 id="31-rendimiento-vs-rating-del-oponente">3.1 Rendimiento vs Rating del Oponente</h4>
+<p><strong>Subtarea</strong>: Implementar análisis de rendimiento relativo
+<em>Objetivo</em>: Detectar jugadores que consistentemente over-perform contra oponentes más fuertes o under-perform contra más débiles, indicando posible manipulación de rating o uso selectivo de asistencia.
+<em>Enfoque</em>: Usar modelos de expected performance basados en rating differences, calcular deviations sistemáticas, y aplicar statistical tests para detectar patterns que excedan variabilidad natural del rendimiento.
+- Calcular expected vs actual performance por rating gap
+- Detectar over/under-performance sistemático
+- Identificar "rating manipulation" patterns</p>
+<p><strong>Subtarea</strong>: Análisis de adaptación a nivel de oponente
+<em>Objetivo</em>: Identificar jugadores que no adaptan su estilo de juego apropiadamente al nivel del oponente, o que muestran patterns artificiales de sandbagging.
+<em>Enfoque</em>: Analizar métricas de agresividad, risk-taking, y complexity por rating del oponente, detectar ausencia de adaptación natural, y calcular scores que capturen flexibility apropiada en approach táctico.
+- Medir cambio en estilo de juego vs oponentes fuertes/débiles
+- Detectar "sandbagging" o performance artificial
+- Calcular "opponent adaptation score"</p>
+<h4 id="32-patrones-de-juego-vs-estilos-de-oponente">3.2 Patrones de Juego vs Estilos de Oponente</h4>
+<p><strong>Subtarea</strong>: Clasificar estilos de oponentes
+<em>Objetivo</em>: Evaluar si el jugador adapta su estilo apropiadamente a diferentes tipos de oponentes, detectando rigidez que podría indicar dependencia de asistencia programática.
+<em>Enfoque</em>: Usar clustering para categorizar oponentes por style metrics (agresivo, posicional, táctico), analizar adaptation del jugador a cada cluster, y detectar lack of flexibility que sugiera inability to adapt without external assistance.
+- Categorizar oponentes por métricas de juego
+- Analizar adaptación del jugador a diferentes estilos
+- Detectar rigidez o flexibilidad en approach</p>
+<h3 id="4-analisis-de-fases-de-juego">4. Análisis de Fases de Juego</h3>
+<h4 id="41-consistencia-por-fase-de-partida">4.1 Consistencia por Fase de Partida</h4>
+<p><strong>Subtarea</strong>: Implementar análisis por opening/middlegame/endgame
+<em>Objetivo</em>: Detectar jugadores que muestran strength inconsistente entre fases de juego, especialmente aquellos que mejoran dramáticamente en fases complejas donde engines proporcionan mayor ventaja.
+<em>Enfoque</em>: Segmentar move analysis por game phase usando move numbers y material count, calcular phase-specific performance metrics, y detectar anomalous improvements en fases donde computer assistance es más valuable.
+- Separar métricas por fase de juego
+- Detectar fortalezas/debilidades específicas por fase
+- Calcular consistency scores por fase</p>
+<p><strong>Subtarea</strong>: Análisis de transiciones entre fases
+<em>Objetivo</em>: Identificar jugadores que muestran cambios súbitos en performance durante transiciones de fase, lo cual puede indicar activation/deactivation de asistencia externa.
+<em>Enfoque</em>: Detectar transition points usando game state analysis, medir performance changes durante transitions, y identificar patterns de sudden improvement/decline que no correspondan a natural game flow.
+- Medir performance en transiciones críticas
+- Detectar patterns de collapse en fases específicas
+- Identificar "phase specialization" patterns</p>
+<h4 id="42-correlacion-de-errores-por-fase">4.2 Correlación de Errores por Fase</h4>
+<p><strong>Subtarea</strong>: Análisis de error patterns por fase
+<em>Objetivo</em>: Detectar jugadores cuyo error rate no correlaciona naturalmente con la complejidad típica de cada fase de juego, indicando posible asistencia selectiva.
+<em>Enfoque</em>: Analizar distribución de cp_loss por game phase, comparar con expected error patterns para el rating level, y detectar anomalous accuracy en fases donde human players típicamente cometen más errores.
+- Correlacionar cp_loss con fase de juego
+- Detectar systematic weaknesses por fase
+- Calcular "phase reliability score"</p>
+<h3 id="5-deteccion-de-anomalias-cross-game">5. Detección de Anomalías Cross-Game</h3>
+<h4 id="51-identificacion-de-outlier-games">5.1 Identificación de Outlier Games</h4>
+<p><strong>Subtarea</strong>: Implementar detección de partidas anómalas
+<em>Objetivo</em>: Identificar partidas individuales que se desvían significativamente del perfil normal del jugador, indicando posible uso ocasional de asistencia.
+<em>Enfoque</em>: Aplicar multivariate outlier detection usando métricas de performance, timing, y style, clasificar anomalies por type y severity, y calcular composite anomaly scores que consideren múltiples dimensions simultaneously.
+- Usar statistical methods para detectar outliers
+- Clasificar tipos de anomalías (performance, timing, style)
+- Calcular "game anomaly score"</p>
+<p><strong>Subtarea</strong>: Clustering de patrones de juego
+<em>Objetivo</em>: Detectar cambios fundamentales en el estilo de juego del jugador que podrían indicar adoption de asistencia externa o cambios en methodology.
+<em>Enfoque</em>: Usar unsupervised clustering (K-means, DBSCAN) para agrupar partidas por similarity, track cluster membership over time, y detectar sudden shifts en behavioral patterns que no correspondan a natural skill evolution.
+- Agrupar partidas por similarity en métricas
+- Detectar cambios en clusters over time
+- Identificar "behavioral shifts"</p>
+<h4 id="52-analisis-de-streaks-y-patterns">5.2 Análisis de Streaks y Patterns</h4>
+<p><strong>Subtarea</strong>: Detectar winning/losing streaks anómalos
+<em>Objetivo</em>: Identificar sequences de resultados que son estadísticamente improbables dado el rating y historical performance del jugador, indicando posible manipulation.
+<em>Enfoque</em>: Usar probability theory para calcular likelihood de observed streaks, aplicar runs tests para detectar non-random patterns, y calcular anomaly scores basados en deviation from expected win/loss distributions.
+- Analizar probabilidad de streaks observados
+- Detectar patterns de alternating results
+- Calcular "streak anomaly score"</p>
+<p><strong>Subtarea</strong>: Análisis de patterns cíclicos
+<em>Objetivo</em>: Detectar periodicidad artificial en el rendimiento que podría indicar uso programado de asistencia o manipulation deliberada de results.
+<em>Enfoque</em>: Aplicar Fourier analysis y autocorrelation para detectar periodic patterns, usar time series decomposition para identificar cyclical components, y detectar regularity que exceda natural variability en human performance.
+- Detectar periodicidad en rendimiento
+- Identificar patterns de "scheduled" good/bad games
+- Usar time series analysis para pattern detection</p>
+<h2 id="migraciones-de-base-de-datos">Migraciones de Base de Datos</h2>
+<h3 id="extension-de-playermetrics">Extensión de PlayerMetrics</h3>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-1-1"><a href="#__codelineno-1-1" id="__codelineno-1-1" name="__codelineno-1-1"></a><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">playermetrics</span><span class="w"> </span><span class="k">ADD</span><span class="w"> </span><span class="k">COLUMN</span><span class="w"> </span><span class="n">avg_pct_top3</span><span class="w"> </span><span class="nb">FLOAT</span><span class="p">;</span>
+</span><span id="__span-1-2"><a href="#__codelineno-1-2" id="__codelineno-1-2" name="__codelineno-1-2"></a><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">playermetrics</span><span class="w"> </span><span class="k">ADD</span><span class="w"> </span><span class="k">COLUMN</span><span class="w"> </span><span class="n">performance_variance</span><span class="w"> </span><span class="nb">FLOAT</span><span class="p">;</span>
+</span><span id="__span-1-3"><a href="#__codelineno-1-3" id="__codelineno-1-3" name="__codelineno-1-3"></a><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">playermetrics</span><span class="w"> </span><span class="k">ADD</span><span class="w"> </span><span class="k">COLUMN</span><span class="w"> </span><span class="n">time_control_consistency</span><span class="w"> </span><span class="nb">FLOAT</span><span class="p">;</span>
+</span><span id="__span-1-4"><a href="#__codelineno-1-4" id="__codelineno-1-4" name="__codelineno-1-4"></a><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">playermetrics</span><span class="w"> </span><span class="k">ADD</span><span class="w"> </span><span class="k">COLUMN</span><span class="w"> </span><span class="n">opponent_adaptation_score</span><span class="w"> </span><span class="nb">FLOAT</span><span class="p">;</span>
+</span><span id="__span-1-5"><a href="#__codelineno-1-5" id="__codelineno-1-5" name="__codelineno-1-5"></a><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">playermetrics</span><span class="w"> </span><span class="k">ADD</span><span class="w"> </span><span class="k">COLUMN</span><span class="w"> </span><span class="n">phase_consistency_opening</span><span class="w"> </span><span class="nb">FLOAT</span><span class="p">;</span>
+</span><span id="__span-1-6"><a href="#__codelineno-1-6" id="__codelineno-1-6" name="__codelineno-1-6"></a><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">playermetrics</span><span class="w"> </span><span class="k">ADD</span><span class="w"> </span><span class="k">COLUMN</span><span class="w"> </span><span class="n">phase_consistency_middlegame</span><span class="w"> </span><span class="nb">FLOAT</span><span class="p">;</span>
+</span><span id="__span-1-7"><a href="#__codelineno-1-7" id="__codelineno-1-7" name="__codelineno-1-7"></a><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">playermetrics</span><span class="w"> </span><span class="k">ADD</span><span class="w"> </span><span class="k">COLUMN</span><span class="w"> </span><span class="n">phase_consistency_endgame</span><span class="w"> </span><span class="nb">FLOAT</span><span class="p">;</span>
+</span><span id="__span-1-8"><a href="#__codelineno-1-8" id="__codelineno-1-8" name="__codelineno-1-8"></a><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">playermetrics</span><span class="w"> </span><span class="k">ADD</span><span class="w"> </span><span class="k">COLUMN</span><span class="w"> </span><span class="n">anomaly_game_count</span><span class="w"> </span><span class="nb">INTEGER</span><span class="p">;</span>
+</span><span id="__span-1-9"><a href="#__codelineno-1-9" id="__codelineno-1-9" name="__codelineno-1-9"></a><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">playermetrics</span><span class="w"> </span><span class="k">ADD</span><span class="w"> </span><span class="k">COLUMN</span><span class="w"> </span><span class="n">behavioral_stability_score</span><span class="w"> </span><span class="nb">FLOAT</span><span class="p">;</span>
+</span></code></pre></div>
+<h3 id="nueva-tabla-gamecorrelations">Nueva Tabla: GameCorrelations</h3>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-2-1"><a href="#__codelineno-2-1" id="__codelineno-2-1" name="__codelineno-2-1"></a><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">gamecorrelations</span><span class="w"> </span><span class="p">(</span>
+</span><span id="__span-2-2"><a href="#__codelineno-2-2" id="__codelineno-2-2" name="__codelineno-2-2"></a><span class="w">    </span><span class="n">id</span><span class="w"> </span><span class="nb">SERIAL</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="p">,</span>
+</span><span id="__span-2-3"><a href="#__codelineno-2-3" id="__codelineno-2-3" name="__codelineno-2-3"></a><span class="w">    </span><span class="n">player_username</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">255</span><span class="p">)</span><span class="w"> </span><span class="k">REFERENCES</span><span class="w"> </span><span class="n">playermetrics</span><span class="p">(</span><span class="n">username</span><span class="p">),</span>
+</span><span id="__span-2-4"><a href="#__codelineno-2-4" id="__codelineno-2-4" name="__codelineno-2-4"></a><span class="w">    </span><span class="n">game_id</span><span class="w"> </span><span class="nb">INTEGER</span><span class="w"> </span><span class="k">REFERENCES</span><span class="w"> </span><span class="n">game</span><span class="p">(</span><span class="n">id</span><span class="p">),</span>
+</span><span id="__span-2-5"><a href="#__codelineno-2-5" id="__codelineno-2-5" name="__codelineno-2-5"></a><span class="w">    </span><span class="n">time_control</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">50</span><span class="p">),</span>
+</span><span id="__span-2-6"><a href="#__codelineno-2-6" id="__codelineno-2-6" name="__codelineno-2-6"></a><span class="w">    </span><span class="n">opponent_rating</span><span class="w"> </span><span class="nb">INTEGER</span><span class="p">,</span>
+</span><span id="__span-2-7"><a href="#__codelineno-2-7" id="__codelineno-2-7" name="__codelineno-2-7"></a><span class="w">    </span><span class="n">performance_deviation</span><span class="w"> </span><span class="nb">FLOAT</span><span class="p">,</span><span class="w"> </span><span class="c1">-- deviation from player average</span>
+</span><span id="__span-2-8"><a href="#__codelineno-2-8" id="__codelineno-2-8" name="__codelineno-2-8"></a><span class="w">    </span><span class="n">timing_consistency_score</span><span class="w"> </span><span class="nb">FLOAT</span><span class="p">,</span>
+</span><span id="__span-2-9"><a href="#__codelineno-2-9" id="__codelineno-2-9" name="__codelineno-2-9"></a><span class="w">    </span><span class="n">phase_performance_opening</span><span class="w"> </span><span class="nb">FLOAT</span><span class="p">,</span>
+</span><span id="__span-2-10"><a href="#__codelineno-2-10" id="__codelineno-2-10" name="__codelineno-2-10"></a><span class="w">    </span><span class="n">phase_performance_middlegame</span><span class="w"> </span><span class="nb">FLOAT</span><span class="p">,</span>
+</span><span id="__span-2-11"><a href="#__codelineno-2-11" id="__codelineno-2-11" name="__codelineno-2-11"></a><span class="w">    </span><span class="n">phase_performance_endgame</span><span class="w"> </span><span class="nb">FLOAT</span><span class="p">,</span>
+</span><span id="__span-2-12"><a href="#__codelineno-2-12" id="__codelineno-2-12" name="__codelineno-2-12"></a><span class="w">    </span><span class="n">anomaly_flags</span><span class="w"> </span><span class="nb">TEXT</span><span class="p">[],</span><span class="w"> </span><span class="c1">-- array of anomaly types detected</span>
+</span><span id="__span-2-13"><a href="#__codelineno-2-13" id="__codelineno-2-13" name="__codelineno-2-13"></a><span class="w">    </span><span class="n">correlation_score</span><span class="w"> </span><span class="nb">FLOAT</span><span class="p">,</span><span class="w"> </span><span class="c1">-- overall correlation with player profile</span>
+</span><span id="__span-2-14"><a href="#__codelineno-2-14" id="__codelineno-2-14" name="__codelineno-2-14"></a><span class="w">    </span><span class="n">created_at</span><span class="w"> </span><span class="k">TIMESTAMP</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="n">NOW</span><span class="p">()</span>
+</span><span id="__span-2-15"><a href="#__codelineno-2-15" id="__codelineno-2-15" name="__codelineno-2-15"></a><span class="p">);</span>
+</span></code></pre></div>
+<h3 id="nueva-tabla-playertrends">Nueva Tabla: PlayerTrends</h3>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-3-1"><a href="#__codelineno-3-1" id="__codelineno-3-1" name="__codelineno-3-1"></a><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">playertrends</span><span class="w"> </span><span class="p">(</span>
+</span><span id="__span-3-2"><a href="#__codelineno-3-2" id="__codelineno-3-2" name="__codelineno-3-2"></a><span class="w">    </span><span class="n">id</span><span class="w"> </span><span class="nb">SERIAL</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="p">,</span>
+</span><span id="__span-3-3"><a href="#__codelineno-3-3" id="__codelineno-3-3" name="__codelineno-3-3"></a><span class="w">    </span><span class="n">player_username</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">255</span><span class="p">)</span><span class="w"> </span><span class="k">REFERENCES</span><span class="w"> </span><span class="n">playermetrics</span><span class="p">(</span><span class="n">username</span><span class="p">),</span>
+</span><span id="__span-3-4"><a href="#__codelineno-3-4" id="__codelineno-3-4" name="__codelineno-3-4"></a><span class="w">    </span><span class="n">analysis_period</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">50</span><span class="p">),</span><span class="w"> </span><span class="c1">-- 'weekly', 'monthly', 'quarterly'</span>
+</span><span id="__span-3-5"><a href="#__codelineno-3-5" id="__codelineno-3-5" name="__codelineno-3-5"></a><span class="w">    </span><span class="n">period_start</span><span class="w"> </span><span class="nb">DATE</span><span class="p">,</span>
+</span><span id="__span-3-6"><a href="#__codelineno-3-6" id="__codelineno-3-6" name="__codelineno-3-6"></a><span class="w">    </span><span class="n">period_end</span><span class="w"> </span><span class="nb">DATE</span><span class="p">,</span>
+</span><span id="__span-3-7"><a href="#__codelineno-3-7" id="__codelineno-3-7" name="__codelineno-3-7"></a><span class="w">    </span><span class="n">games_analyzed</span><span class="w"> </span><span class="nb">INTEGER</span><span class="p">,</span>
+</span><span id="__span-3-8"><a href="#__codelineno-3-8" id="__codelineno-3-8" name="__codelineno-3-8"></a><span class="w">    </span><span class="n">avg_performance</span><span class="w"> </span><span class="nb">FLOAT</span><span class="p">,</span>
+</span><span id="__span-3-9"><a href="#__codelineno-3-9" id="__codelineno-3-9" name="__codelineno-3-9"></a><span class="w">    </span><span class="n">performance_trend</span><span class="w"> </span><span class="nb">FLOAT</span><span class="p">,</span><span class="w"> </span><span class="c1">-- positive = improving, negative = declining</span>
+</span><span id="__span-3-10"><a href="#__codelineno-3-10" id="__codelineno-3-10" name="__codelineno-3-10"></a><span class="w">    </span><span class="n">consistency_score</span><span class="w"> </span><span class="nb">FLOAT</span><span class="p">,</span>
+</span><span id="__span-3-11"><a href="#__codelineno-3-11" id="__codelineno-3-11" name="__codelineno-3-11"></a><span class="w">    </span><span class="n">anomaly_rate</span><span class="w"> </span><span class="nb">FLOAT</span><span class="p">,</span>
+</span><span id="__span-3-12"><a href="#__codelineno-3-12" id="__codelineno-3-12" name="__codelineno-3-12"></a><span class="w">    </span><span class="n">significant_changes</span><span class="w"> </span><span class="nb">TEXT</span><span class="p">[],</span><span class="w"> </span><span class="c1">-- array of detected changes</span>
+</span><span id="__span-3-13"><a href="#__codelineno-3-13" id="__codelineno-3-13" name="__codelineno-3-13"></a><span class="w">    </span><span class="n">created_at</span><span class="w"> </span><span class="k">TIMESTAMP</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="n">NOW</span><span class="p">()</span>
+</span><span id="__span-3-14"><a href="#__codelineno-3-14" id="__codelineno-3-14" name="__codelineno-3-14"></a><span class="p">);</span>
+</span></code></pre></div>
+<h3 id="nueva-tabla-crossgamepatterns">Nueva Tabla: CrossGamePatterns</h3>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-4-1"><a href="#__codelineno-4-1" id="__codelineno-4-1" name="__codelineno-4-1"></a><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">crossgamepatterns</span><span class="w"> </span><span class="p">(</span>
+</span><span id="__span-4-2"><a href="#__codelineno-4-2" id="__codelineno-4-2" name="__codelineno-4-2"></a><span class="w">    </span><span class="n">id</span><span class="w"> </span><span class="nb">SERIAL</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="p">,</span>
+</span><span id="__span-4-3"><a href="#__codelineno-4-3" id="__codelineno-4-3" name="__codelineno-4-3"></a><span class="w">    </span><span class="n">player_username</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">255</span><span class="p">)</span><span class="w"> </span><span class="k">REFERENCES</span><span class="w"> </span><span class="n">playermetrics</span><span class="p">(</span><span class="n">username</span><span class="p">),</span>
+</span><span id="__span-4-4"><a href="#__codelineno-4-4" id="__codelineno-4-4" name="__codelineno-4-4"></a><span class="w">    </span><span class="n">pattern_type</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span><span class="w"> </span><span class="c1">-- 'time_control_inconsistency', 'opponent_adaptation', etc.</span>
+</span><span id="__span-4-5"><a href="#__codelineno-4-5" id="__codelineno-4-5" name="__codelineno-4-5"></a><span class="w">    </span><span class="n">pattern_strength</span><span class="w"> </span><span class="nb">FLOAT</span><span class="p">,</span><span class="w"> </span><span class="c1">-- how pronounced the pattern is</span>
+</span><span id="__span-4-6"><a href="#__codelineno-4-6" id="__codelineno-4-6" name="__codelineno-4-6"></a><span class="w">    </span><span class="n">games_involved</span><span class="w"> </span><span class="nb">INTEGER</span><span class="p">[],</span>
+</span><span id="__span-4-7"><a href="#__codelineno-4-7" id="__codelineno-4-7" name="__codelineno-4-7"></a><span class="w">    </span><span class="n">statistical_significance</span><span class="w"> </span><span class="nb">FLOAT</span><span class="p">,</span>
+</span><span id="__span-4-8"><a href="#__codelineno-4-8" id="__codelineno-4-8" name="__codelineno-4-8"></a><span class="w">    </span><span class="n">description</span><span class="w"> </span><span class="nb">TEXT</span><span class="p">,</span>
+</span><span id="__span-4-9"><a href="#__codelineno-4-9" id="__codelineno-4-9" name="__codelineno-4-9"></a><span class="w">    </span><span class="n">first_detected</span><span class="w"> </span><span class="nb">DATE</span><span class="p">,</span>
+</span><span id="__span-4-10"><a href="#__codelineno-4-10" id="__codelineno-4-10" name="__codelineno-4-10"></a><span class="w">    </span><span class="n">last_updated</span><span class="w"> </span><span class="k">TIMESTAMP</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="n">NOW</span><span class="p">()</span>
+</span><span id="__span-4-11"><a href="#__codelineno-4-11" id="__codelineno-4-11" name="__codelineno-4-11"></a><span class="p">);</span>
+</span></code></pre></div>
+<h2 id="nuevos-celery-tasks">Nuevos Celery Tasks</h2>
+<h3 id="compute_cross_game_correlations">compute_cross_game_correlations</h3>
+<p><strong>Subtarea</strong>: Task principal para análisis cross-game
+<em>Objetivo</em>: Implementar el pipeline central que procese todas las partidas de un jugador para detectar correlaciones y patterns sospechosos across múltiples games.
+<em>Enfoque</em>: Crear Celery task que fetch all player games, compute correlation matrices entre métricas, apply statistical tests para significance, y store results en GameCorrelations table con proper error handling y progress tracking.
+- Analizar todas las partidas del jugador
+- Calcular correlaciones entre diferentes métricas
+- Detectar patterns y anomalías
+- Actualizar GameCorrelations table</p>
+<h3 id="analyze_player_trends">analyze_player_trends</h3>
+<p><strong>Subtarea</strong>: Task para análisis de trends temporales
+<em>Objetivo</em>: Detectar cambios temporales en el rendimiento del jugador que podrían indicar adoption o discontinuation de asistencia externa.
+<em>Enfoque</em>: Implementar time series analysis con moving averages, trend detection usando regression analysis, change point detection algorithms, y automated alerting system para significant performance shifts.
+- Calcular moving averages y trends
+- Detectar cambios significativos en rendimiento
+- Actualizar PlayerTrends table
+- Generate alerts para cambios súbitos</p>
+<h3 id="detect_behavioral_patterns">detect_behavioral_patterns</h3>
+<p><strong>Subtarea</strong>: Task para detección de patrones de comportamiento
+<em>Objetivo</em>: Aplicar machine learning para identificar patterns complejos de comportamiento que no son detectables con análisis estadístico simple.
+<em>Enfoque</em>: Implementar ensemble de ML algorithms (clustering, anomaly detection, classification), train models en historical data con ground truth, y deploy models para real-time pattern detection con confidence scoring.
+- Usar machine learning para pattern recognition
+- Clasificar tipos de patterns detectados
+- Calcular statistical significance
+- Actualizar CrossGamePatterns table</p>
+<h3 id="update_player_profile">update_player_profile</h3>
+<p><strong>Subtarea</strong>: Task para actualizar perfil completo del jugador
+<em>Objetivo</em>: Consolidar todos los análisis cross-game en un perfil comprehensivo que proporcione assessment holístico del jugador.
+<em>Enfoque</em>: Agregar results de todos los analysis tasks, compute weighted composite scores, update PlayerMetrics con nuevas métricas, y generate detailed reports con actionable insights y recommendations.
+- Integrar todos los análisis cross-game
+- Calcular scores de consistencia y adaptación
+- Actualizar PlayerMetrics con nuevas métricas
+- Generate comprehensive player report</p>
+<h2 id="api-extensions">API Extensions</h2>
+<h3 id="nuevos-endpoints">Nuevos Endpoints</h3>
+<p><strong>Subtarea</strong>: Endpoint <code>/correlation/player/{username}</code>
+<em>Objetivo</em>: Proporcionar acceso programático a análisis comprehensivo de correlaciones cross-game para integration con frontend y external systems.
+<em>Enfoque</em>: Implementar REST endpoint que return structured data con correlation matrices, statistical significance tests, breakdown por dimensions (time control, opponent), y visualization-ready data formats.
+- Análisis completo de correlaciones cross-game
+- Breakdown por time control, opponent type, etc.
+- Trends y patterns detectados</p>
+<p><strong>Subtarea</strong>: Endpoint <code>/trends/player/{username}</code>
+<em>Objetivo</em>: Exponer análisis temporal del jugador con predictive capabilities para anticipar future performance y detectar anomalies.
+<em>Enfoque</em>: Crear endpoint que return time series data, trend analysis results, forecasting models output, y anomaly detection results con confidence intervals y statistical significance measures.
+- Historical trends de rendimiento
+- Predicciones basadas en trends actuales
+- Identificación de períodos anómalos</p>
+<p><strong>Subtarea</strong>: Endpoint <code>/patterns/behavioral/{username}</code>
+<em>Objetivo</em>: Proporcionar insights detallados sobre behavioral patterns detectados con actionable recommendations para investigation o monitoring.
+<em>Enfoque</em>: Implementar endpoint que return pattern classification results, statistical significance scores, interpretability explanations, y automated recommendations basadas en pattern severity y type.
+- Patrones de comportamiento detectados
+- Statistical significance de cada pattern
+- Recommendations basadas en patterns</p>
+<p><strong>Subtarea</strong>: Endpoint <code>/comparison/players</code>
+<em>Objetivo</em>: Facilitar comparative analysis entre jugadores para identificar similar behavioral patterns y detect potential coordinated cheating or account sharing.
+<em>Enfoque</em>: Crear endpoint que accept multiple usernames, compute similarity metrics entre player profiles, perform cluster analysis para group similar players, y return comparative visualizations y insights.
+- Comparar profiles de múltiples jugadores
+- Identificar similarities y differences
+- Cluster analysis de tipos de jugadores</p>
+<h2 id="machine-learning-integration">Machine Learning Integration</h2>
+<h3 id="pattern-recognition-models">Pattern Recognition Models</h3>
+<p><strong>Subtarea</strong>: Implementar clustering algorithms
+<em>Objetivo</em>: Agrupar partidas y jugadores por similarity para detectar patterns anómalos y identify behavioral clusters que indiquen cheating coordination.
+<em>Enfoque</em>: Implementar multiple clustering algorithms con feature engineering apropiado, optimize hyperparameters usando validation metrics, y create interpretable cluster profiles con statistical characterization de cada group.
+- K-means clustering para agrupar partidas similares
+- DBSCAN para detectar outliers
+- Hierarchical clustering para player profiles</p>
+<p><strong>Subtarea</strong>: Time series analysis
+<em>Objetivo</em>: Aplicar técnicas avanzadas de time series para detectar temporal patterns, predict future behavior, y identify sudden changes que indiquen cheating adoption.
+<em>Enfoque</em>: Implementar ARIMA/SARIMA models con proper model selection, seasonal decomposition usando STL o X-13, y change point detection usando PELT o binary segmentation algorithms con statistical validation.
+- ARIMA models para trend prediction
+- Seasonal decomposition para patterns cíclicos
+- Change point detection para behavioral shifts</p>
+<h3 id="anomaly-detection-models">Anomaly Detection Models</h3>
+<p><strong>Subtarea</strong>: Implementar statistical anomaly detection
+<em>Objetivo</em>: Detectar partidas y behaviors que se desvían significativamente del perfil normal del jugador usando multiple statistical approaches.
+<em>Enfoque</em>: Implementar ensemble de anomaly detection algorithms, tune parameters usando cross-validation con labeled data, y combine results usando voting o stacking para robust anomaly scoring.
+- Isolation Forest para outlier detection
+- One-class SVM para normal behavior modeling
+- Statistical process control para monitoring</p>
+<p><strong>Subtarea</strong>: Ensemble methods para robust detection
+<em>Objetivo</em>: Mejorar accuracy y robustness de anomaly detection combinando múltiples algorithms y proporcionando confidence measures.
+<em>Enfoque</em>: Implementar ensemble methods (bagging, boosting, stacking), design voting systems con weighted contributions basados en algorithm performance, y develop confidence scoring que considere agreement entre multiple detectors.
+- Combinar múltiples algorithms para mejor accuracy
+- Voting systems para anomaly classification
+- Confidence scoring para detected anomalies</p>
+<h2 id="testing-strategy">Testing Strategy</h2>
+<h3 id="statistical-validation">Statistical Validation</h3>
+<p><strong>Subtarea</strong>: Validar statistical significance de correlaciones
+<em>Objetivo</em>: Asegurar que las correlaciones detectadas son estadísticamente significativas y no resultado de multiple testing o chance findings.
+<em>Enfoque</em>: Implementar bootstrap resampling para robust confidence intervals, permutation tests para null hypothesis validation, y apply Benjamini-Hochberg correction para control false discovery rate en multiple comparisons.
+- Bootstrap methods para confidence intervals
+- Permutation tests para null hypothesis testing
+- Multiple testing correction para false discovery rate</p>
+<p><strong>Subtarea</strong>: Cross-validation de pattern detection
+<em>Objetivo</em>: Validar que los patterns detectados generalizan apropiadamente y no son resultado de overfitting a specific data characteristics.
+<em>Enfoque</em>: Implementar time series cross-validation con proper temporal splits, stratified sampling para maintain class balance, y rigorous out-of-sample testing usando holdout datasets con known ground truth.
+- Time series cross-validation para trend analysis
+- Stratified sampling para balanced testing
+- Out-of-sample validation para generalization</p>
+<h3 id="performance-testing">Performance Testing</h3>
+<p><strong>Subtarea</strong>: Test scalability con large player datasets
+<em>Objetivo</em>: Asegurar que el sistema puede handle players con thousands de partidas sin performance degradation o memory issues.
+<em>Enfoque</em>: Implement comprehensive benchmarking con realistic data volumes, profile memory usage y optimize data structures, y design parallel processing architecture que scale horizontally con player volume.
+- Benchmark analysis time para players con miles de partidas
+- Memory usage optimization para large correlation matrices
+- Parallel processing para multiple player analysis</p>
+<h2 id="consideraciones-de-implementacion">Consideraciones de Implementación</h2>
+<h3 id="performance-optimization">Performance Optimization</h3>
+<ul>
+<li>Usar vectorized operations para correlation calculations</li>
+<li>Implement incremental analysis para nuevas partidas</li>
+<li>Cache intermediate results para faster re-analysis</li>
+<li>Parallel processing para multiple player analysis</li>
+</ul>
+<h3 id="statistical-rigor">Statistical Rigor</h3>
+<ul>
+<li>Proper handling de multiple comparisons</li>
+<li>Robust statistical tests para small sample sizes</li>
+<li>Confidence intervals para all reported metrics</li>
+<li>Clear documentation de statistical assumptions</li>
+</ul>
+<h3 id="privacy-y-ethics">Privacy y Ethics</h3>
+<ul>
+<li>Anonymization options para sensitive analysis</li>
+<li>Clear consent para behavioral pattern analysis</li>
+<li>Transparent reporting de analysis methods</li>
+<li>Ethical guidelines para anomaly reporting</li>
+</ul>
+<h2 id="cronograma-de-implementacion">Cronograma de Implementación</h2>
+<p><strong>Semana 1</strong>: Análisis de consistencia temporal y time controls
+<strong>Semana 2</strong>: Análisis por tipo de oponente y fases de juego
+<strong>Semana 3</strong>: Detección de anomalías y pattern recognition
+<strong>Semana 4</strong>: Machine learning integration y statistical validation
+<strong>Semana 5</strong>: API endpoints y comprehensive testing
+<strong>Semana 6</strong>: Performance optimization y documentation</p>
+<h2 id="dependencias">Dependencias</h2>
+<ul>
+<li>PlayerMetrics model y compute_player_metrics task</li>
+<li>GameMetrics data para correlation analysis</li>
+<li>Statistical libraries (scipy, scikit-learn)</li>
+<li>Time series analysis libraries (statsmodels)</li>
+<li>Machine learning frameworks para pattern recognition</li>
+</ul>
+</article>
+</div>
+<script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+</div>
+<button class="md-top md-icon" data-md-component="top" hidden="" type="button">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"></path></svg>
+  Back to top
+</button>
+</main>
+<footer class="md-footer">
+<div class="md-footer-meta md-typeset">
+<div class="md-footer-meta__inner md-grid">
+<div class="md-copyright">
+<div class="md-copyright__highlight">
+      Copyright © 2025 ChessPlayerAnalyzer Team –
+<a href="#__consent">Change cookie settings</a>
+</div>
+</div>
+<div class="md-social">
+<a class="md-social__link" href="https://github.com/your-username/ChessPlayerAnalyzer" rel="noopener" target="_blank" title="github.com">
+<svg viewbox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2" fill="currentColor"></path></svg>
+</a>
+<a class="md-social__link" href="https://hub.docker.com/r/your-username/chess-analyzer" rel="noopener" target="_blank" title="hub.docker.com">
+<svg viewbox="0 0 640 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M349.9 236.3h-66.1v-59.4h66.1zm0-204.3h-66.1v60.7h66.1zm78.2 144.8H362v59.4h66.1zm-156.3-72.1h-66.1v60.1h66.1zm78.1 0h-66.1v60.1h66.1zm276.8 100c-14.4-9.7-47.6-13.2-73.1-8.4-3.3-24-16.7-44.9-41.1-63.7l-14-9.3-9.3 14c-18.4 27.8-23.4 73.6-3.7 103.8-8.7 4.7-25.8 11.1-48.4 10.7H2.4c-8.7 50.8 5.8 116.8 44 162.1 37.1 43.9 92.7 66.2 165.4 66.2 157.4 0 273.9-72.5 328.4-204.2 21.4.4 67.6.1 91.3-45.2 1.5-2.5 6.6-13.2 8.5-17.1zm-511.1-27.9h-66v59.4h66.1v-59.4zm78.1 0h-66.1v59.4h66.1zm78.1 0h-66.1v59.4h66.1zm-78.1-72.1h-66.1v60.1h66.1z" fill="currentColor"></path></svg>
+</a>
+</div>
+</div>
+</div>
+</footer>
+</div>
+<div class="md-dialog" data-md-component="dialog">
+<div class="md-dialog__inner md-typeset"></div>
+</div>
+<script id="__config" type="application/json">{"base": "../..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.path", "navigation.indexes", "toc.integrate", "toc.follow", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate", "content.tabs.link", "header.autohide", "announce.dismiss"], "search": "../../assets/javascripts/workers/search.973d3a69.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+<script src="../../assets/javascripts/bundle.92b07e13.min.js"></script>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</body>
+</html>

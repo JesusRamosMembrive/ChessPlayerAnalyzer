@@ -1,0 +1,1496 @@
+
+<!DOCTYPE html>
+
+<html class="no-js" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="Complete documentation for ChessPlayerAnalyzer - Advanced chess game analysis system" name="description"/>
+<meta content="ChessPlayerAnalyzer Team" name="author"/>
+<link href="https://your-domain.github.io/ChessPlayerAnalyzer/algorithms/statistical-models/" rel="canonical"/>
+<link href="../metrics/" rel="prev"/>
+<link href="../performance/" rel="next"/>
+<link href="../../assets/images/favicon.png" rel="icon"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.6.19" name="generator"/>
+<title>Statistical Models - ChessPlayerAnalyzer Documentation</title>
+<link href="../../assets/stylesheets/main.7e37652d.min.css" rel="stylesheet"/>
+<link href="../../assets/stylesheets/palette.06af60db.min.css" rel="stylesheet"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
+<style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+<link href="../../stylesheets/extra.css" rel="stylesheet"/>
+<script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+</head>
+<body data-md-color-accent="deep-orange" data-md-color-primary="blue-grey" data-md-color-scheme="default" dir="ltr">
+<input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
+<input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
+<label class="md-overlay" for="__drawer"></label>
+<div data-md-component="skip">
+<a class="md-skip" href="#statistical-models-and-mathematical-foundations">
+          Skip to content
+        </a>
+</div>
+<div data-md-component="announce">
+</div>
+<div data-md-color-scheme="default" data-md-component="outdated" hidden="">
+</div>
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+<nav aria-label="Header" class="md-header__inner md-grid">
+<a aria-label="ChessPlayerAnalyzer Documentation" class="md-header__button md-logo" data-md-component="logo" href="../.." title="ChessPlayerAnalyzer Documentation">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 22H5v-2h14zm-2-12c-1.42 0-2.74.77-3.45 2H13V7h3V5h-3V2h-2v3H8v2h3v5h-.55C9.35 10.09 6.9 9.43 5 10.54A4.013 4.013 0 0 0 3.5 16c.74 1.24 2.07 2 3.5 2h10a4 4 0 0 0 4-4 4 4 0 0 0-4-4"></path></svg>
+</a>
+<label class="md-header__button md-icon" for="__drawer">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+</label>
+<div class="md-header__title" data-md-component="header-title">
+<div class="md-header__ellipsis">
+<div class="md-header__topic">
+<span class="md-ellipsis">
+            ChessPlayerAnalyzer Documentation
+          </span>
+</div>
+<div class="md-header__topic" data-md-component="header-topic">
+<span class="md-ellipsis">
+            
+              Statistical Models
+            
+          </span>
+</div>
+</div>
+</div>
+<form class="md-header__option" data-md-component="palette">
+<input aria-label="Switch to dark mode" class="md-option" data-md-color-accent="deep-orange" data-md-color-media="(prefers-color-scheme: light)" data-md-color-primary="blue-grey" data-md-color-scheme="default" id="__palette_0" name="__palette" type="radio"/>
+<label class="md-header__button md-icon" for="__palette_1" hidden="" title="Switch to dark mode">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+</label>
+<input aria-label="Switch to light mode" class="md-option" data-md-color-accent="deep-orange" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-primary="blue-grey" data-md-color-scheme="slate" id="__palette_1" name="__palette" type="radio"/>
+<label class="md-header__button md-icon" for="__palette_0" hidden="" title="Switch to light mode">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+</label>
+</form>
+<script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+<label class="md-header__button md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+</label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input aria-label="Search" autocapitalize="off" autocomplete="off" autocorrect="off" class="md-search__input" data-md-component="search-query" name="query" placeholder="Search" required="" spellcheck="false" type="text"/>
+<label class="md-search__icon md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+</label>
+<nav aria-label="Search" class="md-search__options">
+<button aria-label="Clear" class="md-search__icon md-icon" tabindex="-1" title="Clear" type="reset">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+</button>
+</nav>
+<div class="md-search__suggest" data-md-component="search-suggest"></div>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix="" tabindex="0">
+<div class="md-search-result" data-md-component="search-result">
+<div class="md-search-result__meta">
+            Initializing search
+          </div>
+<ol class="md-search-result__list" role="presentation"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="md-header__source">
+<a class="md-source" data-md-component="source" href="https://github.com/your-username/ChessPlayerAnalyzer" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2" fill="currentColor"></path></svg>
+</div>
+<div class="md-source__repository">
+    ChessPlayerAnalyzer
+  </div>
+</a>
+</div>
+</nav>
+<nav aria-label="Tabs" class="md-tabs" data-md-component="tabs">
+<div class="md-grid">
+<ul class="md-tabs__list">
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../..">
+          
+  
+  
+    
+  
+  Home
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../guides/setup/README-original/">
+          
+  
+  
+    
+  
+  Getting Started
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../architecture/overview/">
+          
+  
+  
+    
+  
+  Architecture
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../api/endpoints/">
+          
+  
+  
+    
+  
+  API Reference
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../modules/analysis/">
+          
+  
+  
+    
+  
+  Analysis Modules
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../modules/utils/">
+          
+  
+  
+    
+  
+  Core Modules
+
+        </a>
+</li>
+<li class="md-tabs__item md-tabs__item--active">
+<a class="md-tabs__link" href="../">
+          
+  
+  
+    
+  
+  Algorithms
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../guides/deployment/">
+          
+  
+  
+    
+  
+  Operations
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../legacy/migration-guide/">
+          
+  
+  
+    
+  
+  Legacy
+
+        </a>
+</li>
+</ul>
+</div>
+</nav>
+</header>
+<div class="md-container" data-md-component="container">
+<main class="md-main" data-md-component="main">
+<div class="md-main__inner md-grid">
+<div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Navigation" class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" data-md-level="0">
+<label class="md-nav__title" for="__drawer">
+<a aria-label="ChessPlayerAnalyzer Documentation" class="md-nav__button md-logo" data-md-component="logo" href="../.." title="ChessPlayerAnalyzer Documentation">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 22H5v-2h14zm-2-12c-1.42 0-2.74.77-3.45 2H13V7h3V5h-3V2h-2v3H8v2h3v5h-.55C9.35 10.09 6.9 9.43 5 10.54A4.013 4.013 0 0 0 3.5 16c.74 1.24 2.07 2 3.5 2h10a4 4 0 0 0 4-4 4 4 0 0 0-4-4"></path></svg>
+</a>
+    ChessPlayerAnalyzer Documentation
+  </label>
+<div class="md-nav__source">
+<a class="md-source" data-md-component="source" href="https://github.com/your-username/ChessPlayerAnalyzer" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2" fill="currentColor"></path></svg>
+</div>
+<div class="md-source__repository">
+    ChessPlayerAnalyzer
+  </div>
+</a>
+</div>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../..">
+<span class="md-ellipsis">
+    Home
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_1_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_1">
+<span class="md-nav__icon md-icon"></span>
+            Home
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../plan_de_accion/">
+<span class="md-ellipsis">
+    Plan de Acción
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+<span class="md-ellipsis">
+    Getting Started
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_2_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_2">
+<span class="md-nav__icon md-icon"></span>
+            Getting Started
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../guides/setup/README-original/">
+<span class="md-ellipsis">
+    Quick Start
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../guides/development/">
+<span class="md-ellipsis">
+    Development Setup
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../guides/setup/CLAUDE/">
+<span class="md-ellipsis">
+    Claude Code Setup
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../guides/setup/docker-setup/">
+<span class="md-ellipsis">
+    Docker Configuration
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../guides/SYZYGY_SETUP/">
+<span class="md-ellipsis">
+    Syzygy Tablebases
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_3" type="checkbox"/>
+<label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+<span class="md-ellipsis">
+    Architecture
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_3_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_3">
+<span class="md-nav__icon md-icon"></span>
+            Architecture
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../architecture/overview/">
+<span class="md-ellipsis">
+    System Overview
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../architecture/database-schema/">
+<span class="md-ellipsis">
+    Database Schema
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../architecture/api-design/">
+<span class="md-ellipsis">
+    API Design
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../architecture/celery-workflow/">
+<span class="md-ellipsis">
+    Celery Workflow
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_4" type="checkbox"/>
+<label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+<span class="md-ellipsis">
+    API Reference
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_4_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_4">
+<span class="md-nav__icon md-icon"></span>
+            API Reference
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../api/endpoints/">
+<span class="md-ellipsis">
+    Endpoints
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../api/schemas/">
+<span class="md-ellipsis">
+    Schemas
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../api/examples/">
+<span class="md-ellipsis">
+    Examples
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_5" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../../modules/analysis/">
+<span class="md-ellipsis">
+    Analysis Modules
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_5_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_5">
+<span class="md-nav__icon md-icon"></span>
+            Analysis Modules
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/analysis/quality.md">
+<span class="md-ellipsis">
+    Quality Analysis
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/analysis/timing.md">
+<span class="md-ellipsis">
+    Timing Analysis
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/analysis/openings.md">
+<span class="md-ellipsis">
+    Opening Analysis
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/analysis/endgame.md">
+<span class="md-ellipsis">
+    Endgame Analysis
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/analysis/anomaly.md">
+<span class="md-ellipsis">
+    Anomaly Detection
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/analysis/bayesian.md">
+<span class="md-ellipsis">
+    Bayesian Models
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/analysis/longitudinal.md">
+<span class="md-ellipsis">
+    Longitudinal Analysis
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/analysis/clustering.md">
+<span class="md-ellipsis">
+    Clustering
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/analysis/ml-classifier.md">
+<span class="md-ellipsis">
+    ML Classifier
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_6" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../../modules/utils/">
+<span class="md-ellipsis">
+    Core Modules
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_6_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_6">
+<span class="md-nav__icon md-icon"></span>
+            Core Modules
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/configuration/">
+<span class="md-ellipsis">
+    Configuration
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/ml/">
+<span class="md-ellipsis">
+    ML Pipeline
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/database/README.md">
+<span class="md-ellipsis">
+    Database Layer
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_7" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../">
+<span class="md-ellipsis">
+    Algorithms
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="true" aria-labelledby="__nav_7_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_7">
+<span class="md-nav__icon md-icon"></span>
+            Algorithms
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../metrics/">
+<span class="md-ellipsis">
+    Metrics Reference
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--active">
+<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
+<label class="md-nav__link md-nav__link--active" for="__toc">
+<span class="md-ellipsis">
+    Statistical Models
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<a class="md-nav__link md-nav__link--active" href="./">
+<span class="md-ellipsis">
+    Statistical Models
+    
+  </span>
+</a>
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#overview">
+<span class="md-ellipsis">
+      Overview
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#time-series-models">
+<span class="md-ellipsis">
+      Time Series Models
+    </span>
+</a>
+<nav aria-label="Time Series Models" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#1-garch11-generalized-autoregressive-conditional-heteroskedasticity">
+<span class="md-ellipsis">
+      1. GARCH(1,1) - Generalized Autoregressive Conditional Heteroskedasticity
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#2-kalman-filter">
+<span class="md-ellipsis">
+      2. Kalman Filter
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#3-arima-models">
+<span class="md-ellipsis">
+      3. ARIMA Models
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#change-point-detection">
+<span class="md-ellipsis">
+      Change Point Detection
+    </span>
+</a>
+<nav aria-label="Change Point Detection" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#1-cusum-cumulative-sum-algorithm">
+<span class="md-ellipsis">
+      1. CUSUM (Cumulative Sum) Algorithm
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#2-bayesian-online-change-point-detection">
+<span class="md-ellipsis">
+      2. Bayesian Online Change Point Detection
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#anomaly-detection-models">
+<span class="md-ellipsis">
+      Anomaly Detection Models
+    </span>
+</a>
+<nav aria-label="Anomaly Detection Models" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#1-isolation-forest">
+<span class="md-ellipsis">
+      1. Isolation Forest
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#2-stl-decomposition-for-anomaly-detection">
+<span class="md-ellipsis">
+      2. STL Decomposition for Anomaly Detection
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#bayesian-models">
+<span class="md-ellipsis">
+      Bayesian Models
+    </span>
+</a>
+<nav aria-label="Bayesian Models" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#1-beta-binomial-model-for-suspicion-priors">
+<span class="md-ellipsis">
+      1. Beta-Binomial Model for Suspicion Priors
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#2-naive-bayes-for-evidence-integration">
+<span class="md-ellipsis">
+      2. Naive Bayes for Evidence Integration
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#clustering-models">
+<span class="md-ellipsis">
+      Clustering Models
+    </span>
+</a>
+<nav aria-label="Clustering Models" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#1-k-means-clustering">
+<span class="md-ellipsis">
+      1. K-Means Clustering
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#2-gaussian-mixture-models">
+<span class="md-ellipsis">
+      2. Gaussian Mixture Models
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#statistical-process-control">
+<span class="md-ellipsis">
+      Statistical Process Control
+    </span>
+</a>
+<nav aria-label="Statistical Process Control" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#1-control-charts">
+<span class="md-ellipsis">
+      1. Control Charts
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#2-process-capability-indices">
+<span class="md-ellipsis">
+      2. Process Capability Indices
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#model-selection-and-validation">
+<span class="md-ellipsis">
+      Model Selection and Validation
+    </span>
+</a>
+<nav aria-label="Model Selection and Validation" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#1-automatic-model-selection">
+<span class="md-ellipsis">
+      1. Automatic Model Selection
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#2-information-criteria">
+<span class="md-ellipsis">
+      2. Information Criteria
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#3-cross-validation">
+<span class="md-ellipsis">
+      3. Cross-Validation
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#numerical-considerations">
+<span class="md-ellipsis">
+      Numerical Considerations
+    </span>
+</a>
+<nav aria-label="Numerical Considerations" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#1-numerical-stability">
+<span class="md-ellipsis">
+      1. Numerical Stability
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#2-convergence-criteria">
+<span class="md-ellipsis">
+      2. Convergence Criteria
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#performance-optimization">
+<span class="md-ellipsis">
+      Performance Optimization
+    </span>
+</a>
+<nav aria-label="Performance Optimization" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#1-vectorization">
+<span class="md-ellipsis">
+      1. Vectorization
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#2-caching-strategy">
+<span class="md-ellipsis">
+      2. Caching Strategy
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#references">
+<span class="md-ellipsis">
+      References
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../performance/">
+<span class="md-ellipsis">
+    Performance Analysis
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../performance-optimizations/">
+<span class="md-ellipsis">
+    Performance Optimizations
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../external-integrations/">
+<span class="md-ellipsis">
+    External Integrations
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../security-best-practices/">
+<span class="md-ellipsis">
+    Security &amp; Best Practices
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../advanced-statistical-models/">
+<span class="md-ellipsis">
+    Advanced Models
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../cross-game-correlation/">
+<span class="md-ellipsis">
+    Cross-Game Correlation
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../enhanced-timing-patterns/">
+<span class="md-ellipsis">
+    Timing Patterns
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../positional-pattern-recognition/">
+<span class="md-ellipsis">
+    Pattern Recognition
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_8" type="checkbox"/>
+<label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+<span class="md-ellipsis">
+    Operations
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_8_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_8">
+<span class="md-nav__icon md-icon"></span>
+            Operations
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../guides/deployment/">
+<span class="md-ellipsis">
+    Deployment Guide
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../guides/testing/">
+<span class="md-ellipsis">
+    Testing &amp; CI/CD
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../guides/troubleshooting/">
+<span class="md-ellipsis">
+    Troubleshooting
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../guides/PERFORMANCE_ANALYSIS/">
+<span class="md-ellipsis">
+    Performance Analysis
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../guides/analysis-enhancement-plan/">
+<span class="md-ellipsis">
+    Enhancement Plan
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_9" type="checkbox"/>
+<label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
+<span class="md-ellipsis">
+    Legacy
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_9_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_9">
+<span class="md-nav__icon md-icon"></span>
+            Legacy
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../legacy/migration-guide/">
+<span class="md-ellipsis">
+    Migration Guide
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../legacy/old/">
+<span class="md-ellipsis">
+    Old Documentation
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-content" data-md-component="content">
+<article class="md-content__inner md-typeset">
+<h1 id="statistical-models-and-mathematical-foundations">Statistical Models and Mathematical Foundations</h1>
+<h2 id="overview">Overview</h2>
+<p>This document provides detailed mathematical foundations for the statistical models implemented in ChessPlayerAnalyzer. These models range from classical time series analysis to modern machine learning techniques, all specifically adapted for chess game analysis.</p>
+<h2 id="time-series-models">Time Series Models</h2>
+<h3 id="1-garch11-generalized-autoregressive-conditional-heteroskedasticity">1. GARCH(1,1) - Generalized Autoregressive Conditional Heteroskedasticity</h3>
+<p><strong>Purpose</strong>: Models time-varying volatility in chess performance metrics.</p>
+<p><strong>Mathematical Specification</strong>:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a href="#__codelineno-0-1" id="__codelineno-0-1" name="__codelineno-0-1"></a>r(t) = ¼ + µ(t)
+</span><span id="__span-0-2"><a href="#__codelineno-0-2" id="__codelineno-0-2" name="__codelineno-0-2"></a>µ(t) = Ã(t) × z(t),  z(t) ~ N(0,1)
+</span><span id="__span-0-3"><a href="#__codelineno-0-3" id="__codelineno-0-3" name="__codelineno-0-3"></a>Ã²(t) = É + ± × µ²(t-1) + ² × Ã²(t-1)
+</span></code></pre></div></p>
+<p><strong>Parameter Constraints</strong>:
+- <code>É &gt; 0</code> (non-negative long-term variance)
+- <code>± e 0</code> (ARCH coefficient)
+- <code>² e 0</code> (GARCH coefficient)
+- <code>± + ² &lt; 1</code> (stationarity condition)</p>
+<p><strong>Implementation</strong> (<code>performance_model.py:6-38</code>):
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a href="#__codelineno-1-1" id="__codelineno-1-1" name="__codelineno-1-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">fit_garch_model</span><span class="p">(</span><span class="n">series</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+</span><span id="__span-1-2"><a href="#__codelineno-1-2" id="__codelineno-1-2" name="__codelineno-1-2"></a>    <span class="c1"># Moment-based parameter estimation</span>
+</span><span id="__span-1-3"><a href="#__codelineno-1-3" id="__codelineno-1-3" name="__codelineno-1-3"></a>    <span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.1</span>  <span class="c1"># ARCH coefficient</span>
+</span><span id="__span-1-4"><a href="#__codelineno-1-4" id="__codelineno-1-4" name="__codelineno-1-4"></a>    <span class="n">beta</span> <span class="o">=</span> <span class="mf">0.8</span>   <span class="c1"># GARCH coefficient</span>
+</span><span id="__span-1-5"><a href="#__codelineno-1-5" id="__codelineno-1-5" name="__codelineno-1-5"></a>    <span class="n">omega</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">var</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span> <span class="o">-</span> <span class="n">beta</span><span class="p">),</span> <span class="mf">1e-6</span><span class="p">)</span>
+</span><span id="__span-1-6"><a href="#__codelineno-1-6" id="__codelineno-1-6" name="__codelineno-1-6"></a>
+</span><span id="__span-1-7"><a href="#__codelineno-1-7" id="__codelineno-1-7" name="__codelineno-1-7"></a>    <span class="c1"># Recursive variance estimation</span>
+</span><span id="__span-1-8"><a href="#__codelineno-1-8" id="__codelineno-1-8" name="__codelineno-1-8"></a>    <span class="n">sigma2</span> <span class="o">=</span> <span class="n">var</span>
+</span><span id="__span-1-9"><a href="#__codelineno-1-9" id="__codelineno-1-9" name="__codelineno-1-9"></a>    <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">resid</span><span class="p">:</span>
+</span><span id="__span-1-10"><a href="#__codelineno-1-10" id="__codelineno-1-10" name="__codelineno-1-10"></a>        <span class="n">sigma2</span> <span class="o">=</span> <span class="n">omega</span> <span class="o">+</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">r</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">beta</span> <span class="o">*</span> <span class="n">sigma2</span>
+</span></code></pre></div></p>
+<p><strong>Applications in Chess Analysis</strong>:
+- Modeling volatility clustering in ACPL over time
+- Detecting periods of inconsistent play
+- Risk assessment for player performance</p>
+<h3 id="2-kalman-filter">2. Kalman Filter</h3>
+<p><strong>Purpose</strong>: State estimation for tracking true player skill over time.</p>
+<p><strong>State Space Representation</strong>:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a href="#__codelineno-2-1" id="__codelineno-2-1" name="__codelineno-2-1"></a>State Equation:    x(t) = x(t-1) + w(t)
+</span><span id="__span-2-2"><a href="#__codelineno-2-2" id="__codelineno-2-2" name="__codelineno-2-2"></a>Observation Eq:    z(t) = x(t) + v(t)
+</span><span id="__span-2-3"><a href="#__codelineno-2-3" id="__codelineno-2-3" name="__codelineno-2-3"></a>
+</span><span id="__span-2-4"><a href="#__codelineno-2-4" id="__codelineno-2-4" name="__codelineno-2-4"></a>where:
+</span><span id="__span-2-5"><a href="#__codelineno-2-5" id="__codelineno-2-5" name="__codelineno-2-5"></a>w(t) ~ N(0, Q)  [process noise]
+</span><span id="__span-2-6"><a href="#__codelineno-2-6" id="__codelineno-2-6" name="__codelineno-2-6"></a>v(t) ~ N(0, R)  [observation noise]
+</span></code></pre></div></p>
+<p><strong>Kalman Filter Equations</strong>:</p>
+<p><strong>Prediction Step</strong>:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a href="#__codelineno-3-1" id="__codelineno-3-1" name="__codelineno-3-1"></a>x(t|t-1) = x(t-1|t-1)
+</span><span id="__span-3-2"><a href="#__codelineno-3-2" id="__codelineno-3-2" name="__codelineno-3-2"></a>P(t|t-1) = P(t-1|t-1) + Q
+</span></code></pre></div></p>
+<p><strong>Update Step</strong>:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a href="#__codelineno-4-1" id="__codelineno-4-1" name="__codelineno-4-1"></a>K(t) = P(t|t-1) / (P(t|t-1) + R)
+</span><span id="__span-4-2"><a href="#__codelineno-4-2" id="__codelineno-4-2" name="__codelineno-4-2"></a>x(t|t) = x(t|t-1) + K(t) × (z(t) - x(t|t-1))
+</span><span id="__span-4-3"><a href="#__codelineno-4-3" id="__codelineno-4-3" name="__codelineno-4-3"></a>P(t|t) = (1 - K(t)) × P(t|t-1)
+</span></code></pre></div></p>
+<p><strong>Implementation</strong> (<code>performance_model.py:80-90</code>):
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a href="#__codelineno-5-1" id="__codelineno-5-1" name="__codelineno-5-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">fit_kalman_filter</span><span class="p">(</span><span class="n">series</span><span class="p">):</span>
+</span><span id="__span-5-2"><a href="#__codelineno-5-2" id="__codelineno-5-2" name="__codelineno-5-2"></a>    <span class="n">x</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">series</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>  <span class="c1"># Initial state</span>
+</span><span id="__span-5-3"><a href="#__codelineno-5-3" id="__codelineno-5-3" name="__codelineno-5-3"></a>    <span class="n">p</span> <span class="o">=</span> <span class="mf">1.0</span>                    <span class="c1"># Initial covariance</span>
+</span><span id="__span-5-4"><a href="#__codelineno-5-4" id="__codelineno-5-4" name="__codelineno-5-4"></a>    <span class="n">q</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">var</span><span class="p">(</span><span class="n">series</span><span class="o">.</span><span class="n">diff</span><span class="p">()</span><span class="o">.</span><span class="n">dropna</span><span class="p">()))</span>  <span class="c1"># Process noise</span>
+</span><span id="__span-5-5"><a href="#__codelineno-5-5" id="__codelineno-5-5" name="__codelineno-5-5"></a>    <span class="n">r</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">var</span><span class="p">(</span><span class="n">series</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.1</span><span class="p">)</span>            <span class="c1"># Observation noise</span>
+</span><span id="__span-5-6"><a href="#__codelineno-5-6" id="__codelineno-5-6" name="__codelineno-5-6"></a>
+</span><span id="__span-5-7"><a href="#__codelineno-5-7" id="__codelineno-5-7" name="__codelineno-5-7"></a>    <span class="k">for</span> <span class="n">observation</span> <span class="ow">in</span> <span class="n">series</span><span class="p">:</span>
+</span><span id="__span-5-8"><a href="#__codelineno-5-8" id="__codelineno-5-8" name="__codelineno-5-8"></a>        <span class="c1"># Prediction</span>
+</span><span id="__span-5-9"><a href="#__codelineno-5-9" id="__codelineno-5-9" name="__codelineno-5-9"></a>        <span class="n">p</span> <span class="o">=</span> <span class="n">p</span> <span class="o">+</span> <span class="n">q</span>
+</span><span id="__span-5-10"><a href="#__codelineno-5-10" id="__codelineno-5-10" name="__codelineno-5-10"></a>        <span class="c1"># Update</span>
+</span><span id="__span-5-11"><a href="#__codelineno-5-11" id="__codelineno-5-11" name="__codelineno-5-11"></a>        <span class="n">k</span> <span class="o">=</span> <span class="n">p</span> <span class="o">/</span> <span class="p">(</span><span class="n">p</span> <span class="o">+</span> <span class="n">r</span><span class="p">)</span>
+</span><span id="__span-5-12"><a href="#__codelineno-5-12" id="__codelineno-5-12" name="__codelineno-5-12"></a>        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="n">k</span> <span class="o">*</span> <span class="p">(</span><span class="n">observation</span> <span class="o">-</span> <span class="n">x</span><span class="p">)</span>
+</span><span id="__span-5-13"><a href="#__codelineno-5-13" id="__codelineno-5-13" name="__codelineno-5-13"></a>        <span class="n">p</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">k</span><span class="p">)</span> <span class="o">*</span> <span class="n">p</span>
+</span></code></pre></div></p>
+<p><strong>Chess Applications</strong>:
+- Tracking true rating through noisy game results
+- Smoothing performance metrics over time
+- Real-time skill estimation</p>
+<h3 id="3-arima-models">3. ARIMA Models</h3>
+<p><strong>Mathematical Form</strong>:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a href="#__codelineno-6-1" id="__codelineno-6-1" name="__codelineno-6-1"></a>(1 - ÆL - ÆL² - ... - ÆLV)(1 - L)HX(t) = (1 + ¸L + ¸L² + ... + ¸L`)µ(t)
+</span></code></pre></div></p>
+<p><strong>Simple AR(1) Implementation</strong>:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a href="#__codelineno-7-1" id="__codelineno-7-1" name="__codelineno-7-1"></a>X(t) = c + ÆX(t-1) + µ(t)
+</span></code></pre></div></p>
+<p><strong>Parameter Estimation</strong> (Least Squares):
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a href="#__codelineno-8-1" id="__codelineno-8-1" name="__codelineno-8-1"></a><span class="c1"># X(t) = c + ÆX(t-1) + µ(t)</span>
+</span><span id="__span-8-2"><a href="#__codelineno-8-2" id="__codelineno-8-2" name="__codelineno-8-2"></a><span class="n">y</span> <span class="o">=</span> <span class="n">series</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">values</span>
+</span><span id="__span-8-3"><a href="#__codelineno-8-3" id="__codelineno-8-3" name="__codelineno-8-3"></a><span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)),</span> <span class="n">series</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>
+</span><span id="__span-8-4"><a href="#__codelineno-8-4" id="__codelineno-8-4" name="__codelineno-8-4"></a><span class="n">c</span><span class="p">,</span> <span class="n">phi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">lstsq</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">rcond</span><span class="o">=</span><span class="kc">None</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+</span></code></pre></div></p>
+<h2 id="change-point-detection">Change Point Detection</h2>
+<h3 id="1-cusum-cumulative-sum-algorithm">1. CUSUM (Cumulative Sum) Algorithm</h3>
+<p><strong>Mathematical Foundation</strong>:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a href="#__codelineno-9-1" id="__codelineno-9-1" name="__codelineno-9-1"></a>Sz(t) = max(0, Sz(t-1) + (x(t) - ¼ - k))
+</span><span id="__span-9-2"><a href="#__codelineno-9-2" id="__codelineno-9-2" name="__codelineno-9-2"></a>S{(t) = min(0, S{(t-1) + (x(t) - ¼ + k))
+</span><span id="__span-9-3"><a href="#__codelineno-9-3" id="__codelineno-9-3" name="__codelineno-9-3"></a>
+</span><span id="__span-9-4"><a href="#__codelineno-9-4" id="__codelineno-9-4" name="__codelineno-9-4"></a>Change detected when: |Sz(t)| &gt; h or |S{(t)| &gt; h
+</span></code></pre></div></p>
+<p><strong>Parameters</strong>:
+- <code>k</code>: allowable drift (usually 0.5Ã)
+- <code>h</code>: decision threshold (usually 4-5Ã)</p>
+<p><strong>Implementation</strong> (<code>change_point.py:7-40</code>):
+<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a href="#__codelineno-10-1" id="__codelineno-10-1" name="__codelineno-10-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">cusum_change_points</span><span class="p">(</span><span class="n">series</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">drift</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
+</span><span id="__span-10-2"><a href="#__codelineno-10-2" id="__codelineno-10-2" name="__codelineno-10-2"></a>    <span class="k">if</span> <span class="n">threshold</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-10-3"><a href="#__codelineno-10-3" id="__codelineno-10-3" name="__codelineno-10-3"></a>        <span class="n">threshold</span> <span class="o">=</span> <span class="mi">5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">series</span><span class="p">)</span>
+</span><span id="__span-10-4"><a href="#__codelineno-10-4" id="__codelineno-10-4" name="__codelineno-10-4"></a>
+</span><span id="__span-10-5"><a href="#__codelineno-10-5" id="__codelineno-10-5" name="__codelineno-10-5"></a>    <span class="n">pos_sum</span> <span class="o">=</span> <span class="n">neg_sum</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span id="__span-10-6"><a href="#__codelineno-10-6" id="__codelineno-10-6" name="__codelineno-10-6"></a>    <span class="n">change_points</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="__span-10-7"><a href="#__codelineno-10-7" id="__codelineno-10-7" name="__codelineno-10-7"></a>
+</span><span id="__span-10-8"><a href="#__codelineno-10-8" id="__codelineno-10-8" name="__codelineno-10-8"></a>    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">series</span><span class="p">)):</span>
+</span><span id="__span-10-9"><a href="#__codelineno-10-9" id="__codelineno-10-9" name="__codelineno-10-9"></a>        <span class="n">diff</span> <span class="o">=</span> <span class="n">series</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">series</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">drift</span>
+</span><span id="__span-10-10"><a href="#__codelineno-10-10" id="__codelineno-10-10" name="__codelineno-10-10"></a>        <span class="n">pos_sum</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">pos_sum</span> <span class="o">+</span> <span class="n">diff</span><span class="p">)</span>
+</span><span id="__span-10-11"><a href="#__codelineno-10-11" id="__codelineno-10-11" name="__codelineno-10-11"></a>        <span class="n">neg_sum</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">neg_sum</span> <span class="o">+</span> <span class="n">diff</span><span class="p">)</span>
+</span><span id="__span-10-12"><a href="#__codelineno-10-12" id="__codelineno-10-12" name="__codelineno-10-12"></a>
+</span><span id="__span-10-13"><a href="#__codelineno-10-13" id="__codelineno-10-13" name="__codelineno-10-13"></a>        <span class="k">if</span> <span class="n">pos_sum</span> <span class="o">&gt;</span> <span class="n">threshold</span> <span class="ow">or</span> <span class="n">neg_sum</span> <span class="o">&lt;</span> <span class="o">-</span><span class="n">threshold</span><span class="p">:</span>
+</span><span id="__span-10-14"><a href="#__codelineno-10-14" id="__codelineno-10-14" name="__codelineno-10-14"></a>            <span class="n">change_points</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+</span><span id="__span-10-15"><a href="#__codelineno-10-15" id="__codelineno-10-15" name="__codelineno-10-15"></a>            <span class="n">pos_sum</span> <span class="o">=</span> <span class="n">neg_sum</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span></code></pre></div></p>
+<h3 id="2-bayesian-online-change-point-detection">2. Bayesian Online Change Point Detection</h3>
+<p><strong>Mathematical Framework</strong> (Adams &amp; MacKay, 2007):</p>
+<p><strong>Prior Distribution</strong>:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a href="#__codelineno-11-1" id="__codelineno-11-1" name="__codelineno-11-1"></a>P(r(t) = Ä) = H(Ä)bW{W(1 - H(i))
+</span><span id="__span-11-2"><a href="#__codelineno-11-2" id="__codelineno-11-2" name="__codelineno-11-2"></a>
+</span><span id="__span-11-3"><a href="#__codelineno-11-3" id="__codelineno-11-3" name="__codelineno-11-3"></a>where H(Ä) is the hazard function
+</span></code></pre></div></p>
+<p><strong>Posterior Update</strong>:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a href="#__codelineno-12-1" id="__codelineno-12-1" name="__codelineno-12-1"></a>P(r(t)|x:t)  P(x(t)|r(t), x:t-1) × P(r(t)|x:t-1)
+</span></code></pre></div></p>
+<p><strong>Student-t Predictive Distribution</strong>:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a href="#__codelineno-13-1" id="__codelineno-13-1" name="__codelineno-13-1"></a>p(x(t)|x_{Ä+1:t-1}) = Student-t(2±, ¼, ²(º+1)/(±º))
+</span><span id="__span-13-2"><a href="#__codelineno-13-2" id="__codelineno-13-2" name="__codelineno-13-2"></a>
+</span><span id="__span-13-3"><a href="#__codelineno-13-3" id="__codelineno-13-3" name="__codelineno-13-3"></a>where:
+</span><span id="__span-13-4"><a href="#__codelineno-13-4" id="__codelineno-13-4" name="__codelineno-13-4"></a>¼ = (º¼ + £x) / (º + t - Ä)
+</span><span id="__span-13-5"><a href="#__codelineno-13-5" id="__codelineno-13-5" name="__codelineno-13-5"></a>± = ± + (t - Ä) / 2
+</span><span id="__span-13-6"><a href="#__codelineno-13-6" id="__codelineno-13-6" name="__codelineno-13-6"></a>² = ² + 0.5£(x - ¼)² + º(t-Ä)(x - ¼)² / (2(º + t - Ä))
+</span></code></pre></div></p>
+<p><strong>Implementation</strong> (<code>change_point.py:43-120</code>):
+<div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a href="#__codelineno-14-1" id="__codelineno-14-1" name="__codelineno-14-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">bayesian_online_change_points</span><span class="p">(</span><span class="n">series</span><span class="p">,</span> <span class="n">hazard_lambda</span><span class="o">=</span><span class="mi">250</span><span class="p">):</span>
+</span><span id="__span-14-2"><a href="#__codelineno-14-2" id="__codelineno-14-2" name="__codelineno-14-2"></a>    <span class="n">hazard</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">hazard_lambda</span>
+</span><span id="__span-14-3"><a href="#__codelineno-14-3" id="__codelineno-14-3" name="__codelineno-14-3"></a>    <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span>  <span class="c1"># Run length probabilities</span>
+</span><span id="__span-14-4"><a href="#__codelineno-14-4" id="__codelineno-14-4" name="__codelineno-14-4"></a>
+</span><span id="__span-14-5"><a href="#__codelineno-14-5" id="__codelineno-14-5" name="__codelineno-14-5"></a>    <span class="k">for</span> <span class="n">t</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+</span><span id="__span-14-6"><a href="#__codelineno-14-6" id="__codelineno-14-6" name="__codelineno-14-6"></a>        <span class="c1"># Predictive probabilities</span>
+</span><span id="__span-14-7"><a href="#__codelineno-14-7" id="__codelineno-14-7" name="__codelineno-14-7"></a>        <span class="n">pred_probs</span> <span class="o">=</span> <span class="n">student_t_pdf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">pred_mean</span><span class="p">,</span> <span class="n">pred_var</span><span class="p">,</span> <span class="n">pred_nu</span><span class="p">)</span>
+</span><span id="__span-14-8"><a href="#__codelineno-14-8" id="__codelineno-14-8" name="__codelineno-14-8"></a>
+</span><span id="__span-14-9"><a href="#__codelineno-14-9" id="__codelineno-14-9" name="__codelineno-14-9"></a>        <span class="c1"># Update run length probabilities</span>
+</span><span id="__span-14-10"><a href="#__codelineno-14-10" id="__codelineno-14-10" name="__codelineno-14-10"></a>        <span class="n">R</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">t</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">R</span><span class="p">[:</span><span class="n">t</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span> <span class="o">*</span> <span class="n">pred_probs</span> <span class="o">*</span> <span class="n">hazard</span><span class="p">)</span>
+</span><span id="__span-14-11"><a href="#__codelineno-14-11" id="__codelineno-14-11" name="__codelineno-14-11"></a>        <span class="n">R</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="n">t</span><span class="o">+</span><span class="mi">2</span><span class="p">,</span> <span class="n">t</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">R</span><span class="p">[:</span><span class="n">t</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span> <span class="o">*</span> <span class="n">pred_probs</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">hazard</span><span class="p">)</span>
+</span><span id="__span-14-12"><a href="#__codelineno-14-12" id="__codelineno-14-12" name="__codelineno-14-12"></a>
+</span><span id="__span-14-13"><a href="#__codelineno-14-13" id="__codelineno-14-13" name="__codelineno-14-13"></a>        <span class="c1"># Normalize</span>
+</span><span id="__span-14-14"><a href="#__codelineno-14-14" id="__codelineno-14-14" name="__codelineno-14-14"></a>        <span class="n">R</span><span class="p">[:</span><span class="n">t</span><span class="o">+</span><span class="mi">2</span><span class="p">,</span> <span class="n">t</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">R</span><span class="p">[:</span><span class="n">t</span><span class="o">+</span><span class="mi">2</span><span class="p">,</span> <span class="n">t</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span>
+</span></code></pre></div></p>
+<h2 id="anomaly-detection-models">Anomaly Detection Models</h2>
+<h3 id="1-isolation-forest">1. Isolation Forest</h3>
+<p><strong>Algorithm Principle</strong>:
+- Anomalies are "few and different"
+- Random partitioning isolates anomalies faster
+- Path length in isolation tree indicates anomaly score</p>
+<p><strong>Mathematical Foundation</strong>:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a href="#__codelineno-15-1" id="__codelineno-15-1" name="__codelineno-15-1"></a>Anomaly Score = 2^(-E(h(x))/c(n))
+</span><span id="__span-15-2"><a href="#__codelineno-15-2" id="__codelineno-15-2" name="__codelineno-15-2"></a>
+</span><span id="__span-15-3"><a href="#__codelineno-15-3" id="__codelineno-15-3" name="__codelineno-15-3"></a>where:
+</span><span id="__span-15-4"><a href="#__codelineno-15-4" id="__codelineno-15-4" name="__codelineno-15-4"></a>E(h(x)) = average path length of x over all trees
+</span><span id="__span-15-5"><a href="#__codelineno-15-5" id="__codelineno-15-5" name="__codelineno-15-5"></a>c(n) = 2H(n-1) - (2(n-1)/n)  [average path length of BST]
+</span><span id="__span-15-6"><a href="#__codelineno-15-6" id="__codelineno-15-6" name="__codelineno-15-6"></a>H(n) = ln(n) + ³  [harmonic number]
+</span></code></pre></div></p>
+<p><strong>Implementation Details</strong>:
+<div class="language-python highlight"><pre><span></span><code><span id="__span-16-1"><a href="#__codelineno-16-1" id="__codelineno-16-1" name="__codelineno-16-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.ensemble</span><span class="w"> </span><span class="kn">import</span> <span class="n">IsolationForest</span>
+</span><span id="__span-16-2"><a href="#__codelineno-16-2" id="__codelineno-16-2" name="__codelineno-16-2"></a>
+</span><span id="__span-16-3"><a href="#__codelineno-16-3" id="__codelineno-16-3" name="__codelineno-16-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">IsolationForest</span><span class="p">(</span>
+</span><span id="__span-16-4"><a href="#__codelineno-16-4" id="__codelineno-16-4" name="__codelineno-16-4"></a>    <span class="n">n_estimators</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+</span><span id="__span-16-5"><a href="#__codelineno-16-5" id="__codelineno-16-5" name="__codelineno-16-5"></a>    <span class="n">contamination</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>  <span class="c1"># Expected anomaly rate</span>
+</span><span id="__span-16-6"><a href="#__codelineno-16-6" id="__codelineno-16-6" name="__codelineno-16-6"></a>    <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span>
+</span><span id="__span-16-7"><a href="#__codelineno-16-7" id="__codelineno-16-7" name="__codelineno-16-7"></a><span class="p">)</span>
+</span><span id="__span-16-8"><a href="#__codelineno-16-8" id="__codelineno-16-8" name="__codelineno-16-8"></a><span class="n">scores</span> <span class="o">=</span> <span class="o">-</span><span class="n">model</span><span class="o">.</span><span class="n">decision_function</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>  <span class="c1"># Higher = more anomalous</span>
+</span></code></pre></div></p>
+<h3 id="2-stl-decomposition-for-anomaly-detection">2. STL Decomposition for Anomaly Detection</h3>
+<p><strong>Seasonal-Trend Decomposition</strong>:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a href="#__codelineno-17-1" id="__codelineno-17-1" name="__codelineno-17-1"></a>X(t) = T(t) + S(t) + R(t)
+</span><span id="__span-17-2"><a href="#__codelineno-17-2" id="__codelineno-17-2" name="__codelineno-17-2"></a>
+</span><span id="__span-17-3"><a href="#__codelineno-17-3" id="__codelineno-17-3" name="__codelineno-17-3"></a>where:
+</span><span id="__span-17-4"><a href="#__codelineno-17-4" id="__codelineno-17-4" name="__codelineno-17-4"></a>T(t) = trend component
+</span><span id="__span-17-5"><a href="#__codelineno-17-5" id="__codelineno-17-5" name="__codelineno-17-5"></a>S(t) = seasonal component
+</span><span id="__span-17-6"><a href="#__codelineno-17-6" id="__codelineno-17-6" name="__codelineno-17-6"></a>R(t) = residual component
+</span></code></pre></div></p>
+<p><strong>Loess Smoothing</strong> (for trend and seasonal):
+<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a href="#__codelineno-18-1" id="__codelineno-18-1" name="__codelineno-18-1"></a>Weighted regression: w(i) = (1 - (|x - xb|/d)³)³
+</span><span id="__span-18-2"><a href="#__codelineno-18-2" id="__codelineno-18-2" name="__codelineno-18-2"></a>
+</span><span id="__span-18-3"><a href="#__codelineno-18-3" id="__codelineno-18-3" name="__codelineno-18-3"></a>where d is the distance to the q-th nearest neighbor
+</span></code></pre></div></p>
+<p><strong>Anomaly Detection</strong>:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-19-1"><a href="#__codelineno-19-1" id="__codelineno-19-1" name="__codelineno-19-1"></a>Z-score = (R(t) - ¼c) / Ãc
+</span><span id="__span-19-2"><a href="#__codelineno-19-2" id="__codelineno-19-2" name="__codelineno-19-2"></a>Anomaly if |Z-score| &gt; threshold (typically 2-3)
+</span></code></pre></div></p>
+<h2 id="bayesian-models">Bayesian Models</h2>
+<h3 id="1-beta-binomial-model-for-suspicion-priors">1. Beta-Binomial Model for Suspicion Priors</h3>
+<p><strong>Model Specification</strong>:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a href="#__codelineno-20-1" id="__codelineno-20-1" name="__codelineno-20-1"></a>Suspicious Games ~ Binomial(n, p)
+</span><span id="__span-20-2"><a href="#__codelineno-20-2" id="__codelineno-20-2" name="__codelineno-20-2"></a>p ~ Beta(±, ²)
+</span><span id="__span-20-3"><a href="#__codelineno-20-3" id="__codelineno-20-3" name="__codelineno-20-3"></a>
+</span><span id="__span-20-4"><a href="#__codelineno-20-4" id="__codelineno-20-4" name="__codelineno-20-4"></a>Posterior: p|data ~ Beta(± + successes, ² + failures)
+</span></code></pre></div></p>
+<p><strong>Prior Update with Experience</strong>:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-21-1"><a href="#__codelineno-21-1" id="__codelineno-21-1" name="__codelineno-21-1"></a>P(suspicious | rating, exp) = ± / (± + ² + extra_exp)
+</span><span id="__span-21-2"><a href="#__codelineno-21-2" id="__codelineno-21-2" name="__codelineno-21-2"></a>
+</span><span id="__span-21-3"><a href="#__codelineno-21-3" id="__codelineno-21-3" name="__codelineno-21-3"></a>where extra_exp = max(0, experience - bucket_start)
+</span></code></pre></div></p>
+<p><strong>Implementation</strong> (<code>bayesian.py:48-69</code>):
+<div class="language-python highlight"><pre><span></span><code><span id="__span-22-1"><a href="#__codelineno-22-1" id="__codelineno-22-1" name="__codelineno-22-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">compute_prior</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rating</span><span class="p">,</span> <span class="n">experience</span><span class="p">):</span>
+</span><span id="__span-22-2"><a href="#__codelineno-22-2" id="__codelineno-22-2" name="__codelineno-22-2"></a>    <span class="n">r_bucket</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rating_bucket</span><span class="p">(</span><span class="n">rating</span><span class="p">)</span>
+</span><span id="__span-22-3"><a href="#__codelineno-22-3" id="__codelineno-22-3" name="__codelineno-22-3"></a>    <span class="n">e_bucket</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exp_bucket</span><span class="p">(</span><span class="n">experience</span><span class="p">)</span>
+</span><span id="__span-22-4"><a href="#__codelineno-22-4" id="__codelineno-22-4" name="__codelineno-22-4"></a>
+</span><span id="__span-22-5"><a href="#__codelineno-22-5" id="__codelineno-22-5" name="__codelineno-22-5"></a>    <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">priors</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">r_bucket</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">e_bucket</span><span class="p">)</span>
+</span><span id="__span-22-6"><a href="#__codelineno-22-6" id="__codelineno-22-6" name="__codelineno-22-6"></a>    <span class="k">if</span> <span class="n">params</span><span class="p">:</span>
+</span><span id="__span-22-7"><a href="#__codelineno-22-7" id="__codelineno-22-7" name="__codelineno-22-7"></a>        <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">"alpha"</span><span class="p">],</span> <span class="n">params</span><span class="p">[</span><span class="s2">"beta"</span><span class="p">]</span>
+</span><span id="__span-22-8"><a href="#__codelineno-22-8" id="__codelineno-22-8" name="__codelineno-22-8"></a>        <span class="n">start</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">e_bucket</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">'-'</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+</span><span id="__span-22-9"><a href="#__codelineno-22-9" id="__codelineno-22-9" name="__codelineno-22-9"></a>        <span class="n">extra</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">experience</span> <span class="o">-</span> <span class="n">start</span><span class="p">)</span>
+</span><span id="__span-22-10"><a href="#__codelineno-22-10" id="__codelineno-22-10" name="__codelineno-22-10"></a>        <span class="n">p</span> <span class="o">=</span> <span class="n">alpha</span> <span class="o">/</span> <span class="p">(</span><span class="n">alpha</span> <span class="o">+</span> <span class="n">beta</span> <span class="o">+</span> <span class="n">extra</span><span class="p">)</span>
+</span><span id="__span-22-11"><a href="#__codelineno-22-11" id="__codelineno-22-11" name="__codelineno-22-11"></a>    <span class="k">else</span><span class="p">:</span>
+</span><span id="__span-22-12"><a href="#__codelineno-22-12" id="__codelineno-22-12" name="__codelineno-22-12"></a>        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_prior</span>
+</span><span id="__span-22-13"><a href="#__codelineno-22-13" id="__codelineno-22-13" name="__codelineno-22-13"></a>
+</span><span id="__span-22-14"><a href="#__codelineno-22-14" id="__codelineno-22-14" name="__codelineno-22-14"></a>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_clamp</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>  <span class="c1"># Ensure [0.001, 0.999]</span>
+</span></code></pre></div></p>
+<h3 id="2-naive-bayes-for-evidence-integration">2. Naive Bayes for Evidence Integration</h3>
+<p><strong>Likelihood Ratio Updates</strong>:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-23-1"><a href="#__codelineno-23-1" id="__codelineno-23-1" name="__codelineno-23-1"></a>Posterior Odds = Prior Odds × b LR(evidenceb)
+</span><span id="__span-23-2"><a href="#__codelineno-23-2" id="__codelineno-23-2" name="__codelineno-23-2"></a>
+</span><span id="__span-23-3"><a href="#__codelineno-23-3" id="__codelineno-23-3" name="__codelineno-23-3"></a>where LR(e) = P(e|suspicious) / P(e|not_suspicious)
+</span></code></pre></div></p>
+<p><strong>Evidence-Specific Likelihood Ratios</strong>:
+<div class="language-python highlight"><pre><span></span><code><span id="__span-24-1"><a href="#__codelineno-24-1" id="__codelineno-24-1" name="__codelineno-24-1"></a><span class="n">likelihood_rules</span> <span class="o">=</span> <span class="p">{</span>
+</span><span id="__span-24-2"><a href="#__codelineno-24-2" id="__codelineno-24-2" name="__codelineno-24-2"></a>    <span class="s2">"acpl"</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="mf">5.0</span> <span class="k">if</span> <span class="n">v</span> <span class="o">&lt;</span> <span class="mi">20</span> <span class="k">else</span> <span class="mf">1.0</span><span class="p">,</span>
+</span><span id="__span-24-3"><a href="#__codelineno-24-3" id="__codelineno-24-3" name="__codelineno-24-3"></a>    <span class="s2">"match_rate"</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="mf">4.0</span> <span class="k">if</span> <span class="n">v</span> <span class="o">&gt;</span> <span class="mf">0.7</span> <span class="k">else</span> <span class="mf">1.0</span><span class="p">,</span>
+</span><span id="__span-24-4"><a href="#__codelineno-24-4" id="__codelineno-24-4" name="__codelineno-24-4"></a>    <span class="s2">"time_complexity_corr"</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="mf">3.0</span> <span class="k">if</span> <span class="n">v</span> <span class="o">&lt;</span> <span class="mf">0.1</span> <span class="k">else</span> <span class="mf">1.0</span><span class="p">,</span>
+</span><span id="__span-24-5"><a href="#__codelineno-24-5" id="__codelineno-24-5" name="__codelineno-24-5"></a>    <span class="s2">"lag_spike_count"</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="mf">2.0</span> <span class="k">if</span> <span class="n">v</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="k">else</span> <span class="mf">1.0</span><span class="p">,</span>
+</span><span id="__span-24-6"><a href="#__codelineno-24-6" id="__codelineno-24-6" name="__codelineno-24-6"></a><span class="p">}</span>
+</span></code></pre></div></p>
+<h2 id="clustering-models">Clustering Models</h2>
+<h3 id="1-k-means-clustering">1. K-Means Clustering</h3>
+<p><strong>Objective Function</strong>:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-25-1"><a href="#__codelineno-25-1" id="__codelineno-25-1" name="__codelineno-25-1"></a>J = £b £|O wb| ||xb - ¼|||²
+</span><span id="__span-25-2"><a href="#__codelineno-25-2" id="__codelineno-25-2" name="__codelineno-25-2"></a>
+</span><span id="__span-25-3"><a href="#__codelineno-25-3" id="__codelineno-25-3" name="__codelineno-25-3"></a>where wb| = 1 if xb assigned to cluster j, 0 otherwise
+</span></code></pre></div></p>
+<p><strong>Lloyd's Algorithm</strong>:
+1. Initialize k centroids randomly
+2. Assign points to nearest centroid
+3. Update centroids: <code>¼| = (1/|C||) £bC| xb</code>
+4. Repeat until convergence</p>
+<p><strong>Implementation</strong>:
+<div class="language-python highlight"><pre><span></span><code><span id="__span-26-1"><a href="#__codelineno-26-1" id="__codelineno-26-1" name="__codelineno-26-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.cluster</span><span class="w"> </span><span class="kn">import</span> <span class="n">KMeans</span>
+</span><span id="__span-26-2"><a href="#__codelineno-26-2" id="__codelineno-26-2" name="__codelineno-26-2"></a>
+</span><span id="__span-26-3"><a href="#__codelineno-26-3" id="__codelineno-26-3" name="__codelineno-26-3"></a><span class="n">kmeans</span> <span class="o">=</span> <span class="n">KMeans</span><span class="p">(</span><span class="n">n_clusters</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
+</span><span id="__span-26-4"><a href="#__codelineno-26-4" id="__codelineno-26-4" name="__codelineno-26-4"></a><span class="n">kmeans</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>  <span class="c1"># [mean_move_time, avg_acpl, mean_entropy]</span>
+</span></code></pre></div></p>
+<h3 id="2-gaussian-mixture-models">2. Gaussian Mixture Models</h3>
+<p><strong>Model Specification</strong>:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-27-1"><a href="#__codelineno-27-1" id="__codelineno-27-1" name="__codelineno-27-1"></a>P(x) = £7 À N(x | ¼, £)
+</span><span id="__span-27-2"><a href="#__codelineno-27-2" id="__codelineno-27-2" name="__codelineno-27-2"></a>
+</span><span id="__span-27-3"><a href="#__codelineno-27-3" id="__codelineno-27-3" name="__codelineno-27-3"></a>where:
+</span><span id="__span-27-4"><a href="#__codelineno-27-4" id="__codelineno-27-4" name="__codelineno-27-4"></a>À = mixing coefficients (£À = 1)
+</span><span id="__span-27-5"><a href="#__codelineno-27-5" id="__codelineno-27-5" name="__codelineno-27-5"></a>N(x|¼,£) = multivariate Gaussian
+</span></code></pre></div></p>
+<p><strong>EM Algorithm</strong>:</p>
+<p><strong>E-Step</strong> (Expectation):
+<div class="language-text highlight"><pre><span></span><code><span id="__span-28-1"><a href="#__codelineno-28-1" id="__codelineno-28-1" name="__codelineno-28-1"></a>³(z) = ÀN(x|¼,£) / £| À|N(x|¼|,£|)
+</span></code></pre></div></p>
+<p><strong>M-Step</strong> (Maximization):
+<div class="language-text highlight"><pre><span></span><code><span id="__span-29-1"><a href="#__codelineno-29-1" id="__codelineno-29-1" name="__codelineno-29-1"></a>À = (1/N) £ ³(z)
+</span><span id="__span-29-2"><a href="#__codelineno-29-2" id="__codelineno-29-2" name="__codelineno-29-2"></a>¼ = £ ³(z)x / £ ³(z)
+</span><span id="__span-29-3"><a href="#__codelineno-29-3" id="__codelineno-29-3" name="__codelineno-29-3"></a>£ = £ ³(z)(x-¼)(x-¼)@ / £ ³(z)
+</span></code></pre></div></p>
+<h2 id="statistical-process-control">Statistical Process Control</h2>
+<h3 id="1-control-charts">1. Control Charts</h3>
+<p><strong>Shewhart Control Charts</strong>:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-30-1"><a href="#__codelineno-30-1" id="__codelineno-30-1" name="__codelineno-30-1"></a>X-bar chart:
+</span><span id="__span-30-2"><a href="#__codelineno-30-2" id="__codelineno-30-2" name="__codelineno-30-2"></a>UCL = ¼ + 3Ã/n
+</span><span id="__span-30-3"><a href="#__codelineno-30-3" id="__codelineno-30-3" name="__codelineno-30-3"></a>CL = ¼
+</span><span id="__span-30-4"><a href="#__codelineno-30-4" id="__codelineno-30-4" name="__codelineno-30-4"></a>LCL = ¼ - 3Ã/n
+</span><span id="__span-30-5"><a href="#__codelineno-30-5" id="__codelineno-30-5" name="__codelineno-30-5"></a>
+</span><span id="__span-30-6"><a href="#__codelineno-30-6" id="__codelineno-30-6" name="__codelineno-30-6"></a>R chart:
+</span><span id="__span-30-7"><a href="#__codelineno-30-7" id="__codelineno-30-7" name="__codelineno-30-7"></a>UCL = D × R
+</span><span id="__span-30-8"><a href="#__codelineno-30-8" id="__codelineno-30-8" name="__codelineno-30-8"></a>CL = R
+</span><span id="__span-30-9"><a href="#__codelineno-30-9" id="__codelineno-30-9" name="__codelineno-30-9"></a>LCL = D × R
+</span></code></pre></div></p>
+<p><strong>EWMA (Exponentially Weighted Moving Average)</strong>:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-31-1"><a href="#__codelineno-31-1" id="__codelineno-31-1" name="__codelineno-31-1"></a>EWMA(t) = »X(t) + (1-»)EWMA(t-1)
+</span><span id="__span-31-2"><a href="#__codelineno-31-2" id="__codelineno-31-2" name="__codelineno-31-2"></a>
+</span><span id="__span-31-3"><a href="#__codelineno-31-3" id="__codelineno-31-3" name="__codelineno-31-3"></a>Control Limits:
+</span><span id="__span-31-4"><a href="#__codelineno-31-4" id="__codelineno-31-4" name="__codelineno-31-4"></a>UCL/LCL = ¼ ± L(»/(2-»)[1-(1-»)²W])Ã
+</span></code></pre></div></p>
+<h3 id="2-process-capability-indices">2. Process Capability Indices</h3>
+<p><strong>Capability Indices</strong>:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-32-1"><a href="#__codelineno-32-1" id="__codelineno-32-1" name="__codelineno-32-1"></a>Cp = (USL - LSL) / (6Ã)          [potential capability]
+</span><span id="__span-32-2"><a href="#__codelineno-32-2" id="__codelineno-32-2" name="__codelineno-32-2"></a>Cpk = min(CPU, CPL)              [actual capability]
+</span><span id="__span-32-3"><a href="#__codelineno-32-3" id="__codelineno-32-3" name="__codelineno-32-3"></a>CPU = (USL - ¼) / (3Ã)           [upper capability]
+</span><span id="__span-32-4"><a href="#__codelineno-32-4" id="__codelineno-32-4" name="__codelineno-32-4"></a>CPL = (¼ - LSL) / (3Ã)           [lower capability]
+</span></code></pre></div></p>
+<p><strong>Performance Indices</strong>:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-33-1"><a href="#__codelineno-33-1" id="__codelineno-33-1" name="__codelineno-33-1"></a>Pp = (USL - LSL) / (6s)          [overall performance]
+</span><span id="__span-33-2"><a href="#__codelineno-33-2" id="__codelineno-33-2" name="__codelineno-33-2"></a>Ppk = min(PPU, PPL)              [overall performance index]
+</span></code></pre></div></p>
+<h2 id="model-selection-and-validation">Model Selection and Validation</h2>
+<h3 id="1-automatic-model-selection">1. Automatic Model Selection</h3>
+<p><strong>Volatility-Based Selection</strong> (<code>performance_model.py:61-68</code>):
+<div class="language-python highlight"><pre><span></span><code><span id="__span-34-1"><a href="#__codelineno-34-1" id="__codelineno-34-1" name="__codelineno-34-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">auto_select_model</span><span class="p">(</span><span class="n">series</span><span class="p">):</span>
+</span><span id="__span-34-2"><a href="#__codelineno-34-2" id="__codelineno-34-2" name="__codelineno-34-2"></a>    <span class="n">volatility</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">series</span><span class="o">.</span><span class="n">diff</span><span class="p">()</span><span class="o">.</span><span class="n">dropna</span><span class="p">())</span>
+</span><span id="__span-34-3"><a href="#__codelineno-34-3" id="__codelineno-34-3" name="__codelineno-34-3"></a>
+</span><span id="__span-34-4"><a href="#__codelineno-34-4" id="__codelineno-34-4" name="__codelineno-34-4"></a>    <span class="k">if</span> <span class="n">volatility</span> <span class="o">&gt;</span> <span class="mf">1.0</span><span class="p">:</span>
+</span><span id="__span-34-5"><a href="#__codelineno-34-5" id="__codelineno-34-5" name="__codelineno-34-5"></a>        <span class="k">return</span> <span class="s2">"garch"</span>      <span class="c1"># High volatility  GARCH</span>
+</span><span id="__span-34-6"><a href="#__codelineno-34-6" id="__codelineno-34-6" name="__codelineno-34-6"></a>    <span class="k">elif</span> <span class="n">volatility</span> <span class="o">&gt;</span> <span class="mf">0.1</span><span class="p">:</span>
+</span><span id="__span-34-7"><a href="#__codelineno-34-7" id="__codelineno-34-7" name="__codelineno-34-7"></a>        <span class="k">return</span> <span class="s2">"arima"</span>      <span class="c1"># Medium volatility  ARIMA</span>
+</span><span id="__span-34-8"><a href="#__codelineno-34-8" id="__codelineno-34-8" name="__codelineno-34-8"></a>    <span class="k">else</span><span class="p">:</span>
+</span><span id="__span-34-9"><a href="#__codelineno-34-9" id="__codelineno-34-9" name="__codelineno-34-9"></a>        <span class="k">return</span> <span class="s2">"kalman"</span>     <span class="c1"># Low volatility  Kalman</span>
+</span></code></pre></div></p>
+<h3 id="2-information-criteria">2. Information Criteria</h3>
+<p><strong>Akaike Information Criterion (AIC)</strong>:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-35-1"><a href="#__codelineno-35-1" id="__codelineno-35-1" name="__codelineno-35-1"></a>AIC = 2k - 2ln(L)
+</span><span id="__span-35-2"><a href="#__codelineno-35-2" id="__codelineno-35-2" name="__codelineno-35-2"></a>
+</span><span id="__span-35-3"><a href="#__codelineno-35-3" id="__codelineno-35-3" name="__codelineno-35-3"></a>where k = number of parameters, L = likelihood
+</span></code></pre></div></p>
+<p><strong>Bayesian Information Criterion (BIC)</strong>:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-36-1"><a href="#__codelineno-36-1" id="__codelineno-36-1" name="__codelineno-36-1"></a>BIC = k×ln(n) - 2ln(L)
+</span><span id="__span-36-2"><a href="#__codelineno-36-2" id="__codelineno-36-2" name="__codelineno-36-2"></a>
+</span><span id="__span-36-3"><a href="#__codelineno-36-3" id="__codelineno-36-3" name="__codelineno-36-3"></a>where n = sample size
+</span></code></pre></div></p>
+<h3 id="3-cross-validation">3. Cross-Validation</h3>
+<p><strong>Time Series Cross-Validation</strong>:
+- Forward chaining validation
+- Expanding window approach
+- Walk-forward optimization</p>
+<p><strong>Implementation Strategy</strong>:
+<div class="language-python highlight"><pre><span></span><code><span id="__span-37-1"><a href="#__codelineno-37-1" id="__codelineno-37-1" name="__codelineno-37-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">time_series_cv</span><span class="p">(</span><span class="n">series</span><span class="p">,</span> <span class="n">model_func</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="mf">0.2</span><span class="p">):</span>
+</span><span id="__span-37-2"><a href="#__codelineno-37-2" id="__codelineno-37-2" name="__codelineno-37-2"></a>    <span class="n">train_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">series</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">test_size</span><span class="p">))</span>
+</span><span id="__span-37-3"><a href="#__codelineno-37-3" id="__codelineno-37-3" name="__codelineno-37-3"></a>
+</span><span id="__span-37-4"><a href="#__codelineno-37-4" id="__codelineno-37-4" name="__codelineno-37-4"></a>    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">train_size</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">series</span><span class="p">)):</span>
+</span><span id="__span-37-5"><a href="#__codelineno-37-5" id="__codelineno-37-5" name="__codelineno-37-5"></a>        <span class="n">train</span> <span class="o">=</span> <span class="n">series</span><span class="p">[:</span><span class="n">i</span><span class="p">]</span>
+</span><span id="__span-37-6"><a href="#__codelineno-37-6" id="__codelineno-37-6" name="__codelineno-37-6"></a>        <span class="n">test</span> <span class="o">=</span> <span class="n">series</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
+</span><span id="__span-37-7"><a href="#__codelineno-37-7" id="__codelineno-37-7" name="__codelineno-37-7"></a>
+</span><span id="__span-37-8"><a href="#__codelineno-37-8" id="__codelineno-37-8" name="__codelineno-37-8"></a>        <span class="n">model</span> <span class="o">=</span> <span class="n">model_func</span><span class="p">(</span><span class="n">train</span><span class="p">)</span>
+</span><span id="__span-37-9"><a href="#__codelineno-37-9" id="__codelineno-37-9" name="__codelineno-37-9"></a>        <span class="n">pred</span> <span class="o">=</span> <span class="n">predict</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">steps</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-37-10"><a href="#__codelineno-37-10" id="__codelineno-37-10" name="__codelineno-37-10"></a>        <span class="c1"># Evaluate prediction vs actual</span>
+</span></code></pre></div></p>
+<h2 id="numerical-considerations">Numerical Considerations</h2>
+<h3 id="1-numerical-stability">1. Numerical Stability</h3>
+<p><strong>Precision Issues</strong>:
+- Use log-space computations for probabilities
+- Numerical guards against division by zero
+- Robust parameter initialization</p>
+<p><strong>Example</strong> (Log-likelihood computation):
+<div class="language-python highlight"><pre><span></span><code><span id="__span-38-1"><a href="#__codelineno-38-1" id="__codelineno-38-1" name="__codelineno-38-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">log_likelihood</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+</span><span id="__span-38-2"><a href="#__codelineno-38-2" id="__codelineno-38-2" name="__codelineno-38-2"></a>    <span class="c1"># Avoid overflow in exp() by working in log space</span>
+</span><span id="__span-38-3"><a href="#__codelineno-38-3" id="__codelineno-38-3" name="__codelineno-38-3"></a>    <span class="n">log_probs</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="__span-38-4"><a href="#__codelineno-38-4" id="__codelineno-38-4" name="__codelineno-38-4"></a>    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+</span><span id="__span-38-5"><a href="#__codelineno-38-5" id="__codelineno-38-5" name="__codelineno-38-5"></a>        <span class="n">log_prob</span> <span class="o">=</span> <span class="n">log_pdf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+</span><span id="__span-38-6"><a href="#__codelineno-38-6" id="__codelineno-38-6" name="__codelineno-38-6"></a>        <span class="n">log_probs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">log_prob</span><span class="p">)</span>
+</span><span id="__span-38-7"><a href="#__codelineno-38-7" id="__codelineno-38-7" name="__codelineno-38-7"></a>
+</span><span id="__span-38-8"><a href="#__codelineno-38-8" id="__codelineno-38-8" name="__codelineno-38-8"></a>    <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">log_probs</span><span class="p">)</span>  <span class="c1"># Instead of log(prod(probs))</span>
+</span></code></pre></div></p>
+<h3 id="2-convergence-criteria">2. Convergence Criteria</h3>
+<p><strong>EM Algorithm Convergence</strong>:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-39-1"><a href="#__codelineno-39-1" id="__codelineno-39-1" name="__codelineno-39-1"></a>|L(¸^(t+1)) - L(¸^(t))| &lt; µ
+</span><span id="__span-39-2"><a href="#__codelineno-39-2" id="__codelineno-39-2" name="__codelineno-39-2"></a>
+</span><span id="__span-39-3"><a href="#__codelineno-39-3" id="__codelineno-39-3" name="__codelineno-39-3"></a>where L(¸) is the log-likelihood
+</span></code></pre></div></p>
+<p><strong>GARCH Parameter Constraints</strong>:
+<div class="language-python highlight"><pre><span></span><code><span id="__span-40-1"><a href="#__codelineno-40-1" id="__codelineno-40-1" name="__codelineno-40-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">ensure_stationarity</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">):</span>
+</span><span id="__span-40-2"><a href="#__codelineno-40-2" id="__codelineno-40-2" name="__codelineno-40-2"></a>    <span class="k">if</span> <span class="n">alpha</span> <span class="o">+</span> <span class="n">beta</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+</span><span id="__span-40-3"><a href="#__codelineno-40-3" id="__codelineno-40-3" name="__codelineno-40-3"></a>        <span class="c1"># Rescale to ensure stationarity</span>
+</span><span id="__span-40-4"><a href="#__codelineno-40-4" id="__codelineno-40-4" name="__codelineno-40-4"></a>        <span class="n">sum_coef</span> <span class="o">=</span> <span class="n">alpha</span> <span class="o">+</span> <span class="n">beta</span>
+</span><span id="__span-40-5"><a href="#__codelineno-40-5" id="__codelineno-40-5" name="__codelineno-40-5"></a>        <span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha</span> <span class="o">/</span> <span class="n">sum_coef</span> <span class="o">*</span> <span class="mf">0.99</span>
+</span><span id="__span-40-6"><a href="#__codelineno-40-6" id="__codelineno-40-6" name="__codelineno-40-6"></a>        <span class="n">beta</span> <span class="o">=</span> <span class="n">beta</span> <span class="o">/</span> <span class="n">sum_coef</span> <span class="o">*</span> <span class="mf">0.99</span>
+</span><span id="__span-40-7"><a href="#__codelineno-40-7" id="__codelineno-40-7" name="__codelineno-40-7"></a>
+</span><span id="__span-40-8"><a href="#__codelineno-40-8" id="__codelineno-40-8" name="__codelineno-40-8"></a>    <span class="k">return</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span>
+</span></code></pre></div></p>
+<h2 id="performance-optimization">Performance Optimization</h2>
+<h3 id="1-vectorization">1. Vectorization</h3>
+<p><strong>NumPy Broadcasting</strong>:
+<div class="language-python highlight"><pre><span></span><code><span id="__span-41-1"><a href="#__codelineno-41-1" id="__codelineno-41-1" name="__codelineno-41-1"></a><span class="c1"># Instead of loops</span>
+</span><span id="__span-41-2"><a href="#__codelineno-41-2" id="__codelineno-41-2" name="__codelineno-41-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">vectorized_computation</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+</span><span id="__span-41-3"><a href="#__codelineno-41-3" id="__codelineno-41-3" name="__codelineno-41-3"></a>    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">data</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># Vectorized</span>
+</span><span id="__span-41-4"><a href="#__codelineno-41-4" id="__codelineno-41-4" name="__codelineno-41-4"></a>
+</span><span id="__span-41-5"><a href="#__codelineno-41-5" id="__codelineno-41-5" name="__codelineno-41-5"></a><span class="c1"># Avoid</span>
+</span><span id="__span-41-6"><a href="#__codelineno-41-6" id="__codelineno-41-6" name="__codelineno-41-6"></a><span class="k">def</span><span class="w"> </span><span class="nf">loop_computation</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+</span><span id="__span-41-7"><a href="#__codelineno-41-7" id="__codelineno-41-7" name="__codelineno-41-7"></a>    <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="__span-41-8"><a href="#__codelineno-41-8" id="__codelineno-41-8" name="__codelineno-41-8"></a>    <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+</span><span id="__span-41-9"><a href="#__codelineno-41-9" id="__codelineno-41-9" name="__codelineno-41-9"></a>        <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">row</span><span class="p">))</span>
+</span><span id="__span-41-10"><a href="#__codelineno-41-10" id="__codelineno-41-10" name="__codelineno-41-10"></a>    <span class="k">return</span> <span class="n">results</span>
+</span></code></pre></div></p>
+<h3 id="2-caching-strategy">2. Caching Strategy</h3>
+<p><strong>Memoization for Expensive Computations</strong>:
+<div class="language-python highlight"><pre><span></span><code><span id="__span-42-1"><a href="#__codelineno-42-1" id="__codelineno-42-1" name="__codelineno-42-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">lru_cache</span>
+</span><span id="__span-42-2"><a href="#__codelineno-42-2" id="__codelineno-42-2" name="__codelineno-42-2"></a>
+</span><span id="__span-42-3"><a href="#__codelineno-42-3" id="__codelineno-42-3" name="__codelineno-42-3"></a><span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="mi">128</span><span class="p">)</span>
+</span><span id="__span-42-4"><a href="#__codelineno-42-4" id="__codelineno-42-4" name="__codelineno-42-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">expensive_metric</span><span class="p">(</span><span class="n">game_hash</span><span class="p">,</span> <span class="n">params_hash</span><span class="p">):</span>
+</span><span id="__span-42-5"><a href="#__codelineno-42-5" id="__codelineno-42-5" name="__codelineno-42-5"></a>    <span class="c1"># Expensive computation</span>
+</span><span id="__span-42-6"><a href="#__codelineno-42-6" id="__codelineno-42-6" name="__codelineno-42-6"></a>    <span class="k">return</span> <span class="n">result</span>
+</span></code></pre></div></p>
+<hr/>
+<h2 id="references">References</h2>
+<ol>
+<li>
+<p><strong>Bollerslev, T. (1986)</strong>. "Generalized autoregressive conditional heteroskedasticity". Journal of Econometrics.</p>
+</li>
+<li>
+<p><strong>Adams, R. P., &amp; MacKay, D. J. (2007)</strong>. "Bayesian online changepoint detection". arXiv preprint arXiv:0710.3742.</p>
+</li>
+<li>
+<p><strong>Liu, F. T., Ting, K. M., &amp; Zhou, Z. H. (2008)</strong>. "Isolation forest". In Data Mining, 2008. ICDM'08.</p>
+</li>
+<li>
+<p><strong>Cleveland, R. B., et al. (1990)</strong>. "STL: A seasonal-trend decomposition procedure based on loess". Journal of Official Statistics.</p>
+</li>
+<li>
+<p><strong>Kalman, R. E. (1960)</strong>. "A new approach to linear filtering and prediction problems". Journal of Basic Engineering.</p>
+</li>
+<li>
+<p><strong>Page, E. S. (1954)</strong>. "Continuous inspection schemes". Biometrika.</p>
+</li>
+<li>
+<p><strong>Dempster, A. P., Laird, N. M., &amp; Rubin, D. B. (1977)</strong>. "Maximum likelihood from incomplete data via the EM algorithm". Journal of the Royal Statistical Society.</p>
+</li>
+</ol>
+<hr/>
+<p><strong>See Also</strong>:
+- <a href="../metrics/">Metrics Documentation</a> - Implementation details
+- <a href="../performance/">Performance Analysis</a> - Computational optimization
+- <a href="../../modules/analysis/">Analysis Modules</a> - Code organization</p>
+</article>
+</div>
+<script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+</div>
+<button class="md-top md-icon" data-md-component="top" hidden="" type="button">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"></path></svg>
+  Back to top
+</button>
+</main>
+<footer class="md-footer">
+<div class="md-footer-meta md-typeset">
+<div class="md-footer-meta__inner md-grid">
+<div class="md-copyright">
+<div class="md-copyright__highlight">
+      Copyright © 2025 ChessPlayerAnalyzer Team –
+<a href="#__consent">Change cookie settings</a>
+</div>
+</div>
+<div class="md-social">
+<a class="md-social__link" href="https://github.com/your-username/ChessPlayerAnalyzer" rel="noopener" target="_blank" title="github.com">
+<svg viewbox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2" fill="currentColor"></path></svg>
+</a>
+<a class="md-social__link" href="https://hub.docker.com/r/your-username/chess-analyzer" rel="noopener" target="_blank" title="hub.docker.com">
+<svg viewbox="0 0 640 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M349.9 236.3h-66.1v-59.4h66.1zm0-204.3h-66.1v60.7h66.1zm78.2 144.8H362v59.4h66.1zm-156.3-72.1h-66.1v60.1h66.1zm78.1 0h-66.1v60.1h66.1zm276.8 100c-14.4-9.7-47.6-13.2-73.1-8.4-3.3-24-16.7-44.9-41.1-63.7l-14-9.3-9.3 14c-18.4 27.8-23.4 73.6-3.7 103.8-8.7 4.7-25.8 11.1-48.4 10.7H2.4c-8.7 50.8 5.8 116.8 44 162.1 37.1 43.9 92.7 66.2 165.4 66.2 157.4 0 273.9-72.5 328.4-204.2 21.4.4 67.6.1 91.3-45.2 1.5-2.5 6.6-13.2 8.5-17.1zm-511.1-27.9h-66v59.4h66.1v-59.4zm78.1 0h-66.1v59.4h66.1zm78.1 0h-66.1v59.4h66.1zm-78.1-72.1h-66.1v60.1h66.1z" fill="currentColor"></path></svg>
+</a>
+</div>
+</div>
+</div>
+</footer>
+</div>
+<div class="md-dialog" data-md-component="dialog">
+<div class="md-dialog__inner md-typeset"></div>
+</div>
+<script id="__config" type="application/json">{"base": "../..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.path", "navigation.indexes", "toc.integrate", "toc.follow", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate", "content.tabs.link", "header.autohide", "announce.dismiss"], "search": "../../assets/javascripts/workers/search.973d3a69.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+<script src="../../assets/javascripts/bundle.92b07e13.min.js"></script>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</body>
+</html>

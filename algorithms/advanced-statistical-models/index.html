@@ -1,0 +1,1808 @@
+
+<!DOCTYPE html>
+
+<html class="no-js" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="Complete documentation for ChessPlayerAnalyzer - Advanced chess game analysis system" name="description"/>
+<meta content="ChessPlayerAnalyzer Team" name="author"/>
+<link href="https://your-domain.github.io/ChessPlayerAnalyzer/algorithms/advanced-statistical-models/" rel="canonical"/>
+<link href="../security-best-practices/" rel="prev"/>
+<link href="../cross-game-correlation/" rel="next"/>
+<link href="../../assets/images/favicon.png" rel="icon"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.6.19" name="generator"/>
+<title>Advanced Models - ChessPlayerAnalyzer Documentation</title>
+<link href="../../assets/stylesheets/main.7e37652d.min.css" rel="stylesheet"/>
+<link href="../../assets/stylesheets/palette.06af60db.min.css" rel="stylesheet"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
+<style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+<link href="../../stylesheets/extra.css" rel="stylesheet"/>
+<script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+</head>
+<body data-md-color-accent="deep-orange" data-md-color-primary="blue-grey" data-md-color-scheme="default" dir="ltr">
+<input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
+<input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
+<label class="md-overlay" for="__drawer"></label>
+<div data-md-component="skip">
+<a class="md-skip" href="#advanced-statistical-models-plan-de-implementacion">
+          Skip to content
+        </a>
+</div>
+<div data-md-component="announce">
+</div>
+<div data-md-color-scheme="default" data-md-component="outdated" hidden="">
+</div>
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+<nav aria-label="Header" class="md-header__inner md-grid">
+<a aria-label="ChessPlayerAnalyzer Documentation" class="md-header__button md-logo" data-md-component="logo" href="../.." title="ChessPlayerAnalyzer Documentation">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 22H5v-2h14zm-2-12c-1.42 0-2.74.77-3.45 2H13V7h3V5h-3V2h-2v3H8v2h3v5h-.55C9.35 10.09 6.9 9.43 5 10.54A4.013 4.013 0 0 0 3.5 16c.74 1.24 2.07 2 3.5 2h10a4 4 0 0 0 4-4 4 4 0 0 0-4-4"></path></svg>
+</a>
+<label class="md-header__button md-icon" for="__drawer">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+</label>
+<div class="md-header__title" data-md-component="header-title">
+<div class="md-header__ellipsis">
+<div class="md-header__topic">
+<span class="md-ellipsis">
+            ChessPlayerAnalyzer Documentation
+          </span>
+</div>
+<div class="md-header__topic" data-md-component="header-topic">
+<span class="md-ellipsis">
+            
+              Advanced Models
+            
+          </span>
+</div>
+</div>
+</div>
+<form class="md-header__option" data-md-component="palette">
+<input aria-label="Switch to dark mode" class="md-option" data-md-color-accent="deep-orange" data-md-color-media="(prefers-color-scheme: light)" data-md-color-primary="blue-grey" data-md-color-scheme="default" id="__palette_0" name="__palette" type="radio"/>
+<label class="md-header__button md-icon" for="__palette_1" hidden="" title="Switch to dark mode">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+</label>
+<input aria-label="Switch to light mode" class="md-option" data-md-color-accent="deep-orange" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-primary="blue-grey" data-md-color-scheme="slate" id="__palette_1" name="__palette" type="radio"/>
+<label class="md-header__button md-icon" for="__palette_0" hidden="" title="Switch to light mode">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+</label>
+</form>
+<script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+<label class="md-header__button md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+</label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input aria-label="Search" autocapitalize="off" autocomplete="off" autocorrect="off" class="md-search__input" data-md-component="search-query" name="query" placeholder="Search" required="" spellcheck="false" type="text"/>
+<label class="md-search__icon md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+</label>
+<nav aria-label="Search" class="md-search__options">
+<button aria-label="Clear" class="md-search__icon md-icon" tabindex="-1" title="Clear" type="reset">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+</button>
+</nav>
+<div class="md-search__suggest" data-md-component="search-suggest"></div>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix="" tabindex="0">
+<div class="md-search-result" data-md-component="search-result">
+<div class="md-search-result__meta">
+            Initializing search
+          </div>
+<ol class="md-search-result__list" role="presentation"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="md-header__source">
+<a class="md-source" data-md-component="source" href="https://github.com/your-username/ChessPlayerAnalyzer" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2" fill="currentColor"></path></svg>
+</div>
+<div class="md-source__repository">
+    ChessPlayerAnalyzer
+  </div>
+</a>
+</div>
+</nav>
+<nav aria-label="Tabs" class="md-tabs" data-md-component="tabs">
+<div class="md-grid">
+<ul class="md-tabs__list">
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../..">
+          
+  
+  
+    
+  
+  Home
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../guides/setup/README-original/">
+          
+  
+  
+    
+  
+  Getting Started
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../architecture/overview/">
+          
+  
+  
+    
+  
+  Architecture
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../api/endpoints/">
+          
+  
+  
+    
+  
+  API Reference
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../modules/analysis/">
+          
+  
+  
+    
+  
+  Analysis Modules
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../modules/utils/">
+          
+  
+  
+    
+  
+  Core Modules
+
+        </a>
+</li>
+<li class="md-tabs__item md-tabs__item--active">
+<a class="md-tabs__link" href="../">
+          
+  
+  
+    
+  
+  Algorithms
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../guides/deployment/">
+          
+  
+  
+    
+  
+  Operations
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../legacy/migration-guide/">
+          
+  
+  
+    
+  
+  Legacy
+
+        </a>
+</li>
+</ul>
+</div>
+</nav>
+</header>
+<div class="md-container" data-md-component="container">
+<main class="md-main" data-md-component="main">
+<div class="md-main__inner md-grid">
+<div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Navigation" class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" data-md-level="0">
+<label class="md-nav__title" for="__drawer">
+<a aria-label="ChessPlayerAnalyzer Documentation" class="md-nav__button md-logo" data-md-component="logo" href="../.." title="ChessPlayerAnalyzer Documentation">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 22H5v-2h14zm-2-12c-1.42 0-2.74.77-3.45 2H13V7h3V5h-3V2h-2v3H8v2h3v5h-.55C9.35 10.09 6.9 9.43 5 10.54A4.013 4.013 0 0 0 3.5 16c.74 1.24 2.07 2 3.5 2h10a4 4 0 0 0 4-4 4 4 0 0 0-4-4"></path></svg>
+</a>
+    ChessPlayerAnalyzer Documentation
+  </label>
+<div class="md-nav__source">
+<a class="md-source" data-md-component="source" href="https://github.com/your-username/ChessPlayerAnalyzer" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2" fill="currentColor"></path></svg>
+</div>
+<div class="md-source__repository">
+    ChessPlayerAnalyzer
+  </div>
+</a>
+</div>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../..">
+<span class="md-ellipsis">
+    Home
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_1_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_1">
+<span class="md-nav__icon md-icon"></span>
+            Home
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../plan_de_accion/">
+<span class="md-ellipsis">
+    Plan de Acción
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+<span class="md-ellipsis">
+    Getting Started
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_2_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_2">
+<span class="md-nav__icon md-icon"></span>
+            Getting Started
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../guides/setup/README-original/">
+<span class="md-ellipsis">
+    Quick Start
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../guides/development/">
+<span class="md-ellipsis">
+    Development Setup
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../guides/setup/CLAUDE/">
+<span class="md-ellipsis">
+    Claude Code Setup
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../guides/setup/docker-setup/">
+<span class="md-ellipsis">
+    Docker Configuration
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../guides/SYZYGY_SETUP/">
+<span class="md-ellipsis">
+    Syzygy Tablebases
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_3" type="checkbox"/>
+<label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+<span class="md-ellipsis">
+    Architecture
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_3_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_3">
+<span class="md-nav__icon md-icon"></span>
+            Architecture
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../architecture/overview/">
+<span class="md-ellipsis">
+    System Overview
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../architecture/database-schema/">
+<span class="md-ellipsis">
+    Database Schema
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../architecture/api-design/">
+<span class="md-ellipsis">
+    API Design
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../architecture/celery-workflow/">
+<span class="md-ellipsis">
+    Celery Workflow
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_4" type="checkbox"/>
+<label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+<span class="md-ellipsis">
+    API Reference
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_4_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_4">
+<span class="md-nav__icon md-icon"></span>
+            API Reference
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../api/endpoints/">
+<span class="md-ellipsis">
+    Endpoints
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../api/schemas/">
+<span class="md-ellipsis">
+    Schemas
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../api/examples/">
+<span class="md-ellipsis">
+    Examples
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_5" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../../modules/analysis/">
+<span class="md-ellipsis">
+    Analysis Modules
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_5_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_5">
+<span class="md-nav__icon md-icon"></span>
+            Analysis Modules
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/analysis/quality.md">
+<span class="md-ellipsis">
+    Quality Analysis
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/analysis/timing.md">
+<span class="md-ellipsis">
+    Timing Analysis
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/analysis/openings.md">
+<span class="md-ellipsis">
+    Opening Analysis
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/analysis/endgame.md">
+<span class="md-ellipsis">
+    Endgame Analysis
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/analysis/anomaly.md">
+<span class="md-ellipsis">
+    Anomaly Detection
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/analysis/bayesian.md">
+<span class="md-ellipsis">
+    Bayesian Models
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/analysis/longitudinal.md">
+<span class="md-ellipsis">
+    Longitudinal Analysis
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/analysis/clustering.md">
+<span class="md-ellipsis">
+    Clustering
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/analysis/ml-classifier.md">
+<span class="md-ellipsis">
+    ML Classifier
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_6" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../../modules/utils/">
+<span class="md-ellipsis">
+    Core Modules
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_6_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_6">
+<span class="md-nav__icon md-icon"></span>
+            Core Modules
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/configuration/">
+<span class="md-ellipsis">
+    Configuration
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/ml/">
+<span class="md-ellipsis">
+    ML Pipeline
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/database/README.md">
+<span class="md-ellipsis">
+    Database Layer
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_7" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../">
+<span class="md-ellipsis">
+    Algorithms
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="true" aria-labelledby="__nav_7_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_7">
+<span class="md-nav__icon md-icon"></span>
+            Algorithms
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../metrics/">
+<span class="md-ellipsis">
+    Metrics Reference
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../statistical-models/">
+<span class="md-ellipsis">
+    Statistical Models
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../performance/">
+<span class="md-ellipsis">
+    Performance Analysis
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../performance-optimizations/">
+<span class="md-ellipsis">
+    Performance Optimizations
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../external-integrations/">
+<span class="md-ellipsis">
+    External Integrations
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../security-best-practices/">
+<span class="md-ellipsis">
+    Security &amp; Best Practices
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--active">
+<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
+<label class="md-nav__link md-nav__link--active" for="__toc">
+<span class="md-ellipsis">
+    Advanced Models
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<a class="md-nav__link md-nav__link--active" href="./">
+<span class="md-ellipsis">
+    Advanced Models
+    
+  </span>
+</a>
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#objetivo">
+<span class="md-ellipsis">
+      Objetivo
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#arquitectura-actual">
+<span class="md-ellipsis">
+      Arquitectura Actual
+    </span>
+</a>
+<nav aria-label="Arquitectura Actual" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#sistema-de-flags-binarios-existente">
+<span class="md-ellipsis">
+      Sistema de Flags Binarios Existente
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#codigo-base-relevante">
+<span class="md-ellipsis">
+      Código Base Relevante
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#nuevas-funcionalidades">
+<span class="md-ellipsis">
+      Nuevas Funcionalidades
+    </span>
+</a>
+<nav aria-label="Nuevas Funcionalidades" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#1-modelos-probabilisticos-de-sospecha">
+<span class="md-ellipsis">
+      1. Modelos Probabilísticos de Sospecha
+    </span>
+</a>
+<nav aria-label="1. Modelos Probabilísticos de Sospecha" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#11-bayesian-suspicion-scoring">
+<span class="md-ellipsis">
+      1.1 Bayesian Suspicion Scoring
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#12-machine-learning-classification">
+<span class="md-ellipsis">
+      1.2 Machine Learning Classification
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#2-statistical-process-control">
+<span class="md-ellipsis">
+      2. Statistical Process Control
+    </span>
+</a>
+<nav aria-label="2. Statistical Process Control" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#21-control-charts-para-player-monitoring">
+<span class="md-ellipsis">
+      2.1 Control Charts para Player Monitoring
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#22-change-point-detection">
+<span class="md-ellipsis">
+      2.2 Change Point Detection
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#3-advanced-time-series-analysis">
+<span class="md-ellipsis">
+      3. Advanced Time Series Analysis
+    </span>
+</a>
+<nav aria-label="3. Advanced Time Series Analysis" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#31-performance-modeling">
+<span class="md-ellipsis">
+      3.1 Performance Modeling
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#32-anomaly-detection-in-time-series">
+<span class="md-ellipsis">
+      3.2 Anomaly Detection in Time Series
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#4-clustering-y-segmentation-analysis">
+<span class="md-ellipsis">
+      4. Clustering y Segmentation Analysis
+    </span>
+</a>
+<nav aria-label="4. Clustering y Segmentation Analysis" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#41-player-behavior-clustering">
+<span class="md-ellipsis">
+      4.1 Player Behavior Clustering
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#42-game-similarity-analysis">
+<span class="md-ellipsis">
+      4.2 Game Similarity Analysis
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#5-causal-inference-y-attribution">
+<span class="md-ellipsis">
+      5. Causal Inference y Attribution
+    </span>
+</a>
+<nav aria-label="5. Causal Inference y Attribution" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#51-causal-analysis-de-performance-changes">
+<span class="md-ellipsis">
+      5.1 Causal Analysis de Performance Changes
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#migraciones-de-base-de-datos">
+<span class="md-ellipsis">
+      Migraciones de Base de Datos
+    </span>
+</a>
+<nav aria-label="Migraciones de Base de Datos" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#nueva-tabla-statisticalmodels">
+<span class="md-ellipsis">
+      Nueva Tabla: StatisticalModels
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#nueva-tabla-probabilisticscores">
+<span class="md-ellipsis">
+      Nueva Tabla: ProbabilisticScores
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#nueva-tabla-controlchartdata">
+<span class="md-ellipsis">
+      Nueva Tabla: ControlChartData
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#nueva-tabla-changepoints">
+<span class="md-ellipsis">
+      Nueva Tabla: ChangePoints
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#extension-de-gamemetrics">
+<span class="md-ellipsis">
+      Extensión de GameMetrics
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#nuevos-celery-tasks">
+<span class="md-ellipsis">
+      Nuevos Celery Tasks
+    </span>
+</a>
+<nav aria-label="Nuevos Celery Tasks" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#train_statistical_models">
+<span class="md-ellipsis">
+      train_statistical_models
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#compute_probabilistic_scores">
+<span class="md-ellipsis">
+      compute_probabilistic_scores
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#monitor_control_charts">
+<span class="md-ellipsis">
+      monitor_control_charts
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#detect_change_points">
+<span class="md-ellipsis">
+      detect_change_points
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#update_clustering_models">
+<span class="md-ellipsis">
+      update_clustering_models
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#api-extensions">
+<span class="md-ellipsis">
+      API Extensions
+    </span>
+</a>
+<nav aria-label="API Extensions" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#nuevos-endpoints">
+<span class="md-ellipsis">
+      Nuevos Endpoints
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#model-training-pipeline">
+<span class="md-ellipsis">
+      Model Training Pipeline
+    </span>
+</a>
+<nav aria-label="Model Training Pipeline" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#data-preparation">
+<span class="md-ellipsis">
+      Data Preparation
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#model-training-infrastructure">
+<span class="md-ellipsis">
+      Model Training Infrastructure
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#interpretability-y-explainability">
+<span class="md-ellipsis">
+      Interpretability y Explainability
+    </span>
+</a>
+<nav aria-label="Interpretability y Explainability" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#model-interpretability">
+<span class="md-ellipsis">
+      Model Interpretability
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#uncertainty-quantification">
+<span class="md-ellipsis">
+      Uncertainty Quantification
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#testing-strategy">
+<span class="md-ellipsis">
+      Testing Strategy
+    </span>
+</a>
+<nav aria-label="Testing Strategy" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#statistical-testing">
+<span class="md-ellipsis">
+      Statistical Testing
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#performance-testing">
+<span class="md-ellipsis">
+      Performance Testing
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#integration-testing">
+<span class="md-ellipsis">
+      Integration Testing
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#monitoring-y-maintenance">
+<span class="md-ellipsis">
+      Monitoring y Maintenance
+    </span>
+</a>
+<nav aria-label="Monitoring y Maintenance" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#model-performance-monitoring">
+<span class="md-ellipsis">
+      Model Performance Monitoring
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#data-quality-monitoring">
+<span class="md-ellipsis">
+      Data Quality Monitoring
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#ethical-considerations">
+<span class="md-ellipsis">
+      Ethical Considerations
+    </span>
+</a>
+<nav aria-label="Ethical Considerations" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#fairness-y-bias">
+<span class="md-ellipsis">
+      Fairness y Bias
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#privacy-y-transparency">
+<span class="md-ellipsis">
+      Privacy y Transparency
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#cronograma-de-implementacion">
+<span class="md-ellipsis">
+      Cronograma de Implementación
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#dependencias">
+<span class="md-ellipsis">
+      Dependencias
+    </span>
+</a>
+<nav aria-label="Dependencias" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#technical-dependencies">
+<span class="md-ellipsis">
+      Technical Dependencies
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#data-dependencies">
+<span class="md-ellipsis">
+      Data Dependencies
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#infrastructure-dependencies">
+<span class="md-ellipsis">
+      Infrastructure Dependencies
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#success-metrics">
+<span class="md-ellipsis">
+      Success Metrics
+    </span>
+</a>
+<nav aria-label="Success Metrics" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#model-performance">
+<span class="md-ellipsis">
+      Model Performance
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#business-impact">
+<span class="md-ellipsis">
+      Business Impact
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#technical-metrics">
+<span class="md-ellipsis">
+      Technical Metrics
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#risk-mitigation">
+<span class="md-ellipsis">
+      Risk Mitigation
+    </span>
+</a>
+<nav aria-label="Risk Mitigation" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#technical-risks">
+<span class="md-ellipsis">
+      Technical Risks
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#business-risks">
+<span class="md-ellipsis">
+      Business Risks
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#conclusion">
+<span class="md-ellipsis">
+      Conclusion
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../cross-game-correlation/">
+<span class="md-ellipsis">
+    Cross-Game Correlation
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../enhanced-timing-patterns/">
+<span class="md-ellipsis">
+    Timing Patterns
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../positional-pattern-recognition/">
+<span class="md-ellipsis">
+    Pattern Recognition
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_8" type="checkbox"/>
+<label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+<span class="md-ellipsis">
+    Operations
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_8_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_8">
+<span class="md-nav__icon md-icon"></span>
+            Operations
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../guides/deployment/">
+<span class="md-ellipsis">
+    Deployment Guide
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../guides/testing/">
+<span class="md-ellipsis">
+    Testing &amp; CI/CD
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../guides/troubleshooting/">
+<span class="md-ellipsis">
+    Troubleshooting
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../guides/PERFORMANCE_ANALYSIS/">
+<span class="md-ellipsis">
+    Performance Analysis
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../guides/analysis-enhancement-plan/">
+<span class="md-ellipsis">
+    Enhancement Plan
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_9" type="checkbox"/>
+<label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
+<span class="md-ellipsis">
+    Legacy
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_9_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_9">
+<span class="md-nav__icon md-icon"></span>
+            Legacy
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../legacy/migration-guide/">
+<span class="md-ellipsis">
+    Migration Guide
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../legacy/old/">
+<span class="md-ellipsis">
+    Old Documentation
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-content" data-md-component="content">
+<article class="md-content__inner md-typeset">
+<h1 id="advanced-statistical-models-plan-de-implementacion">Advanced Statistical Models - Plan de Implementación</h1>
+<h2 id="objetivo">Objetivo</h2>
+<p>Reemplazar el sistema actual de flags binarios con modelos estadísticos avanzados y sistemas de puntuación probabilística, proporcionando análisis más matizado y preciso del comportamiento del jugador.</p>
+<h2 id="arquitectura-actual">Arquitectura Actual</h2>
+<h3 id="sistema-de-flags-binarios-existente">Sistema de Flags Binarios Existente</h3>
+<ul>
+<li><strong>suspicious</strong>: Boolean basado en <code>pct_top3 &gt; 85 &amp;&amp; acl &lt; 20</code></li>
+<li><strong>constant_time</strong>: Boolean para <code>sigma_total &lt; 1.0</code></li>
+<li><strong>pause_spike</strong>: Boolean para mejora después de pausas</li>
+<li><strong>low_entropy</strong>: Boolean para <code>opening_entropy &lt; 1.0</code></li>
+</ul>
+<h3 id="codigo-base-relevante">Código Base Relevante</h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a href="#__codelineno-0-1" id="__codelineno-0-1" name="__codelineno-0-1"></a><span class="c1"># celery_app.py - Sistema actual de detección</span>
+</span><span id="__span-0-2"><a href="#__codelineno-0-2" id="__codelineno-0-2" name="__codelineno-0-2"></a><span class="n">suspicious</span> <span class="o">=</span> <span class="p">(</span><span class="n">pct_top3</span> <span class="o">&gt;</span> <span class="mi">85</span> <span class="ow">and</span> <span class="n">acl</span> <span class="o">&lt;</span> <span class="mi">20</span><span class="p">)</span>
+</span><span id="__span-0-3"><a href="#__codelineno-0-3" id="__codelineno-0-3" name="__codelineno-0-3"></a><span class="n">constant_time</span> <span class="o">=</span> <span class="n">sigma_total</span> <span class="o">&lt;</span> <span class="mf">1.0</span>
+</span><span id="__span-0-4"><a href="#__codelineno-0-4" id="__codelineno-0-4" name="__codelineno-0-4"></a><span class="n">pause_spike</span> <span class="o">=</span> <span class="n">pct_top3_after</span> <span class="o">&gt;=</span> <span class="mi">80</span>
+</span><span id="__span-0-5"><a href="#__codelineno-0-5" id="__codelineno-0-5" name="__codelineno-0-5"></a><span class="n">suspicious</span> <span class="o">=</span> <span class="n">suspicious</span> <span class="ow">or</span> <span class="n">constant_time</span> <span class="ow">or</span> <span class="n">pause_spike</span>
+</span></code></pre></div>
+<h2 id="nuevas-funcionalidades">Nuevas Funcionalidades</h2>
+<h3 id="1-modelos-probabilisticos-de-sospecha">1. Modelos Probabilísticos de Sospecha</h3>
+<h4 id="11-bayesian-suspicion-scoring">1.1 Bayesian Suspicion Scoring</h4>
+<p><strong>Subtarea</strong>: Implementar modelo Bayesiano para suspicion scoring
+<em>Objetivo</em>: Reemplazar el sistema binario actual (suspicious = true/false) con un modelo probabilístico que considere el contexto del jugador y proporcione scores más matizados.
+<em>Enfoque</em>: Usar teorema de Bayes donde P(suspicious|evidence) = P(evidence|suspicious) × P(suspicious) / P(evidence). Establecer priors basados en rating ELO (jugadores más fuertes tienen menor probabilidad base de hacer trampa), experiencia (cuentas nuevas son más sospechosas), y historial previo. Las likelihood functions evaluarán qué tan probable es observar cierta evidencia (ej: ACL &lt; 20) dado que el jugador hace trampa vs juega limpio.
+- Prior probabilities basadas en rating y experiencia del jugador
+- Likelihood functions para cada tipo de evidencia
+- Posterior probability calculation para overall suspicion score
+- Continuous updating con nueva evidencia</p>
+<p><strong>Subtarea</strong>: Multi-factor Bayesian model
+<em>Objetivo</em>: Integrar múltiples tipos de evidencia (timing, precisión, patrones comportamentales) en un modelo unificado que maneje la correlación entre factores y proporcione intervalos de confianza.
+<em>Enfoque</em>: Implementar un modelo Bayesiano jerárquico donde cada tipo de evidencia tiene su propio sub-modelo, pero están conectados a través de parámetros compartidos. Usar técnicas como MCMC (Monte Carlo Markov Chain) para sampling de la distribución posterior. Manejar datos faltantes con imputación Bayesiana y proporcionar intervalos de credibilidad del 95%.
+- Combinar evidencia de timing, accuracy, y behavioral patterns
+- Weight different types de evidencia apropiadamente
+- Handle uncertainty y missing data gracefully
+- Provide confidence intervals para scores</p>
+<h4 id="12-machine-learning-classification">1.2 Machine Learning Classification</h4>
+<p><strong>Subtarea</strong>: Implementar supervised learning para suspicion detection
+<em>Objetivo</em>: Crear un clasificador robusto que aprenda patrones complejos de comportamiento sospechoso a partir de casos etiquetados, complementando el enfoque Bayesiano con capacidades de detección de patrones no lineales.
+<em>Enfoque</em>: Recopilar dataset balanceado de partidas confirmadas como limpias vs sospechosas. Crear features engineered como ratios (ej: accuracy_vs_expected_for_rating), ventanas deslizantes de métricas, y interacciones entre variables. Usar Random Forest para interpretabilidad y Gradient Boosting (XGBoost/LightGBM) para máximo rendimiento. Implementar nested cross-validation para selección de hiperparámetros sin data leakage.
+- Training data de casos conocidos (clean vs suspicious)
+- Feature engineering de métricas existentes
+- Random Forest/Gradient Boosting para classification
+- Cross-validation y hyperparameter tuning</p>
+<p><strong>Subtarea</strong>: Ensemble methods para robust detection
+<em>Objetivo</em>: Combinar las fortalezas del modelo Bayesiano (interpretabilidad, manejo de incertidumbre) con ML (detección de patrones complejos) para crear un sistema de detección más robusto y confiable.
+<em>Enfoque</em>: Implementar ensemble stacking donde el modelo Bayesiano y los clasificadores ML actúan como base learners, y un meta-learner (ej: regresión logística) combina sus predicciones. Usar soft voting para preservar probabilidades. Implementar uncertainty quantification a través de bootstrap aggregating y calibración de probabilidades con Platt scaling o isotonic regression.
+- Combinar múltiples algorithms (Bayesian + ML)
+- Voting systems para final classification
+- Uncertainty quantification para predictions
+- Model interpretability para explainable decisions</p>
+<h3 id="2-statistical-process-control">2. Statistical Process Control</h3>
+<h4 id="21-control-charts-para-player-monitoring">2.1 Control Charts para Player Monitoring</h4>
+<p><strong>Subtarea</strong>: Implementar control charts para key metrics
+<em>Objetivo</em>: Establecer un sistema de monitoreo continuo que detecte cambios estadísticamente significativos en el rendimiento del jugador, reemplazando la detección ad-hoc actual con métodos estadísticamente rigurosos.
+<em>Enfoque</em>: Implementar Statistical Process Control (SPC) adaptado para métricas de ajedrez. X-bar charts monitorearan la media móvil de ACL, accuracy, etc. R charts detectarán cambios en variabilidad (ej: si un jugador se vuelve más consistente súbitamente). CUSUM acumulará desviaciones pequeñas para detectar drift gradual. EWMA dará más peso a partidas recientes. Establecer límites de control basados en distribución histórica del jugador (±3σ).
+- X-bar charts para average performance monitoring
+- R charts para performance variability
+- CUSUM charts para detecting gradual changes
+- EWMA charts para weighted recent performance</p>
+<p><strong>Subtarea</strong>: Multivariate control charts
+<em>Objetivo</em>: Monitorear múltiples métricas simultáneamente para detectar patrones de cambio que no serían visibles al analizar métricas individualmente, capturando correlaciones entre variables.
+<em>Enfoque</em>: Usar Hotelling's T² statistic para detectar cuando el vector de métricas del jugador se desvía significativamente de su patrón histórico multivariado. Aplicar PCA para reducir dimensionalidad y eliminar ruido, monitoreando los primeros componentes principales. Calcular distancia de Mahalanobis para cada nueva partida respecto al centroide histórico del jugador. Configurar alertas automáticas cuando T² exceda el límite crítico.
+- Hotelling's T² charts para multiple metrics simultaneously
+- Principal Component Analysis para dimensionality reduction
+- Anomaly detection basada en statistical distance
+- Alert systems para out-of-control conditions</p>
+<h4 id="22-change-point-detection">2.2 Change Point Detection</h4>
+<p><strong>Subtarea</strong>: Implementar algorithms para detecting behavioral changes
+<em>Objetivo</em>: Identificar automáticamente momentos específicos donde el comportamiento del jugador cambió significativamente, permitiendo segmentar su historial en períodos consistentes para análisis más preciso.
+<em>Enfoque</em>: Implementar múltiples algoritmos complementarios. CUSUM detectará cambios en la media de métricas clave acumulando desviaciones. Bayesian change point analysis usará modelos como el de Adams &amp; MacKay para detectar cambios en distribuciones subyacentes. Structural break tests (Chow test, KPSS) identificarán breakpoints en series temporales. Usar dynamic programming para encontrar la segmentación óptima que minimice la varianza intra-segmento mientras penaliza el número de change points.
+- CUSUM-based change point detection
+- Bayesian change point analysis
+- Structural break tests para time series
+- Segmentation de player history en períodos consistentes</p>
+<h3 id="3-advanced-time-series-analysis">3. Advanced Time Series Analysis</h3>
+<h4 id="31-performance-modeling">3.1 Performance Modeling</h4>
+<p><strong>Subtarea</strong>: Implementar time series models para performance prediction
+<em>Objetivo</em>: Modelar la evolución temporal del skill del jugador para predecir rendimiento futuro y detectar desviaciones anómalas del patrón esperado, mejorando la detección de comportamiento sospechoso.
+<em>Enfoque</em>: Usar ARIMA para capturar tendencias y estacionalidad en métricas como ACL (ej: mejora gradual vs saltos súbitos). State space models con Kalman filtering estimarán el "true skill" latente del jugador, filtrando el ruido de partidas individuales. Regime switching models (Markov switching) detectarán diferentes "modos" de juego (ej: modo casual vs competitivo vs asistido). Validar modelos con walk-forward validation.
+- ARIMA models para trend y seasonality
+- State space models para latent skill tracking
+- Kalman filtering para real-time skill estimation
+- Regime switching models para different playing modes</p>
+<p><strong>Subtarea</strong>: Volatility modeling
+<em>Objetivo</em>: Modelar y predecir la variabilidad en el rendimiento del jugador, ya que cambios súbitos en volatilidad pueden indicar uso de asistencia externa o cambios en el estilo de juego.
+<em>Enfoque</em>: Implementar modelos GARCH para capturar clustering de volatilidad (períodos de alta/baja variabilidad tienden a agruparse). Stochastic volatility models permitirán que la volatilidad siga su propio proceso estocástico. Calcular métricas de riesgo como VaR (Value at Risk) para cuantificar la probabilidad de rendimientos extremos. Generar prediction intervals que capturen tanto la incertidumbre en la media como en la varianza.
+- GARCH models para performance volatility
+- Stochastic volatility models
+- Risk metrics basados en volatility estimates
+- Prediction intervals para future performance</p>
+<h4 id="32-anomaly-detection-in-time-series">3.2 Anomaly Detection in Time Series</h4>
+<p><strong>Subtarea</strong>: Implementar time series anomaly detection
+<em>Objetivo</em>: Detectar automáticamente partidas o períodos anómalos en la serie temporal de rendimiento del jugador, identificando comportamientos que se desvían significativamente de sus patrones históricos normales.
+<em>Enfoque</em>: Usar seasonal decomposition (STL) para separar trend, seasonality y residuals, detectando anomalías en cada componente. Adaptar Isolation Forest para datos temporales creando features de ventanas deslizantes y lags. Entrenar LSTM autoencoders en secuencias normales del jugador; anomalías tendrán alto reconstruction error. Implementar scoring en tiempo real calculando z-scores de residuals y combinando múltiples detectores con ensemble voting.
+- Seasonal decomposition para isolating anomalies
+- Isolation Forest adaptado para time series
+- LSTM autoencoders para complex pattern detection
+- Real-time anomaly scoring para live monitoring</p>
+<h3 id="4-clustering-y-segmentation-analysis">4. Clustering y Segmentation Analysis</h3>
+<h4 id="41-player-behavior-clustering">4.1 Player Behavior Clustering</h4>
+<p><strong>Subtarea</strong>: Implementar clustering algorithms para player types
+<em>Objetivo</em>: Agrupar jugadores con patrones de comportamiento similares para establecer baselines más precisos y detectar jugadores que no encajan en ningún cluster normal, mejorando la detección de anomalías.
+<em>Enfoque</em>: Usar K-means con elbow method y silhouette analysis para seleccionar k óptimo. GMM proporcionará soft clustering con probabilidades de membresía. Hierarchical clustering creará una taxonomía interpretable de tipos de jugador (ej: tactical players, positional players, time pressure players). Validar clusters con métricas como Davies-Bouldin index y stability analysis mediante bootstrap resampling.
+- K-means clustering con optimal k selection
+- Gaussian Mixture Models para soft clustering
+- Hierarchical clustering para taxonomy de player types
+- Cluster validation y stability analysis</p>
+<p><strong>Subtarea</strong>: Dynamic clustering para evolving behavior
+<em>Objetivo</em>: Adaptar los clusters a medida que los jugadores evolucionan, detectando cuando un jugador cambia de cluster (posible indicador de cambio en estilo de juego o uso de asistencia).
+<em>Enfoque</em>: Implementar time-varying clustering usando sliding windows para re-cluster periódicamente. Modelar transitions entre clusters como cadenas de Markov, calculando probabilidades de transición normales vs anómalas. Detectar cluster drift comparando centroides a lo largo del tiempo. Usar cluster membership para personalizar baselines: comparar jugador con su cluster histórico en lugar de población general.
+- Time-varying clustering para behavioral changes
+- Transition probabilities entre clusters
+- Cluster drift detection y adaptation
+- Personalized baselines basados en cluster membership</p>
+<h4 id="42-game-similarity-analysis">4.2 Game Similarity Analysis</h4>
+<p><strong>Subtarea</strong>: Implementar similarity metrics para games
+<em>Objetivo</em>: Identificar partidas anómalas comparándolas con partidas similares del mismo jugador o de jugadores similares, detectando comportamientos inconsistentes que podrían indicar asistencia externa.
+<em>Enfoque</em>: Crear distance metrics multidimensionales combinando features de timing, accuracy, opening choice, etc. usando distancia euclidiana ponderada o distancia de Mahalanobis. Implementar LSH para búsqueda eficiente de partidas similares en datasets grandes. Usar k-nearest neighbors para identificar outliers: partidas que están muy lejos de sus k vecinos más cercanos. Calcular anomaly scores basados en distancia promedio a neighbors.
+- Distance metrics basados en multiple features
+- Locality Sensitive Hashing para efficient similarity search
+- Nearest neighbor analysis para outlier detection
+- Similarity-based anomaly scoring</p>
+<h3 id="5-causal-inference-y-attribution">5. Causal Inference y Attribution</h3>
+<h4 id="51-causal-analysis-de-performance-changes">5.1 Causal Analysis de Performance Changes</h4>
+<p><strong>Subtarea</strong>: Implementar causal inference methods
+<em>Objetivo</em>: Determinar si cambios observados en el rendimiento son causalmente atribuibles a factores específicos (ej: nuevo software, coaching) vs correlaciones espurias, proporcionando evidencia más sólida para acusaciones.
+<em>Enfoque</em>: Usar difference-in-differences comparando jugadores "tratados" (ej: que empezaron a usar cierto software) vs control group antes/después del treatment. Regression discontinuity para analizar efectos de thresholds (ej: cambios al alcanzar cierto rating). Instrumental variables para controlar confounding cuando no hay randomización. Causal mediation analysis para entender mecanismos: ¿el software mejora timing, accuracy, o ambos?
+- Difference-in-differences para treatment effects
+- Regression discontinuity para threshold effects
+- Instrumental variables para confounding control
+- Causal mediation analysis para mechanism understanding</p>
+<p><strong>Subtarea</strong>: Attribution modeling para performance factors
+<em>Objetivo</em>: Explicar qué factores específicos contribuyen más a las predicciones del modelo, proporcionando interpretabilidad y justificación para decisiones automatizadas de detección.
+<em>Enfoque</em>: Implementar Shapley values para attribution global: cuánto contribuye cada feature al score de sospecha promedio. LIME para explicaciones locales: por qué esta partida específica fue flagged. Counterfactual analysis: "si el ACL hubiera sido X en lugar de Y, ¿cómo cambiaría el score?". Construir causal graphs (DAGs) para modelar relaciones causales entre variables y evitar confounding en interpretaciones.
+- Shapley values para feature importance
+- LIME para local interpretability
+- Counterfactual analysis para what-if scenarios
+- Causal graphs para relationship modeling</p>
+<h2 id="migraciones-de-base-de-datos">Migraciones de Base de Datos</h2>
+<h3 id="nueva-tabla-statisticalmodels">Nueva Tabla: StatisticalModels</h3>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-1-1"><a href="#__codelineno-1-1" id="__codelineno-1-1" name="__codelineno-1-1"></a><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">statisticalmodels</span><span class="w"> </span><span class="p">(</span>
+</span><span id="__span-1-2"><a href="#__codelineno-1-2" id="__codelineno-1-2" name="__codelineno-1-2"></a><span class="w">    </span><span class="n">id</span><span class="w"> </span><span class="nb">SERIAL</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="p">,</span>
+</span><span id="__span-1-3"><a href="#__codelineno-1-3" id="__codelineno-1-3" name="__codelineno-1-3"></a><span class="w">    </span><span class="n">model_type</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span><span class="w"> </span><span class="c1">-- 'bayesian_suspicion', 'performance_arima', etc.</span>
+</span><span id="__span-1-4"><a href="#__codelineno-1-4" id="__codelineno-1-4" name="__codelineno-1-4"></a><span class="w">    </span><span class="n">model_version</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">50</span><span class="p">),</span>
+</span><span id="__span-1-5"><a href="#__codelineno-1-5" id="__codelineno-1-5" name="__codelineno-1-5"></a><span class="w">    </span><span class="k">parameters</span><span class="w"> </span><span class="n">JSONB</span><span class="p">,</span><span class="w"> </span><span class="c1">-- model parameters and hyperparameters</span>
+</span><span id="__span-1-6"><a href="#__codelineno-1-6" id="__codelineno-1-6" name="__codelineno-1-6"></a><span class="w">    </span><span class="n">training_data_period</span><span class="w"> </span><span class="n">DATERANGE</span><span class="p">,</span>
+</span><span id="__span-1-7"><a href="#__codelineno-1-7" id="__codelineno-1-7" name="__codelineno-1-7"></a><span class="w">    </span><span class="n">performance_metrics</span><span class="w"> </span><span class="n">JSONB</span><span class="p">,</span><span class="w"> </span><span class="c1">-- accuracy, precision, recall, etc.</span>
+</span><span id="__span-1-8"><a href="#__codelineno-1-8" id="__codelineno-1-8" name="__codelineno-1-8"></a><span class="w">    </span><span class="n">created_at</span><span class="w"> </span><span class="k">TIMESTAMP</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="n">NOW</span><span class="p">(),</span>
+</span><span id="__span-1-9"><a href="#__codelineno-1-9" id="__codelineno-1-9" name="__codelineno-1-9"></a><span class="w">    </span><span class="n">is_active</span><span class="w"> </span><span class="nb">BOOLEAN</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="k">TRUE</span>
+</span><span id="__span-1-10"><a href="#__codelineno-1-10" id="__codelineno-1-10" name="__codelineno-1-10"></a><span class="p">);</span>
+</span></code></pre></div>
+<h3 id="nueva-tabla-probabilisticscores">Nueva Tabla: ProbabilisticScores</h3>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-2-1"><a href="#__codelineno-2-1" id="__codelineno-2-1" name="__codelineno-2-1"></a><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">probabilisticscores</span><span class="w"> </span><span class="p">(</span>
+</span><span id="__span-2-2"><a href="#__codelineno-2-2" id="__codelineno-2-2" name="__codelineno-2-2"></a><span class="w">    </span><span class="n">id</span><span class="w"> </span><span class="nb">SERIAL</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="p">,</span>
+</span><span id="__span-2-3"><a href="#__codelineno-2-3" id="__codelineno-2-3" name="__codelineno-2-3"></a><span class="w">    </span><span class="n">game_id</span><span class="w"> </span><span class="nb">INTEGER</span><span class="w"> </span><span class="k">REFERENCES</span><span class="w"> </span><span class="n">game</span><span class="p">(</span><span class="n">id</span><span class="p">),</span>
+</span><span id="__span-2-4"><a href="#__codelineno-2-4" id="__codelineno-2-4" name="__codelineno-2-4"></a><span class="w">    </span><span class="n">player_username</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">255</span><span class="p">),</span>
+</span><span id="__span-2-5"><a href="#__codelineno-2-5" id="__codelineno-2-5" name="__codelineno-2-5"></a><span class="w">    </span><span class="n">suspicion_probability</span><span class="w"> </span><span class="nb">FLOAT</span><span class="p">,</span><span class="w"> </span><span class="c1">-- 0-1 probability of suspicious behavior</span>
+</span><span id="__span-2-6"><a href="#__codelineno-2-6" id="__codelineno-2-6" name="__codelineno-2-6"></a><span class="w">    </span><span class="n">confidence_interval_lower</span><span class="w"> </span><span class="nb">FLOAT</span><span class="p">,</span>
+</span><span id="__span-2-7"><a href="#__codelineno-2-7" id="__codelineno-2-7" name="__codelineno-2-7"></a><span class="w">    </span><span class="n">confidence_interval_upper</span><span class="w"> </span><span class="nb">FLOAT</span><span class="p">,</span>
+</span><span id="__span-2-8"><a href="#__codelineno-2-8" id="__codelineno-2-8" name="__codelineno-2-8"></a><span class="w">    </span><span class="n">contributing_factors</span><span class="w"> </span><span class="n">JSONB</span><span class="p">,</span><span class="w"> </span><span class="c1">-- breakdown of factors contributing to score</span>
+</span><span id="__span-2-9"><a href="#__codelineno-2-9" id="__codelineno-2-9" name="__codelineno-2-9"></a><span class="w">    </span><span class="n">model_version</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">50</span><span class="p">),</span>
+</span><span id="__span-2-10"><a href="#__codelineno-2-10" id="__codelineno-2-10" name="__codelineno-2-10"></a><span class="w">    </span><span class="n">computed_at</span><span class="w"> </span><span class="k">TIMESTAMP</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="n">NOW</span><span class="p">()</span>
+</span><span id="__span-2-11"><a href="#__codelineno-2-11" id="__codelineno-2-11" name="__codelineno-2-11"></a><span class="p">);</span>
+</span></code></pre></div>
+<h3 id="nueva-tabla-controlchartdata">Nueva Tabla: ControlChartData</h3>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-3-1"><a href="#__codelineno-3-1" id="__codelineno-3-1" name="__codelineno-3-1"></a><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">controlchartdata</span><span class="w"> </span><span class="p">(</span>
+</span><span id="__span-3-2"><a href="#__codelineno-3-2" id="__codelineno-3-2" name="__codelineno-3-2"></a><span class="w">    </span><span class="n">id</span><span class="w"> </span><span class="nb">SERIAL</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="p">,</span>
+</span><span id="__span-3-3"><a href="#__codelineno-3-3" id="__codelineno-3-3" name="__codelineno-3-3"></a><span class="w">    </span><span class="n">player_username</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">255</span><span class="p">),</span>
+</span><span id="__span-3-4"><a href="#__codelineno-3-4" id="__codelineno-3-4" name="__codelineno-3-4"></a><span class="w">    </span><span class="n">metric_name</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span>
+</span><span id="__span-3-5"><a href="#__codelineno-3-5" id="__codelineno-3-5" name="__codelineno-3-5"></a><span class="w">    </span><span class="n">metric_value</span><span class="w"> </span><span class="nb">FLOAT</span><span class="p">,</span>
+</span><span id="__span-3-6"><a href="#__codelineno-3-6" id="__codelineno-3-6" name="__codelineno-3-6"></a><span class="w">    </span><span class="n">control_limit_upper</span><span class="w"> </span><span class="nb">FLOAT</span><span class="p">,</span>
+</span><span id="__span-3-7"><a href="#__codelineno-3-7" id="__codelineno-3-7" name="__codelineno-3-7"></a><span class="w">    </span><span class="n">control_limit_lower</span><span class="w"> </span><span class="nb">FLOAT</span><span class="p">,</span>
+</span><span id="__span-3-8"><a href="#__codelineno-3-8" id="__codelineno-3-8" name="__codelineno-3-8"></a><span class="w">    </span><span class="n">warning_limit_upper</span><span class="w"> </span><span class="nb">FLOAT</span><span class="p">,</span>
+</span><span id="__span-3-9"><a href="#__codelineno-3-9" id="__codelineno-3-9" name="__codelineno-3-9"></a><span class="w">    </span><span class="n">warning_limit_lower</span><span class="w"> </span><span class="nb">FLOAT</span><span class="p">,</span>
+</span><span id="__span-3-10"><a href="#__codelineno-3-10" id="__codelineno-3-10" name="__codelineno-3-10"></a><span class="w">    </span><span class="n">is_out_of_control</span><span class="w"> </span><span class="nb">BOOLEAN</span><span class="p">,</span>
+</span><span id="__span-3-11"><a href="#__codelineno-3-11" id="__codelineno-3-11" name="__codelineno-3-11"></a><span class="w">    </span><span class="n">alert_type</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">50</span><span class="p">),</span><span class="w"> </span><span class="c1">-- 'trend', 'shift', 'outlier', etc.</span>
+</span><span id="__span-3-12"><a href="#__codelineno-3-12" id="__codelineno-3-12" name="__codelineno-3-12"></a><span class="w">    </span><span class="n">game_id</span><span class="w"> </span><span class="nb">INTEGER</span><span class="w"> </span><span class="k">REFERENCES</span><span class="w"> </span><span class="n">game</span><span class="p">(</span><span class="n">id</span><span class="p">),</span>
+</span><span id="__span-3-13"><a href="#__codelineno-3-13" id="__codelineno-3-13" name="__codelineno-3-13"></a><span class="w">    </span><span class="n">created_at</span><span class="w"> </span><span class="k">TIMESTAMP</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="n">NOW</span><span class="p">()</span>
+</span><span id="__span-3-14"><a href="#__codelineno-3-14" id="__codelineno-3-14" name="__codelineno-3-14"></a><span class="p">);</span>
+</span></code></pre></div>
+<h3 id="nueva-tabla-changepoints">Nueva Tabla: ChangePoints</h3>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-4-1"><a href="#__codelineno-4-1" id="__codelineno-4-1" name="__codelineno-4-1"></a><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">changepoints</span><span class="w"> </span><span class="p">(</span>
+</span><span id="__span-4-2"><a href="#__codelineno-4-2" id="__codelineno-4-2" name="__codelineno-4-2"></a><span class="w">    </span><span class="n">id</span><span class="w"> </span><span class="nb">SERIAL</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="p">,</span>
+</span><span id="__span-4-3"><a href="#__codelineno-4-3" id="__codelineno-4-3" name="__codelineno-4-3"></a><span class="w">    </span><span class="n">player_username</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">255</span><span class="p">),</span>
+</span><span id="__span-4-4"><a href="#__codelineno-4-4" id="__codelineno-4-4" name="__codelineno-4-4"></a><span class="w">    </span><span class="n">change_type</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span><span class="w"> </span><span class="c1">-- 'performance_shift', 'behavior_change', etc.</span>
+</span><span id="__span-4-5"><a href="#__codelineno-4-5" id="__codelineno-4-5" name="__codelineno-4-5"></a><span class="w">    </span><span class="n">change_point_date</span><span class="w"> </span><span class="k">TIMESTAMP</span><span class="p">,</span>
+</span><span id="__span-4-6"><a href="#__codelineno-4-6" id="__codelineno-4-6" name="__codelineno-4-6"></a><span class="w">    </span><span class="n">confidence_score</span><span class="w"> </span><span class="nb">FLOAT</span><span class="p">,</span>
+</span><span id="__span-4-7"><a href="#__codelineno-4-7" id="__codelineno-4-7" name="__codelineno-4-7"></a><span class="w">    </span><span class="n">before_period_stats</span><span class="w"> </span><span class="n">JSONB</span><span class="p">,</span>
+</span><span id="__span-4-8"><a href="#__codelineno-4-8" id="__codelineno-4-8" name="__codelineno-4-8"></a><span class="w">    </span><span class="n">after_period_stats</span><span class="w"> </span><span class="n">JSONB</span><span class="p">,</span>
+</span><span id="__span-4-9"><a href="#__codelineno-4-9" id="__codelineno-4-9" name="__codelineno-4-9"></a><span class="w">    </span><span class="n">statistical_significance</span><span class="w"> </span><span class="nb">FLOAT</span><span class="p">,</span>
+</span><span id="__span-4-10"><a href="#__codelineno-4-10" id="__codelineno-4-10" name="__codelineno-4-10"></a><span class="w">    </span><span class="n">detected_by_model</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span>
+</span><span id="__span-4-11"><a href="#__codelineno-4-11" id="__codelineno-4-11" name="__codelineno-4-11"></a><span class="w">    </span><span class="n">created_at</span><span class="w"> </span><span class="k">TIMESTAMP</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="n">NOW</span><span class="p">()</span>
+</span><span id="__span-4-12"><a href="#__codelineno-4-12" id="__codelineno-4-12" name="__codelineno-4-12"></a><span class="p">);</span>
+</span></code></pre></div>
+<h3 id="extension-de-gamemetrics">Extensión de GameMetrics</h3>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-5-1"><a href="#__codelineno-5-1" id="__codelineno-5-1" name="__codelineno-5-1"></a><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">gamemetrics</span><span class="w"> </span><span class="k">ADD</span><span class="w"> </span><span class="k">COLUMN</span><span class="w"> </span><span class="n">suspicion_probability</span><span class="w"> </span><span class="nb">FLOAT</span><span class="p">;</span>
+</span><span id="__span-5-2"><a href="#__codelineno-5-2" id="__codelineno-5-2" name="__codelineno-5-2"></a><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">gamemetrics</span><span class="w"> </span><span class="k">ADD</span><span class="w"> </span><span class="k">COLUMN</span><span class="w"> </span><span class="n">suspicion_confidence_lower</span><span class="w"> </span><span class="nb">FLOAT</span><span class="p">;</span>
+</span><span id="__span-5-3"><a href="#__codelineno-5-3" id="__codelineno-5-3" name="__codelineno-5-3"></a><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">gamemetrics</span><span class="w"> </span><span class="k">ADD</span><span class="w"> </span><span class="k">COLUMN</span><span class="w"> </span><span class="n">suspicion_confidence_upper</span><span class="w"> </span><span class="nb">FLOAT</span><span class="p">;</span>
+</span><span id="__span-5-4"><a href="#__codelineno-5-4" id="__codelineno-5-4" name="__codelineno-5-4"></a><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">gamemetrics</span><span class="w"> </span><span class="k">ADD</span><span class="w"> </span><span class="k">COLUMN</span><span class="w"> </span><span class="n">anomaly_score</span><span class="w"> </span><span class="nb">FLOAT</span><span class="p">;</span>
+</span><span id="__span-5-5"><a href="#__codelineno-5-5" id="__codelineno-5-5" name="__codelineno-5-5"></a><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">gamemetrics</span><span class="w"> </span><span class="k">ADD</span><span class="w"> </span><span class="k">COLUMN</span><span class="w"> </span><span class="n">cluster_assignment</span><span class="w"> </span><span class="nb">INTEGER</span><span class="p">;</span>
+</span><span id="__span-5-6"><a href="#__codelineno-5-6" id="__codelineno-5-6" name="__codelineno-5-6"></a><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">gamemetrics</span><span class="w"> </span><span class="k">ADD</span><span class="w"> </span><span class="k">COLUMN</span><span class="w"> </span><span class="n">distance_to_cluster_center</span><span class="w"> </span><span class="nb">FLOAT</span><span class="p">;</span>
+</span><span id="__span-5-7"><a href="#__codelineno-5-7" id="__codelineno-5-7" name="__codelineno-5-7"></a><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">gamemetrics</span><span class="w"> </span><span class="k">ADD</span><span class="w"> </span><span class="k">COLUMN</span><span class="w"> </span><span class="n">performance_prediction</span><span class="w"> </span><span class="nb">FLOAT</span><span class="p">;</span>
+</span><span id="__span-5-8"><a href="#__codelineno-5-8" id="__codelineno-5-8" name="__codelineno-5-8"></a><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">gamemetrics</span><span class="w"> </span><span class="k">ADD</span><span class="w"> </span><span class="k">COLUMN</span><span class="w"> </span><span class="n">prediction_confidence</span><span class="w"> </span><span class="nb">FLOAT</span><span class="p">;</span>
+</span></code></pre></div>
+<h2 id="nuevos-celery-tasks">Nuevos Celery Tasks</h2>
+<h3 id="train_statistical_models">train_statistical_models</h3>
+<p><strong>Subtarea</strong>: Task para entrenar y actualizar modelos estadísticos
+<em>Objetivo</em>: Automatizar el entrenamiento y actualización periódica de todos los modelos estadísticos, asegurando que se mantengan actualizados con nuevos datos y patrones emergentes.
+<em>Enfoque</em>: Ejecutar como tarea programada (ej: semanalmente). Recopilar datos de entrenamiento balanceados, aplicar feature engineering consistente, entrenar múltiples tipos de modelos en paralelo. Usar nested cross-validation para selección de hiperparámetros. Comparar performance de nuevos modelos vs modelos en producción usando métricas como AUC, precision, recall. Solo promover modelos que superen significativamente a los actuales. Versionar modelos y mantener rollback capability.
+- Recopilar training data de historical games
+- Train Bayesian models, ML classifiers, time series models
+- Cross-validation y model selection
+- Update StatisticalModels table con nuevos modelos</p>
+<h3 id="compute_probabilistic_scores">compute_probabilistic_scores</h3>
+<p><strong>Subtarea</strong>: Task para calcular scores probabilísticos
+<em>Objetivo</em>: Aplicar los modelos entrenados a partidas nuevas para generar scores de sospecha probabilísticos en tiempo real, reemplazando el sistema binario actual.
+<em>Enfoque</em>: Triggered por cada nueva partida analizada. Cargar modelos activos desde StatisticalModels table, aplicar feature engineering idéntico al training, ejecutar ensemble de modelos para obtener probabilidades. Calcular confidence intervals usando bootstrap o métodos Bayesianos. Almacenar resultados con breakdown de contributing factors. Generar alertas automáticas para scores &gt; threshold configurable.
+- Aplicar trained models a nuevas partidas
+- Calcular suspicion probabilities con confidence intervals
+- Update ProbabilisticScores table
+- Generate alerts para high-risk scores</p>
+<h3 id="monitor_control_charts">monitor_control_charts</h3>
+<p><strong>Subtarea</strong>: Task para statistical process control
+<em>Objetivo</em>: Mantener control charts actualizados para cada jugador activo, detectando automáticamente condiciones out-of-control que requieren investigación.
+<em>Enfoque</em>: Ejecutar después de cada partida para jugadores activos. Actualizar estadísticas de control charts (media móvil, límites de control), agregar nuevo data point, evaluar si excede límites de warning/control. Recalcular límites dinámicamente usando ventanas deslizantes. Detectar patterns específicos (trends, shifts, cycles) usando Western Electric rules. Generar alertas clasificadas por severidad.
+- Update control charts con nuevos data points
+- Detect out-of-control conditions
+- Calculate control limits dinámicamente
+- Update ControlChartData table</p>
+<h3 id="detect_change_points">detect_change_points</h3>
+<p><strong>Subtarea</strong>: Task para change point detection
+<em>Objetivo</em>: Identificar automáticamente momentos donde el comportamiento del jugador cambió significativamente, segmentando su historial para análisis más preciso.
+<em>Enfoque</em>: Ejecutar periódicamente (ej: diariamente) para jugadores con suficiente historial. Aplicar múltiples algoritmos de change point detection a series temporales de métricas clave. Calcular statistical significance usando permutation tests o bootstrap. Solo reportar change points con alta confianza estadística. Actualizar segmentación del jugador y recalcular baselines para cada segmento.
+- Analyze player performance time series
+- Detect significant behavioral changes
+- Calculate statistical significance
+- Update ChangePoints table</p>
+<h3 id="update_clustering_models">update_clustering_models</h3>
+<p><strong>Subtarea</strong>: Task para dynamic clustering
+<em>Objetivo</em>: Mantener clusters de jugadores actualizados, adaptándose a la evolución del comportamiento y detectando transitions anómalas entre clusters.
+<em>Enfoque</em>: Ejecutar semanalmente con datos recientes. Re-cluster usando algoritmos estables, comparar con clustering anterior para detectar drift. Calcular transition probabilities entre clusters, identificar transitions anómalas (baja probabilidad). Actualizar cluster assignments y recalcular centroides. Mantener métricas de stability y quality de clustering a lo largo del tiempo.
+- Re-cluster players basado en recent behavior
+- Update cluster assignments
+- Detect cluster drift y adaptation
+- Maintain cluster stability metrics</p>
+<h2 id="api-extensions">API Extensions</h2>
+<h3 id="nuevos-endpoints">Nuevos Endpoints</h3>
+<p><strong>Subtarea</strong>: Endpoint <code>/statistics/suspicion/{game_id}</code>
+<em>Objetivo</em>: Proporcionar análisis detallado de sospecha para una partida específica, reemplazando el flag binario actual con información probabilística rica y explicable.
+<em>Enfoque</em>: Retornar suspicion probability con confidence intervals, breakdown detallado de factores contribuyentes (timing: 30%, accuracy: 45%, etc.), comparación con baseline del jugador y su cluster, trend histórico de suspicion scores. Incluir interpretabilidad local (LIME/SHAP) explicando por qué esta partida específica recibió este score.
+- Probabilistic suspicion score con confidence intervals
+- Breakdown de contributing factors
+- Comparison con player baseline
+- Historical suspicion trends</p>
+<p><strong>Subtarea</strong>: Endpoint <code>/statistics/player/{username}/profile</code>
+<em>Objetivo</em>: Crear un dashboard estadístico comprehensivo del jugador que reemplace métricas simples con análisis estadístico avanzado y detección de patrones.
+<em>Enfoque</em>: Mostrar control chart status (in-control vs out-of-control) para métricas clave, change points detectados con fechas y significance levels, cluster assignment actual y histórico, statistical fingerprint del jugador. Incluir comparaciones con peer group y evolution over time.
+- Comprehensive statistical profile
+- Control chart status para key metrics
+- Change points detected en player history
+- Cluster assignment y characteristics</p>
+<p><strong>Subtarea</strong>: Endpoint <code>/statistics/models/performance</code>
+<em>Objetivo</em>: Proporcionar transparencia sobre el rendimiento y comportamiento de los modelos estadísticos para auditoría y mejora continua.
+<em>Enfoque</em>: Mostrar métricas de performance actuales (precision, recall, AUC) con trends over time, model interpretability reports con feature importance global, validation results de cross-validation, historial de updates y versiones. Incluir calibration plots y confusion matrices.
+- Model performance metrics y validation results
+- Model interpretability reports
+- Feature importance rankings
+- Model update history</p>
+<p><strong>Subtarea</strong>: Endpoint <code>/statistics/anomalies/recent</code>
+<em>Objetivo</em>: Crear un feed de anomalías detectadas recientemente para monitoreo proactivo y investigación rápida de casos sospechosos.
+<em>Enfoque</em>: Listar anomalías recientes (últimas 24h/semana) ordenadas por severity score, incluir statistical significance y tipo de anomalía detectada. Proporcionar estimates de false positive rates basados en validation histórica. Permitir filtering por tipo de anomalía y threshold de severidad.
+- Recent anomalies detected across all players
+- Anomaly severity rankings
+- Statistical significance de detections
+- False positive rate estimates</p>
+<h2 id="model-training-pipeline">Model Training Pipeline</h2>
+<h3 id="data-preparation">Data Preparation</h3>
+<p><strong>Subtarea</strong>: Implementar data preprocessing pipeline
+<em>Objetivo</em>: Crear un pipeline robusto y reproducible que transforme datos raw de partidas en features listos para machine learning, manejando inconsistencias y missing data.
+<em>Enfoque</em>: Implementar feature engineering automatizado creando ratios, moving averages, lags, y interaction terms. Manejar missing data con imputación inteligente (ej: median para numerical, mode para categorical). Detectar y manejar outliers usando IQR o isolation forest. Aplicar normalization/scaling apropiado para cada tipo de modelo (StandardScaler para linear models, robust scaling para tree-based).
+- Feature engineering de raw game metrics
+- Handling de missing data y outliers
+- Normalization y scaling de features
+- Time series preprocessing para sequential models</p>
+<p><strong>Subtarea</strong>: Training/validation/test split strategy
+<em>Objetivo</em>: Implementar estrategias de splitting que eviten data leakage y proporcionen estimates realistas de performance en producción, especialmente crítico para datos temporales.
+<em>Enfoque</em>: Usar time-based splitting para preservar orden temporal (train en datos antiguos, test en recientes). Implementar stratified sampling para mantener balance de clases. Para datasets pequeños, usar time series cross-validation con expanding windows. Mantener hold-out set completamente separado para final evaluation, nunca usado durante development.
+- Time-based splitting para time series data
+- Stratified sampling para balanced datasets
+- Cross-validation strategies para small datasets
+- Hold-out sets para final model evaluation</p>
+<h3 id="model-training-infrastructure">Model Training Infrastructure</h3>
+<p><strong>Subtarea</strong>: Implementar automated model training
+<em>Objetivo</em>: Automatizar completamente el proceso de entrenamiento de modelos, desde hyperparameter tuning hasta ensemble creation, asegurando reproducibilidad y optimal performance.
+<em>Enfoque</em>: Implementar hyperparameter optimization usando Bayesian optimization (ej: Optuna) que es más eficiente que grid search. Automated feature selection usando recursive feature elimination o LASSO regularization. Crear ensembles automáticamente probando diferentes combinaciones de base models. Monitorear training con early stopping y learning curves para detectar overfitting.
+- Hyperparameter optimization usando grid/random search
+- Automated feature selection
+- Model ensemble creation y optimization
+- Performance monitoring durante training</p>
+<p><strong>Subtarea</strong>: Model versioning y deployment
+<em>Objetivo</em>: Implementar un sistema robusto de MLOps que permita deployment seguro de nuevos modelos con capacidad de rollback rápido en caso de problemas.
+<em>Enfoque</em>: Usar MLflow o similar para version control de modelos con metadata completo. Implementar A/B testing framework donde nuevo modelo sirve % pequeño de tráfico inicialmente. Gradual rollout aumentando tráfico si métricas son buenas. Automated rollback si performance degrada significativamente. Mantener múltiples versiones en paralelo para comparación.
+- Version control para trained models
+- A/B testing framework para model comparison
+- Gradual rollout de nuevos modelos
+- Rollback capabilities para failed deployments</p>
+<h2 id="interpretability-y-explainability">Interpretability y Explainability</h2>
+<h3 id="model-interpretability">Model Interpretability</h3>
+<p><strong>Subtarea</strong>: Implementar model explanation tools
+<em>Objetivo</em>: Hacer los modelos de ML interpretables y explicables, crucial para ganar confianza de usuarios y cumplir con requisitos de transparencia en decisiones automatizadas.
+<em>Enfoque</em>: Implementar SHAP (SHapley Additive exPlanations) para feature importance global y local que satisface propiedades deseables de attribution. LIME para explicaciones locales más intuitivas. Partial dependence plots para visualizar efecto de features individuales manteniendo otros constantes. Counterfactual explanations: "si ACL hubiera sido 15 en lugar de 10, la probabilidad de sospecha sería 20% en lugar de 60%".
+- SHAP values para feature importance
+- LIME para local explanations
+- Partial dependence plots para feature effects
+- Counterfactual explanations para decisions</p>
+<p><strong>Subtarea</strong>: Automated report generation
+<em>Objetivo</em>: Generar automáticamente reportes en lenguaje natural que expliquen decisiones del modelo de manera comprensible para stakeholders no técnicos.
+<em>Enfoque</em>: Crear templates de natural language generation que conviertan SHAP values y model outputs en explicaciones en español. Desarrollar dashboards interactivos con visualizaciones que permitan drill-down en decisiones específicas. Configurar alertas automáticas que incluyan explicaciones del por qué se triggered. Generar reportes periódicos de model behavior y trends.
+- Natural language explanations de model decisions
+- Visual dashboards para model insights
+- Automated alerts con explanations
+- Stakeholder-friendly reporting</p>
+<h3 id="uncertainty-quantification">Uncertainty Quantification</h3>
+<p><strong>Subtarea</strong>: Implementar uncertainty estimation
+<em>Objetivo</em>: Cuantificar la incertidumbre en las predicciones del modelo para tomar decisiones más informadas, especialmente importante cuando las consecuencias de false positives son altas.
+<em>Enfoque</em>: Implementar Bayesian neural networks que capturan epistemic uncertainty (incertidumbre sobre los parámetros del modelo). Usar ensemble methods para generar prediction intervals empíricos. Conformal prediction para intervals distribution-free con garantías de coverage. Incorporar uncertainty en decision making: requerir human review cuando uncertainty es alta.
+- Bayesian neural networks para epistemic uncertainty
+- Ensemble methods para prediction intervals
+- Conformal prediction para distribution-free intervals
+- Uncertainty-aware decision making</p>
+<h2 id="testing-strategy">Testing Strategy</h2>
+<h3 id="statistical-testing">Statistical Testing</h3>
+<p><strong>Subtarea</strong>: Implementar statistical validation framework
+<em>Objetivo</em>: Asegurar que las detecciones y patrones identificados por los modelos son estadísticamente significativos y no artifacts del ruido o multiple testing.
+<em>Enfoque</em>: Implementar hypothesis testing riguroso para model performance usando permutation tests y bootstrap confidence intervals. Para detected patterns, usar tests apropiados (t-test, Mann-Whitney, etc.) con correction para multiple comparisons (Bonferroni, FDR). Realizar power analysis para determinar sample sizes mínimos necesarios para detectar effects de tamaño específico con confidence deseado.
+- Hypothesis testing para model performance
+- Statistical significance testing para detected patterns
+- Multiple testing correction procedures
+- Power analysis para sample size determination</p>
+<p><strong>Subtarea</strong>: Model validation testing
+<em>Objetivo</em>: Validar que los modelos generalizan bien a datos no vistos y son robustos a diferentes condiciones, especialmente importante para detectar overfitting en time series data.
+<em>Enfoque</em>: Backtesting usando walk-forward validation que simula deployment en producción. Stress testing con edge cases (jugadores muy fuertes/débiles, partidas muy cortas/largas). Robustness testing agregando ruido controlado a features para verificar stability. Adversarial testing intentando "engañar" al modelo con casos diseñados específicamente.
+- Backtesting en historical data
+- Walk-forward validation para time series
+- Stress testing con edge cases
+- Robustness testing con noisy data</p>
+<h3 id="performance-testing">Performance Testing</h3>
+<p><strong>Subtarea</strong>: Scalability testing para production deployment
+<em>Objetivo</em>: Asegurar que el sistema puede manejar el volumen de partidas esperado en producción con latencia aceptable y uso eficiente de recursos.
+<em>Enfoque</em>: Load testing simulando volúmenes peak de partidas simultáneas. Profiling de memory usage para identificar memory leaks o excessive allocation. Optimization de latency usando caching, vectorization, y parallel processing. Diseñar para distributed computing usando frameworks como Dask o Ray para scale horizontal.
+- Load testing para high-volume analysis
+- Memory usage optimization
+- Latency optimization para real-time scoring
+- Distributed computing para large-scale analysis</p>
+<h3 id="integration-testing">Integration Testing</h3>
+<p><strong>Subtarea</strong>: End-to-end testing de statistical pipeline
+<em>Objetivo</em>: Verificar que todo el pipeline estadístico funciona correctamente end-to-end, desde ingesta de datos hasta generación de alertas, con proper error handling.
+<em>Enfoque</em>: Testing de data flow completo usando datos sintéticos con ground truth conocido. API integration testing verificando que endpoints retornan responses correctos. Database consistency testing asegurando que writes/reads son atomic y consistent. Chaos engineering para testing de error handling y recovery bajo failure conditions.
+- Data flow testing desde raw games hasta final scores
+- API integration testing
+- Database consistency testing
+- Error handling y recovery testing</p>
+<h2 id="monitoring-y-maintenance">Monitoring y Maintenance</h2>
+<h3 id="model-performance-monitoring">Model Performance Monitoring</h3>
+<p><strong>Subtarea</strong>: Implementar continuous model monitoring
+<em>Objetivo</em>: Detectar automáticamente cuando los modelos en producción empiezan a degradarse debido a changes en data distribution o concept drift, triggering retraining antes de que performance se deteriore significativamente.
+<em>Enfoque</em>: Monitorear performance metrics (precision, recall, AUC) usando control charts para detectar drift estadísticamente significativo. Data drift monitoring comparando distribuciones de features usando tests como Kolmogorov-Smirnov. Concept drift detection monitoreando relationship entre features y target. Automated retraining triggers cuando drift excede thresholds predefinidos.
+- Performance drift detection
+- Data drift monitoring
+- Concept drift detection
+- Automated retraining triggers</p>
+<p><strong>Subtarea</strong>: Alert systems para model degradation
+<em>Objetivo</em>: Crear un sistema de alertas proactivo que notifique a stakeholders cuando model performance se degrada, con escalation automático basado en severidad.
+<em>Enfoque</em>: Configurar thresholds para performance metrics con diferentes levels de severity (warning, critical). Statistical significance testing para distinguir degradation real de noise normal. Automated escalation: warnings van a ML team, critical alerts van a management. Dashboard en tiempo real mostrando model health con traffic light system (green/yellow/red).
+- Performance threshold monitoring
+- Statistical significance de performance changes
+- Automated escalation procedures
+- Dashboard para model health monitoring</p>
+<h3 id="data-quality-monitoring">Data Quality Monitoring</h3>
+<p><strong>Subtarea</strong>: Implementar data quality checks
+<em>Objetivo</em>: Asegurar que los datos feeding a los modelos mantienen la calidad esperada, detectando corruption, missing data, o changes en schema que podrían afectar model performance.
+<em>Enfoque</em>: Input validation verificando data types, ranges, y constraints. Anomaly detection en input features usando statistical methods para detectar unusual distributions. Data completeness monitoring tracking % de missing values por feature. Consistency checks verificando relationships entre features (ej: move_times length debe match número de moves).
+- Input data validation
+- Anomaly detection en input features
+- Data completeness monitoring
+- Data consistency checks</p>
+<h2 id="ethical-considerations">Ethical Considerations</h2>
+<h3 id="fairness-y-bias">Fairness y Bias</h3>
+<p><strong>Subtarea</strong>: Implementar fairness monitoring
+<em>Objetivo</em>: Asegurar que los modelos no discriminan injustamente contra ciertos grupos de jugadores (ej: por rating, nacionalidad, estilo de juego), manteniendo fairness en las detecciones.
+<em>Enfoque</em>: Implementar bias detection calculando métricas de fairness como demographic parity (equal positive rates across groups) y equalized odds (equal TPR/FPR across groups). Monitorear continuously estas métricas y alertar cuando bias excede thresholds aceptables. Realizar analysis regular de subgroups para identificar potential discrimination.
+- Bias detection en model predictions
+- Fairness metrics calculation
+- Demographic parity analysis
+- Equalized odds testing</p>
+<p><strong>Subtarea</strong>: Bias mitigation strategies
+<em>Objetivo</em>: Implementar técnicas para reducir bias cuando se detecta, balanceando fairness con accuracy del modelo.
+<em>Enfoque</em>: Preprocessing techniques como resampling o reweighting para balance training data. In-processing constraints durante training para enforce fairness (ej: fairness-constrained optimization). Post-processing calibration ajustando thresholds por grupo para achieve equalized odds. Regular bias auditing con external review para validate fairness measures.
+- Preprocessing techniques para bias reduction
+- In-processing fairness constraints
+- Post-processing calibration
+- Regular bias auditing procedures</p>
+<h3 id="privacy-y-transparency">Privacy y Transparency</h3>
+<p><strong>Subtarea</strong>: Privacy-preserving analysis
+<em>Objetivo</em>: Proteger la privacidad de los jugadores mientras se mantiene la efectividad del análisis, cumpliendo con regulaciones de privacy y building trust.
+<em>Enfoque</em>: Implementar differential privacy agregando noise calibrado a statistics para prevent individual identification. Data anonymization removiendo o hashing identifiers. Consent management system para behavioral analysis opt-in. Right to explanation compliance proporcionando explanations comprensibles de automated decisions.
+- Differential privacy para sensitive metrics
+- Data anonymization procedures
+- Consent management para behavioral analysis
+- Right to explanation compliance</p>
+<h2 id="cronograma-de-implementacion">Cronograma de Implementación</h2>
+<p><strong>Semana 1</strong>: Bayesian suspicion scoring y basic ML models
+<strong>Semana 2</strong>: Statistical process control y change point detection
+<strong>Semana 3</strong>: Time series analysis y clustering models
+<strong>Semana 4</strong>: Model training pipeline y interpretability tools
+<strong>Semana 5</strong>: API integration y monitoring systems
+<strong>Semana 6</strong>: Testing, validation y ethical compliance
+<strong>Semana 7</strong>: Performance optimization y deployment
+<strong>Semana 8</strong>: Documentation y training materials</p>
+<h2 id="dependencias">Dependencias</h2>
+<h3 id="technical-dependencies">Technical Dependencies</h3>
+<ul>
+<li>scikit-learn para ML algorithms</li>
+<li>scipy/statsmodels para statistical analysis</li>
+<li>PyMC3/Stan para Bayesian modeling</li>
+<li>TensorFlow/PyTorch para deep learning models</li>
+<li>SHAP/LIME para model interpretability</li>
+</ul>
+<h3 id="data-dependencies">Data Dependencies</h3>
+<ul>
+<li>Historical game data para model training</li>
+<li>Known positive/negative cases para supervised learning</li>
+<li>Player rating histories para baseline establishment</li>
+<li>External validation datasets</li>
+</ul>
+<h3 id="infrastructure-dependencies">Infrastructure Dependencies</h3>
+<ul>
+<li>Distributed computing resources para large-scale analysis</li>
+<li>Model serving infrastructure</li>
+<li>Monitoring y alerting systems</li>
+<li>Database optimization para statistical queries</li>
+</ul>
+<h2 id="success-metrics">Success Metrics</h2>
+<h3 id="model-performance">Model Performance</h3>
+<ul>
+<li>Precision/Recall para suspicion detection</li>
+<li>False positive/negative rates</li>
+<li>AUC-ROC para classification performance</li>
+<li>Calibration metrics para probability estimates</li>
+</ul>
+<h3 id="business-impact">Business Impact</h3>
+<ul>
+<li>Reduction en manual review workload</li>
+<li>Improved detection accuracy vs current system</li>
+<li>Faster response time para suspicious behavior</li>
+<li>User satisfaction con explanation quality</li>
+</ul>
+<h3 id="technical-metrics">Technical Metrics</h3>
+<ul>
+<li>Model training time y resource usage</li>
+<li>Inference latency para real-time scoring</li>
+<li>System uptime y reliability</li>
+<li>Data processing throughput</li>
+</ul>
+<h2 id="risk-mitigation">Risk Mitigation</h2>
+<h3 id="technical-risks">Technical Risks</h3>
+<ul>
+<li>Model overfitting: Cross-validation y regularization</li>
+<li>Data quality issues: Robust preprocessing y validation</li>
+<li>Scalability problems: Distributed computing y optimization</li>
+<li>Model drift: Continuous monitoring y retraining</li>
+</ul>
+<h3 id="business-risks">Business Risks</h3>
+<ul>
+<li>False accusations: High precision thresholds y human review</li>
+<li>Privacy concerns: Anonymization y consent management</li>
+<li>Regulatory compliance: Legal review y documentation</li>
+<li>User trust: Transparency y explainability</li>
+</ul>
+<h2 id="conclusion">Conclusion</h2>
+<p>Este plan proporciona un roadmap comprehensivo para reemplazar el sistema actual de flags binarios con modelos estadísticos avanzados. La implementación será incremental, comenzando con modelos simples y evolucionando hacia sistemas más sofisticados. El enfoque en interpretability, fairness, y continuous monitoring asegura que el sistema sea tanto efectivo como éticamente responsable.</p>
+</article>
+</div>
+<script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+</div>
+<button class="md-top md-icon" data-md-component="top" hidden="" type="button">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"></path></svg>
+  Back to top
+</button>
+</main>
+<footer class="md-footer">
+<div class="md-footer-meta md-typeset">
+<div class="md-footer-meta__inner md-grid">
+<div class="md-copyright">
+<div class="md-copyright__highlight">
+      Copyright © 2025 ChessPlayerAnalyzer Team –
+<a href="#__consent">Change cookie settings</a>
+</div>
+</div>
+<div class="md-social">
+<a class="md-social__link" href="https://github.com/your-username/ChessPlayerAnalyzer" rel="noopener" target="_blank" title="github.com">
+<svg viewbox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2" fill="currentColor"></path></svg>
+</a>
+<a class="md-social__link" href="https://hub.docker.com/r/your-username/chess-analyzer" rel="noopener" target="_blank" title="hub.docker.com">
+<svg viewbox="0 0 640 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M349.9 236.3h-66.1v-59.4h66.1zm0-204.3h-66.1v60.7h66.1zm78.2 144.8H362v59.4h66.1zm-156.3-72.1h-66.1v60.1h66.1zm78.1 0h-66.1v60.1h66.1zm276.8 100c-14.4-9.7-47.6-13.2-73.1-8.4-3.3-24-16.7-44.9-41.1-63.7l-14-9.3-9.3 14c-18.4 27.8-23.4 73.6-3.7 103.8-8.7 4.7-25.8 11.1-48.4 10.7H2.4c-8.7 50.8 5.8 116.8 44 162.1 37.1 43.9 92.7 66.2 165.4 66.2 157.4 0 273.9-72.5 328.4-204.2 21.4.4 67.6.1 91.3-45.2 1.5-2.5 6.6-13.2 8.5-17.1zm-511.1-27.9h-66v59.4h66.1v-59.4zm78.1 0h-66.1v59.4h66.1zm78.1 0h-66.1v59.4h66.1zm-78.1-72.1h-66.1v60.1h66.1z" fill="currentColor"></path></svg>
+</a>
+</div>
+</div>
+</div>
+</footer>
+</div>
+<div class="md-dialog" data-md-component="dialog">
+<div class="md-dialog__inner md-typeset"></div>
+</div>
+<script id="__config" type="application/json">{"base": "../..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.path", "navigation.indexes", "toc.integrate", "toc.follow", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate", "content.tabs.link", "header.autohide", "announce.dismiss"], "search": "../../assets/javascripts/workers/search.973d3a69.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+<script src="../../assets/javascripts/bundle.92b07e13.min.js"></script>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</body>
+</html>

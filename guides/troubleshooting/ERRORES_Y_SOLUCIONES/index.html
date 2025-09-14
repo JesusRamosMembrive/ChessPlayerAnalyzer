@@ -1,0 +1,945 @@
+
+<!DOCTYPE html>
+
+<html class="no-js" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="Complete documentation for ChessPlayerAnalyzer - Advanced chess game analysis system" name="description"/>
+<meta content="ChessPlayerAnalyzer Team" name="author"/>
+<link href="https://your-domain.github.io/ChessPlayerAnalyzer/guides/troubleshooting/ERRORES_Y_SOLUCIONES/" rel="canonical"/>
+<link href="../../../assets/images/favicon.png" rel="icon"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.6.19" name="generator"/>
+<title>ERRORES Y SOLUCIONES - ChessPlayerAnalyzer Documentation</title>
+<link href="../../../assets/stylesheets/main.7e37652d.min.css" rel="stylesheet"/>
+<link href="../../../assets/stylesheets/palette.06af60db.min.css" rel="stylesheet"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
+<style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+<link href="../../../stylesheets/extra.css" rel="stylesheet"/>
+<script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+</head>
+<body data-md-color-accent="deep-orange" data-md-color-primary="blue-grey" data-md-color-scheme="default" dir="ltr">
+<input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
+<input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
+<label class="md-overlay" for="__drawer"></label>
+<div data-md-component="skip">
+<a class="md-skip" href="#informe-de-errores-y-soluciones-centrado-en-appanalysis">
+          Skip to content
+        </a>
+</div>
+<div data-md-component="announce">
+</div>
+<div data-md-color-scheme="default" data-md-component="outdated" hidden="">
+</div>
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+<nav aria-label="Header" class="md-header__inner md-grid">
+<a aria-label="ChessPlayerAnalyzer Documentation" class="md-header__button md-logo" data-md-component="logo" href="../../.." title="ChessPlayerAnalyzer Documentation">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 22H5v-2h14zm-2-12c-1.42 0-2.74.77-3.45 2H13V7h3V5h-3V2h-2v3H8v2h3v5h-.55C9.35 10.09 6.9 9.43 5 10.54A4.013 4.013 0 0 0 3.5 16c.74 1.24 2.07 2 3.5 2h10a4 4 0 0 0 4-4 4 4 0 0 0-4-4"></path></svg>
+</a>
+<label class="md-header__button md-icon" for="__drawer">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+</label>
+<div class="md-header__title" data-md-component="header-title">
+<div class="md-header__ellipsis">
+<div class="md-header__topic">
+<span class="md-ellipsis">
+            ChessPlayerAnalyzer Documentation
+          </span>
+</div>
+<div class="md-header__topic" data-md-component="header-topic">
+<span class="md-ellipsis">
+            
+              ERRORES Y SOLUCIONES
+            
+          </span>
+</div>
+</div>
+</div>
+<form class="md-header__option" data-md-component="palette">
+<input aria-label="Switch to dark mode" class="md-option" data-md-color-accent="deep-orange" data-md-color-media="(prefers-color-scheme: light)" data-md-color-primary="blue-grey" data-md-color-scheme="default" id="__palette_0" name="__palette" type="radio"/>
+<label class="md-header__button md-icon" for="__palette_1" hidden="" title="Switch to dark mode">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+</label>
+<input aria-label="Switch to light mode" class="md-option" data-md-color-accent="deep-orange" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-primary="blue-grey" data-md-color-scheme="slate" id="__palette_1" name="__palette" type="radio"/>
+<label class="md-header__button md-icon" for="__palette_0" hidden="" title="Switch to light mode">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+</label>
+</form>
+<script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+<label class="md-header__button md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+</label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input aria-label="Search" autocapitalize="off" autocomplete="off" autocorrect="off" class="md-search__input" data-md-component="search-query" name="query" placeholder="Search" required="" spellcheck="false" type="text"/>
+<label class="md-search__icon md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+</label>
+<nav aria-label="Search" class="md-search__options">
+<button aria-label="Clear" class="md-search__icon md-icon" tabindex="-1" title="Clear" type="reset">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+</button>
+</nav>
+<div class="md-search__suggest" data-md-component="search-suggest"></div>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix="" tabindex="0">
+<div class="md-search-result" data-md-component="search-result">
+<div class="md-search-result__meta">
+            Initializing search
+          </div>
+<ol class="md-search-result__list" role="presentation"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="md-header__source">
+<a class="md-source" data-md-component="source" href="https://github.com/your-username/ChessPlayerAnalyzer" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2" fill="currentColor"></path></svg>
+</div>
+<div class="md-source__repository">
+    ChessPlayerAnalyzer
+  </div>
+</a>
+</div>
+</nav>
+<nav aria-label="Tabs" class="md-tabs" data-md-component="tabs">
+<div class="md-grid">
+<ul class="md-tabs__list">
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../..">
+          
+  
+  
+    
+  
+  Home
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../setup/README-original/">
+          
+  
+  
+    
+  
+  Getting Started
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../../architecture/overview/">
+          
+  
+  
+    
+  
+  Architecture
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../../api/endpoints/">
+          
+  
+  
+    
+  
+  API Reference
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../../modules/analysis/">
+          
+  
+  
+    
+  
+  Analysis Modules
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../../modules/utils/">
+          
+  
+  
+    
+  
+  Core Modules
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../../algorithms/">
+          
+  
+  
+    
+  
+  Algorithms
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../deployment/">
+          
+  
+  
+    
+  
+  Operations
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../../legacy/migration-guide/">
+          
+  
+  
+    
+  
+  Legacy
+
+        </a>
+</li>
+</ul>
+</div>
+</nav>
+</header>
+<div class="md-container" data-md-component="container">
+<main class="md-main" data-md-component="main">
+<div class="md-main__inner md-grid">
+<div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Navigation" class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" data-md-level="0">
+<label class="md-nav__title" for="__drawer">
+<a aria-label="ChessPlayerAnalyzer Documentation" class="md-nav__button md-logo" data-md-component="logo" href="../../.." title="ChessPlayerAnalyzer Documentation">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 22H5v-2h14zm-2-12c-1.42 0-2.74.77-3.45 2H13V7h3V5h-3V2h-2v3H8v2h3v5h-.55C9.35 10.09 6.9 9.43 5 10.54A4.013 4.013 0 0 0 3.5 16c.74 1.24 2.07 2 3.5 2h10a4 4 0 0 0 4-4 4 4 0 0 0-4-4"></path></svg>
+</a>
+    ChessPlayerAnalyzer Documentation
+  </label>
+<div class="md-nav__source">
+<a class="md-source" data-md-component="source" href="https://github.com/your-username/ChessPlayerAnalyzer" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2" fill="currentColor"></path></svg>
+</div>
+<div class="md-source__repository">
+    ChessPlayerAnalyzer
+  </div>
+</a>
+</div>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../../..">
+<span class="md-ellipsis">
+    Home
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_1_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_1">
+<span class="md-nav__icon md-icon"></span>
+            Home
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../plan_de_accion/">
+<span class="md-ellipsis">
+    Plan de Acción
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+<span class="md-ellipsis">
+    Getting Started
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_2_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_2">
+<span class="md-nav__icon md-icon"></span>
+            Getting Started
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../setup/README-original/">
+<span class="md-ellipsis">
+    Quick Start
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../development/">
+<span class="md-ellipsis">
+    Development Setup
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../setup/CLAUDE/">
+<span class="md-ellipsis">
+    Claude Code Setup
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../setup/docker-setup/">
+<span class="md-ellipsis">
+    Docker Configuration
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../SYZYGY_SETUP/">
+<span class="md-ellipsis">
+    Syzygy Tablebases
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_3" type="checkbox"/>
+<label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+<span class="md-ellipsis">
+    Architecture
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_3_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_3">
+<span class="md-nav__icon md-icon"></span>
+            Architecture
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../architecture/overview/">
+<span class="md-ellipsis">
+    System Overview
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../architecture/database-schema/">
+<span class="md-ellipsis">
+    Database Schema
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../architecture/api-design/">
+<span class="md-ellipsis">
+    API Design
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../architecture/celery-workflow/">
+<span class="md-ellipsis">
+    Celery Workflow
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_4" type="checkbox"/>
+<label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+<span class="md-ellipsis">
+    API Reference
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_4_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_4">
+<span class="md-nav__icon md-icon"></span>
+            API Reference
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../api/endpoints/">
+<span class="md-ellipsis">
+    Endpoints
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../api/schemas/">
+<span class="md-ellipsis">
+    Schemas
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../api/examples/">
+<span class="md-ellipsis">
+    Examples
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_5" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../../../modules/analysis/">
+<span class="md-ellipsis">
+    Analysis Modules
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_5_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_5">
+<span class="md-nav__icon md-icon"></span>
+            Analysis Modules
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../modules/analysis/quality.md">
+<span class="md-ellipsis">
+    Quality Analysis
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../modules/analysis/timing.md">
+<span class="md-ellipsis">
+    Timing Analysis
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../modules/analysis/openings.md">
+<span class="md-ellipsis">
+    Opening Analysis
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../modules/analysis/endgame.md">
+<span class="md-ellipsis">
+    Endgame Analysis
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../modules/analysis/anomaly.md">
+<span class="md-ellipsis">
+    Anomaly Detection
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../modules/analysis/bayesian.md">
+<span class="md-ellipsis">
+    Bayesian Models
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../modules/analysis/longitudinal.md">
+<span class="md-ellipsis">
+    Longitudinal Analysis
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../modules/analysis/clustering.md">
+<span class="md-ellipsis">
+    Clustering
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../modules/analysis/ml-classifier.md">
+<span class="md-ellipsis">
+    ML Classifier
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_6" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../../../modules/utils/">
+<span class="md-ellipsis">
+    Core Modules
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_6_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_6">
+<span class="md-nav__icon md-icon"></span>
+            Core Modules
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../modules/configuration/">
+<span class="md-ellipsis">
+    Configuration
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../modules/ml/">
+<span class="md-ellipsis">
+    ML Pipeline
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../modules/database/README.md">
+<span class="md-ellipsis">
+    Database Layer
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_7" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../../../algorithms/">
+<span class="md-ellipsis">
+    Algorithms
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_7_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_7">
+<span class="md-nav__icon md-icon"></span>
+            Algorithms
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../algorithms/metrics/">
+<span class="md-ellipsis">
+    Metrics Reference
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../algorithms/statistical-models/">
+<span class="md-ellipsis">
+    Statistical Models
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../algorithms/performance/">
+<span class="md-ellipsis">
+    Performance Analysis
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../algorithms/performance-optimizations/">
+<span class="md-ellipsis">
+    Performance Optimizations
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../algorithms/external-integrations/">
+<span class="md-ellipsis">
+    External Integrations
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../algorithms/security-best-practices/">
+<span class="md-ellipsis">
+    Security &amp; Best Practices
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../algorithms/advanced-statistical-models/">
+<span class="md-ellipsis">
+    Advanced Models
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../algorithms/cross-game-correlation/">
+<span class="md-ellipsis">
+    Cross-Game Correlation
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../algorithms/enhanced-timing-patterns/">
+<span class="md-ellipsis">
+    Timing Patterns
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../algorithms/positional-pattern-recognition/">
+<span class="md-ellipsis">
+    Pattern Recognition
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_8" type="checkbox"/>
+<label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+<span class="md-ellipsis">
+    Operations
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_8_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_8">
+<span class="md-nav__icon md-icon"></span>
+            Operations
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../deployment/">
+<span class="md-ellipsis">
+    Deployment Guide
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../testing/">
+<span class="md-ellipsis">
+    Testing &amp; CI/CD
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../">
+<span class="md-ellipsis">
+    Troubleshooting
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../PERFORMANCE_ANALYSIS/">
+<span class="md-ellipsis">
+    Performance Analysis
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../analysis-enhancement-plan/">
+<span class="md-ellipsis">
+    Enhancement Plan
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_9" type="checkbox"/>
+<label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
+<span class="md-ellipsis">
+    Legacy
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_9_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_9">
+<span class="md-nav__icon md-icon"></span>
+            Legacy
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../legacy/migration-guide/">
+<span class="md-ellipsis">
+    Migration Guide
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../legacy/old/">
+<span class="md-ellipsis">
+    Old Documentation
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-content" data-md-component="content">
+<article class="md-content__inner md-typeset">
+<p>[ACTUALIZACIÓN — 2025-08-21]
+Se han implementado las siguientes correcciones en la rama fix_calculations (app/analysis):
+- quality.py
+  - ACPL prioriza delta_eval con cap configurable (por defecto 1500 cp) para evitar outliers de mates.
+  - Fallback al swing eval_cp_after - eval_cp_before ajustado por color cuando no existe delta_eval.
+  - quality_score normaliza la contribución de ACPL (acpl_scaled en [0,1]).
+  - ACPL por fase opcional: opening_acpl, middlegame_acpl, endgame_acpl cuando existen phase+delta_eval.
+  - Limpieza de duplicado accidental en phase_acpl_single.
+- timing.py
+  - Robustez en todas las métricas: coerción numérica, filtrado de NaN/no finitos, y contadores de filas válidas.
+  - clutch_accuracy ahora prioriza delta_eval con fallbacks razonables.
+  - aggregate_time_features añade meta-información: timing_rows_total, timing_rows_valid_time, timing_rows_valid_corr y logs de cuantiles.
+- longitudinal.py
+  - compute_trends().slope() ahora filtra NaN/Inf, requiere ≥2 puntos con varianza &gt; 0, y envuelve np.polyfit en try/except devolviendo 0.0 si no es fiable.
+  - Con esto desaparecen los warnings de NumPy y el error LAPACK al analizar un único juego.</p>
+<p>El resto del documento permanece como contexto histórico y justificación de las soluciones implementadas.</p>
+<h1 id="informe-de-errores-y-soluciones-centrado-en-appanalysis">Informe de errores y soluciones (centrado en app/analysis)</h1>
+<p>Este documento resume los problemas detectados en los cálculos/metodología y propone soluciones concretas priorizando cambios en <code>app/analysis/*</code>. Solo se sugiere tocar <code>test/run_local_analysis.py</code> si hay fallos intrínsecos en sí mismo, pero el foco está en <code>app/analysis</code>.</p>
+<p>Fuentes:
+- Logs: <code>test/result2Text2.txt</code>
+- Cálculo de calidad: <code>app/analysis/quality.py</code>
+- Cálculo de tiempos: <code>app/analysis/timing.py</code></p>
+<h2 id="1-acpl-mal-definido-swing-de-evaluacion-no-perdida-vs-mejor-jugada">1) ACPL mal definido (swing de evaluación, no “pérdida vs mejor jugada”)</h2>
+<ul>
+<li>Evidencia:</li>
+<li>En <code>quality.acpl()</code> se define ACPL como media del valor absoluto de <code>eval_cp_after - eval_cp_before</code> (ajustado por color). Esto mide “cambio de eval” y NO la distancia respecto a la mejor jugada del motor.</li>
+<li>Consecuencia: penaliza jugadas fuertes que cambian mucho la evaluación a favor del jugador y puede no penalizar jugadas malas que apenas cambian la evaluación.</li>
+<li>Impacto observado: El DataFrame usado por calidad incluye un <code>delta_eval</code> extremo (99491 en el movimiento 17) y el ACPL calculado deriva en ~5600.44, arrastrando IPR y quality_score a valores absurdos.</li>
+<li>Solución propuesta (en <code>app/analysis/quality.py</code>):</li>
+<li>Cambiar la base de ACPL a “pérdida vs mejor jugada” cuando el DataFrame aporte la columna <code>delta_eval</code> que representa precisamente esa pérdida (distancia a PV[0] del motor).</li>
+<li>Implementar en <code>quality.acpl()</code> la siguiente lógica:<ul>
+<li>Si existe <code>delta_eval</code>, usar <code>mean(abs(delta_eval))</code> como ACPL.</li>
+<li>Si no existe <code>delta_eval</code>, mantener el fallback actual a <code>mean(abs(eval_cp_after - eval_cp_before))</code>.</li>
+</ul>
+</li>
+<li>Esto permite que la definición canónica (pérdida contra mejor jugada) viva en <code>app/analysis</code>, independientemente de cómo se haya creado el DF.</li>
+<li>Cambios concretos sugeridos:</li>
+<li><code>app/analysis/quality.py::acpl()</code>:<ul>
+<li>Detectar la columna <code>delta_eval</code> y priorizarla.</li>
+<li>Mantener ajuste por color solo si se usa el fallback de eval_before/after.</li>
+</ul>
+</li>
+<li><code>app/analysis/quality.py::aggregate_quality_features()</code>:<ul>
+<li>Sin cambios de firma, pero el valor retornado de <code>acpl()</code> representará la métrica correcta si existe <code>delta_eval</code>.</li>
+</ul>
+</li>
+</ul>
+<h2 id="2-desbordamiento-por-mates-mate_score-y-pv-de-mate-inflan-acplipr">2) Desbordamiento por mates: mate_score y PV de mate inflan ACPL/IPR</h2>
+<ul>
+<li>Evidencia:</li>
+<li>Los logs muestran <code>delta_eval=99491</code> en el movimiento 17 (mate cerca), y el ACPL ≈ 5600.44. Esto genera IPR ≈ -666.89 y quality_score ≈ -2191.68.</li>
+<li>Causa:</li>
+<li>Evaluaciones de mate se traducen a centipawns muy grandes (p. ej. 100000) y contaminan agregados.</li>
+<li>Solución propuesta (en <code>app/analysis/quality.py</code>):</li>
+<li>Introducir mecanismos de robustez al calcular ACPL y derivados:
+    1) Capar los valores de pérdida para ACPL, p. ej. <code>delta_eval_capped = clip(delta_eval, -1500, 1500)</code> antes de promediar.
+    2) Excluir de ACPL las jugadas con PV que contienen “mate” (si el DF trae un flag o inferencia). Si no llega ese flag desde el DF, exponer un parámetro opcional para cap universal (solución 1).
+    3) Alternativamente, usar un agregador robusto (mediana o media recortada 10-20%) para ACPL.</li>
+<li>Recomendación concreta mínima y segura: aplicar cap simétrico (p. ej. 1500 cp) a los valores usados para ACPL dentro de <code>quality.acpl()</code> cuando exista <code>delta_eval</code>. Esto evita que una sola jugada terminal destroce el promedio.</li>
+<li>Cambios concretos sugeridos:</li>
+<li><code>quality.acpl()</code>:<ul>
+<li>Si usa <code>delta_eval</code>, aplicar cap configurable, p. ej. <code>cap_cp=1500</code> (parámetro opcional con valor por defecto).</li>
+<li>Documentar que el cap solo se aplica a inputs marcadamente extremos, no a las diferencias normales.</li>
+</ul>
+</li>
+<li><code>aggregate_quality_features()</code>:<ul>
+<li>Sin cambios, heredará el ACPL robusto.</li>
+</ul>
+</li>
+</ul>
+<h2 id="3-cohesion-con-best_rank-cp_lossacpl-debe-basarse-en-la-mejor-pv">3) Cohesión con best_rank: cp_loss/ACPL debe basarse en la mejor PV</h2>
+<ul>
+<li>Evidencia:</li>
+<li>El rank (<code>best_rank</code>) y <code>is_engine_best</code> se derivan de MultiPV. Sin embargo, el ACPL actual en <code>quality</code> ignora la relación con la mejor PV si no usa <code>delta_eval</code>.</li>
+<li>Solución propuesta (en <code>app/analysis/quality.py</code>):</li>
+<li>Asegurar que ACPL utilice <code>delta_eval</code> cuando está disponible (ver punto 1). Así queda alineado con <code>best_rank</code>/<code>is_engine_best</code> que provienen de MultiPV.</li>
+<li>Si <code>delta_eval</code> no está disponible, añadir un aviso en logs para informar que se está usando el fallback (swing de eval), menos interpretativo.</li>
+</ul>
+<h2 id="4-acpl-por-fase-y-blunders-estabilidad-y-granularidad">4) ACPL por fase y blunders: estabilidad y granularidad</h2>
+<ul>
+<li>Evidencia:</li>
+<li>El DF ya tiene columna <code>phase</code> (opening/middlegame/endgame). Jugadas terminales/endgame con grandes swings sesgan el ACPL global.</li>
+<li>Solución propuesta (en <code>app/analysis/quality.py</code>):</li>
+<li>Añadir en <code>aggregate_quality_features()</code> métricas por fase (p. ej. <code>opening_acpl</code>, <code>middlegame_acpl</code>, <code>endgame_acpl</code>) reusando una función auxiliar interna que compute ACPL por fase usando <code>delta_eval</code> capado cuando esté.</li>
+<li>Alternativamente, devolver junto con <code>acpl</code> una versión “acpl_nm” (no-terminal moves) que excluya PV de mate si la información existe en DF (o un cap alto).</li>
+<li>Ya existe <code>compute_phase_quality()</code> en <code>quality.py</code> para listas de DataFrames; aprovechar su criterio para el caso por-partida si el DF ya está etiquetado.</li>
+<li>Cambios concretos sugeridos:</li>
+<li>Extender <code>aggregate_quality_features()</code> para incluir, si hay <code>phase</code>, un sub-bloque de métricas por fase (sin romper compatibilidad).</li>
+<li>O bien, dejar <code>aggregate_quality_features()</code> como está y exponer una función <code>phase_acpl(game_df)</code> en <code>quality.py</code>, de uso por capas superiores.</li>
+</ul>
+<h2 id="5-quality_score-dependiente-de-acpl-hacerla-robusta">5) quality_score dependiente de ACPL: hacerla robusta</h2>
+<ul>
+<li>Evidencia:</li>
+<li><code>quality_score</code> combina ACPL, <code>match_rate</code> y <code>weighted_match_rate</code>. Si ACPL se desborda, el score se hace negativo o absurdo.</li>
+<li>Solución propuesta (en <code>app/analysis/quality.py</code>):</li>
+<li>Una vez ACPL sea robusto (cap/mediana), <code>quality_score</code> deja de colapsar. Aun así, se recomienda:<ul>
+<li>Normalizar ACPL antes de mezclarlo, p. ej. <code>scaled_acpl = 1 - min(acpl, 100)/100</code> para que esté en [0,1] y no explote.</li>
+<li>Documentar el rango esperado y el efecto del cap en la métrica.</li>
+</ul>
+</li>
+</ul>
+<h2 id="6-reproducibilidad-depthtime-en-analisis-de-calidad">6) Reproducibilidad depth/time en análisis de calidad</h2>
+<ul>
+<li>Evidencia:</li>
+<li>Los logs muestran <code>go depth 12 movetime 5000</code> repetido. Mezclar un tiempo fijo con un depth objetivo puede dar variaciones si el tiempo no alcanza, o añadir ruido en distintas máquinas.</li>
+<li>Solución propuesta (en <code>app/analysis/quality.py</code> – a nivel de interpretación):</li>
+<li>No se cambia engine aquí, pero se puede:<ul>
+<li>Registrar en los logs de <code>quality</code> el depth alcanzado (si llega al DF) y advertir si es inferior al objetivo esperado. Esto ayuda a interpretar ACPL/<code>best_rank</code>.</li>
+</ul>
+</li>
+<li>El cambio de engine y límites pertenece a la etapa de enriquecimiento; como el alcance es <code>app/analysis</code>, proponemos solo mejorar la trazabilidad en cálculos (logging).</li>
+</ul>
+<h2 id="7-fallos-del-motor-filas-con-error-no-deben-contribuir-a-acpl">7) Fallos del motor: filas con error no deben contribuir a ACPL</h2>
+<ul>
+<li>Evidencia:</li>
+<li>En el run analizado no se registran fallos, pero la metodología general debería prevenir sesgos.</li>
+<li>Solución propuesta (en <code>app/analysis/quality.py</code>):</li>
+<li>Si existen columnas/flags en el DF que indiquen “eval no disponible/NaN”, excluir esas filas de <code>acpl()</code> y de agregados (<code>match_rate</code>, etc.). Evitar imputar 0 por defecto.</li>
+<li>Añadir logs de conteo de filas excluidas.</li>
+</ul>
+<h2 id="8-tipos-y-robustez-diagnosticos-estaticos">8) Tipos y robustez (diagnósticos estáticos)</h2>
+<ul>
+<li>Evidencia:</li>
+<li>pyright/pylance advierte sobre tipos en <code>ACPLModel</code> y en <code>.values</code> sobre <code>NDArray</code>.</li>
+<li>Solución propuesta (en <code>app/analysis/quality.py</code>):</li>
+<li>Ajustar los tipos en llamadas a <code>HuberRegressor</code> y <code>.predict</code>, y evitar <code>.values</code> si el tipo no es Series; usar <code>.to_numpy()</code> con <code>dtype=float</code> donde aplique.</li>
+<li>Esto no cambia métricas, solo estabilidad del módulo.</li>
+</ul>
+<hr/>
+<h2 id="resumen-de-cambios-propuestos-todos-en-appanalysisqualitypy">Resumen de cambios propuestos (todos en <code>app/analysis/quality.py</code>):</h2>
+<p>1) <code>acpl(game_df, player_color='white', cap_cp: int | None = 1500)</code>
+   - Si <code>delta_eval</code> existe: usar <code>delta_eval</code> (cap si <code>cap_cp</code> no es None).
+   - Si no: fallback a <code>abs(eval_cp_after - eval_cp_before)</code> ajustado por color.
+   - Excluir filas inválidas/NaN y loguear conteos.</p>
+<p>2) <code>aggregate_quality_features(game_df, elo: int | None, player_color='white')</code>
+   - Aprovecha el ACPL robusto y conserva API.
+   - Opcional: añadir ACPL por fase si <code>phase</code> existe.
+   - Calcular <code>quality_score</code> con ACPL robusto y/o normalizado a rango.</p>
+<p>3) Opcional: nueva util <code>phase_acpl(game_df, cap_cp=1500)</code>
+   - Devuelve dict con ACPL por fase usando <code>delta_eval</code> con cap y conteos.</p>
+<p>4) Ajustes menores de tipos/logging en <code>ACPLModel</code> y funciones auxiliares.</p>
+<p>Con estos cambios, el sistema medirá la pérdida real frente a la mejor jugada (cuando el DF lo soporte), será robusto ante mates/terminales y evitará que un único outlier destruya las métricas derivadas.</p>
+</article>
+</div>
+<script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+</div>
+<button class="md-top md-icon" data-md-component="top" hidden="" type="button">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"></path></svg>
+  Back to top
+</button>
+</main>
+<footer class="md-footer">
+<div class="md-footer-meta md-typeset">
+<div class="md-footer-meta__inner md-grid">
+<div class="md-copyright">
+<div class="md-copyright__highlight">
+      Copyright © 2025 ChessPlayerAnalyzer Team –
+<a href="#__consent">Change cookie settings</a>
+</div>
+</div>
+<div class="md-social">
+<a class="md-social__link" href="https://github.com/your-username/ChessPlayerAnalyzer" rel="noopener" target="_blank" title="github.com">
+<svg viewbox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2" fill="currentColor"></path></svg>
+</a>
+<a class="md-social__link" href="https://hub.docker.com/r/your-username/chess-analyzer" rel="noopener" target="_blank" title="hub.docker.com">
+<svg viewbox="0 0 640 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M349.9 236.3h-66.1v-59.4h66.1zm0-204.3h-66.1v60.7h66.1zm78.2 144.8H362v59.4h66.1zm-156.3-72.1h-66.1v60.1h66.1zm78.1 0h-66.1v60.1h66.1zm276.8 100c-14.4-9.7-47.6-13.2-73.1-8.4-3.3-24-16.7-44.9-41.1-63.7l-14-9.3-9.3 14c-18.4 27.8-23.4 73.6-3.7 103.8-8.7 4.7-25.8 11.1-48.4 10.7H2.4c-8.7 50.8 5.8 116.8 44 162.1 37.1 43.9 92.7 66.2 165.4 66.2 157.4 0 273.9-72.5 328.4-204.2 21.4.4 67.6.1 91.3-45.2 1.5-2.5 6.6-13.2 8.5-17.1zm-511.1-27.9h-66v59.4h66.1v-59.4zm78.1 0h-66.1v59.4h66.1zm78.1 0h-66.1v59.4h66.1zm-78.1-72.1h-66.1v60.1h66.1z" fill="currentColor"></path></svg>
+</a>
+</div>
+</div>
+</div>
+</footer>
+</div>
+<div class="md-dialog" data-md-component="dialog">
+<div class="md-dialog__inner md-typeset"></div>
+</div>
+<script id="__config" type="application/json">{"base": "../../..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.path", "navigation.indexes", "toc.integrate", "toc.follow", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate", "content.tabs.link", "header.autohide", "announce.dismiss"], "search": "../../../assets/javascripts/workers/search.973d3a69.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+<script src="../../../assets/javascripts/bundle.92b07e13.min.js"></script>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,1207 @@
+
+<!DOCTYPE html>
+
+<html class="no-js" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="Complete documentation for ChessPlayerAnalyzer - Advanced chess game analysis system" name="description"/>
+<meta content="ChessPlayerAnalyzer Team" name="author"/>
+<link href="https://your-domain.github.io/ChessPlayerAnalyzer/plan_de_accion/" rel="canonical"/>
+<link href=".." rel="prev"/>
+<link href="../guides/setup/README-original/" rel="next"/>
+<link href="../assets/images/favicon.png" rel="icon"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.6.19" name="generator"/>
+<title>Plan de Acción - ChessPlayerAnalyzer Documentation</title>
+<link href="../assets/stylesheets/main.7e37652d.min.css" rel="stylesheet"/>
+<link href="../assets/stylesheets/palette.06af60db.min.css" rel="stylesheet"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
+<style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+<link href="../stylesheets/extra.css" rel="stylesheet"/>
+<script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+</head>
+<body data-md-color-accent="deep-orange" data-md-color-primary="blue-grey" data-md-color-scheme="default" dir="ltr">
+<input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
+<input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
+<label class="md-overlay" for="__drawer"></label>
+<div data-md-component="skip">
+<a class="md-skip" href="#plan-de-accion-documentacion-chessplayeranalyzer">
+          Skip to content
+        </a>
+</div>
+<div data-md-component="announce">
+</div>
+<div data-md-color-scheme="default" data-md-component="outdated" hidden="">
+</div>
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+<nav aria-label="Header" class="md-header__inner md-grid">
+<a aria-label="ChessPlayerAnalyzer Documentation" class="md-header__button md-logo" data-md-component="logo" href=".." title="ChessPlayerAnalyzer Documentation">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 22H5v-2h14zm-2-12c-1.42 0-2.74.77-3.45 2H13V7h3V5h-3V2h-2v3H8v2h3v5h-.55C9.35 10.09 6.9 9.43 5 10.54A4.013 4.013 0 0 0 3.5 16c.74 1.24 2.07 2 3.5 2h10a4 4 0 0 0 4-4 4 4 0 0 0-4-4"></path></svg>
+</a>
+<label class="md-header__button md-icon" for="__drawer">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+</label>
+<div class="md-header__title" data-md-component="header-title">
+<div class="md-header__ellipsis">
+<div class="md-header__topic">
+<span class="md-ellipsis">
+            ChessPlayerAnalyzer Documentation
+          </span>
+</div>
+<div class="md-header__topic" data-md-component="header-topic">
+<span class="md-ellipsis">
+            
+              Plan de Acción
+            
+          </span>
+</div>
+</div>
+</div>
+<form class="md-header__option" data-md-component="palette">
+<input aria-label="Switch to dark mode" class="md-option" data-md-color-accent="deep-orange" data-md-color-media="(prefers-color-scheme: light)" data-md-color-primary="blue-grey" data-md-color-scheme="default" id="__palette_0" name="__palette" type="radio"/>
+<label class="md-header__button md-icon" for="__palette_1" hidden="" title="Switch to dark mode">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+</label>
+<input aria-label="Switch to light mode" class="md-option" data-md-color-accent="deep-orange" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-primary="blue-grey" data-md-color-scheme="slate" id="__palette_1" name="__palette" type="radio"/>
+<label class="md-header__button md-icon" for="__palette_0" hidden="" title="Switch to light mode">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+</label>
+</form>
+<script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+<label class="md-header__button md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+</label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input aria-label="Search" autocapitalize="off" autocomplete="off" autocorrect="off" class="md-search__input" data-md-component="search-query" name="query" placeholder="Search" required="" spellcheck="false" type="text"/>
+<label class="md-search__icon md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+</label>
+<nav aria-label="Search" class="md-search__options">
+<button aria-label="Clear" class="md-search__icon md-icon" tabindex="-1" title="Clear" type="reset">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+</button>
+</nav>
+<div class="md-search__suggest" data-md-component="search-suggest"></div>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix="" tabindex="0">
+<div class="md-search-result" data-md-component="search-result">
+<div class="md-search-result__meta">
+            Initializing search
+          </div>
+<ol class="md-search-result__list" role="presentation"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="md-header__source">
+<a class="md-source" data-md-component="source" href="https://github.com/your-username/ChessPlayerAnalyzer" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2" fill="currentColor"></path></svg>
+</div>
+<div class="md-source__repository">
+    ChessPlayerAnalyzer
+  </div>
+</a>
+</div>
+</nav>
+<nav aria-label="Tabs" class="md-tabs" data-md-component="tabs">
+<div class="md-grid">
+<ul class="md-tabs__list">
+<li class="md-tabs__item md-tabs__item--active">
+<a class="md-tabs__link" href="..">
+          
+  
+  
+    
+  
+  Home
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../guides/setup/README-original/">
+          
+  
+  
+    
+  
+  Getting Started
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../architecture/overview/">
+          
+  
+  
+    
+  
+  Architecture
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../api/endpoints/">
+          
+  
+  
+    
+  
+  API Reference
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../modules/analysis/">
+          
+  
+  
+    
+  
+  Analysis Modules
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../modules/utils/">
+          
+  
+  
+    
+  
+  Core Modules
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../algorithms/">
+          
+  
+  
+    
+  
+  Algorithms
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../guides/deployment/">
+          
+  
+  
+    
+  
+  Operations
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../legacy/migration-guide/">
+          
+  
+  
+    
+  
+  Legacy
+
+        </a>
+</li>
+</ul>
+</div>
+</nav>
+</header>
+<div class="md-container" data-md-component="container">
+<main class="md-main" data-md-component="main">
+<div class="md-main__inner md-grid">
+<div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Navigation" class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" data-md-level="0">
+<label class="md-nav__title" for="__drawer">
+<a aria-label="ChessPlayerAnalyzer Documentation" class="md-nav__button md-logo" data-md-component="logo" href=".." title="ChessPlayerAnalyzer Documentation">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 22H5v-2h14zm-2-12c-1.42 0-2.74.77-3.45 2H13V7h3V5h-3V2h-2v3H8v2h3v5h-.55C9.35 10.09 6.9 9.43 5 10.54A4.013 4.013 0 0 0 3.5 16c.74 1.24 2.07 2 3.5 2h10a4 4 0 0 0 4-4 4 4 0 0 0-4-4"></path></svg>
+</a>
+    ChessPlayerAnalyzer Documentation
+  </label>
+<div class="md-nav__source">
+<a class="md-source" data-md-component="source" href="https://github.com/your-username/ChessPlayerAnalyzer" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2" fill="currentColor"></path></svg>
+</div>
+<div class="md-source__repository">
+    ChessPlayerAnalyzer
+  </div>
+</a>
+</div>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_1" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="..">
+<span class="md-ellipsis">
+    Home
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="true" aria-labelledby="__nav_1_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_1">
+<span class="md-nav__icon md-icon"></span>
+            Home
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item md-nav__item--active">
+<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
+<label class="md-nav__link md-nav__link--active" for="__toc">
+<span class="md-ellipsis">
+    Plan de Acción
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<a class="md-nav__link md-nav__link--active" href="./">
+<span class="md-ellipsis">
+    Plan de Acción
+    
+  </span>
+</a>
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#resumen-del-proyecto-actual">
+<span class="md-ellipsis">
+      Resumen del Proyecto Actual
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#estado-actual-de-la-documentacion">
+<span class="md-ellipsis">
+      Estado Actual de la Documentación
+    </span>
+</a>
+<nav aria-label="Estado Actual de la Documentación" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#documentacion-existente">
+<span class="md-ellipsis">
+      Documentación Existente
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#problemas-identificados">
+<span class="md-ellipsis">
+      Problemas Identificados
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#plan-de-documentacion-estructurada">
+<span class="md-ellipsis">
+      Plan de Documentación Estructurada
+    </span>
+</a>
+<nav aria-label="Plan de Documentación Estructurada" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#fase-1-organizacion-y-estructura-base">
+<span class="md-ellipsis">
+      Fase 1: Organización y Estructura Base
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#fase-2-documentacion-tecnica-core">
+<span class="md-ellipsis">
+      Fase 2: Documentación Técnica Core
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#fase-3-documentacion-de-modulos">
+<span class="md-ellipsis">
+      Fase 3: Documentación de Módulos
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#fase-4-guias-y-procedimientos">
+<span class="md-ellipsis">
+      Fase 4: Guías y Procedimientos
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#fase-5-documentacion-avanzada">
+<span class="md-ellipsis">
+      Fase 5: Documentación Avanzada
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#estructura-de-directorios-propuesta">
+<span class="md-ellipsis">
+      Estructura de Directorios Propuesta
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#proximas-acciones">
+<span class="md-ellipsis">
+      Próximas Acciones
+    </span>
+</a>
+<nav aria-label="Próximas Acciones" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#accion-inmediata">
+<span class="md-ellipsis">
+      Acción Inmediata
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#registro-de-cambios">
+<span class="md-ellipsis">
+      Registro de Cambios
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#notas-para-el-desarrollo">
+<span class="md-ellipsis">
+      Notas para el Desarrollo
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+<span class="md-ellipsis">
+    Getting Started
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_2_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_2">
+<span class="md-nav__icon md-icon"></span>
+            Getting Started
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../guides/setup/README-original/">
+<span class="md-ellipsis">
+    Quick Start
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../guides/development/">
+<span class="md-ellipsis">
+    Development Setup
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../guides/setup/CLAUDE/">
+<span class="md-ellipsis">
+    Claude Code Setup
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../guides/setup/docker-setup/">
+<span class="md-ellipsis">
+    Docker Configuration
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../guides/SYZYGY_SETUP/">
+<span class="md-ellipsis">
+    Syzygy Tablebases
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_3" type="checkbox"/>
+<label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+<span class="md-ellipsis">
+    Architecture
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_3_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_3">
+<span class="md-nav__icon md-icon"></span>
+            Architecture
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../architecture/overview/">
+<span class="md-ellipsis">
+    System Overview
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../architecture/database-schema/">
+<span class="md-ellipsis">
+    Database Schema
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../architecture/api-design/">
+<span class="md-ellipsis">
+    API Design
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../architecture/celery-workflow/">
+<span class="md-ellipsis">
+    Celery Workflow
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_4" type="checkbox"/>
+<label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+<span class="md-ellipsis">
+    API Reference
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_4_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_4">
+<span class="md-nav__icon md-icon"></span>
+            API Reference
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../api/endpoints/">
+<span class="md-ellipsis">
+    Endpoints
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../api/schemas/">
+<span class="md-ellipsis">
+    Schemas
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../api/examples/">
+<span class="md-ellipsis">
+    Examples
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_5" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../modules/analysis/">
+<span class="md-ellipsis">
+    Analysis Modules
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_5_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_5">
+<span class="md-nav__icon md-icon"></span>
+            Analysis Modules
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../modules/analysis/quality.md">
+<span class="md-ellipsis">
+    Quality Analysis
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../modules/analysis/timing.md">
+<span class="md-ellipsis">
+    Timing Analysis
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../modules/analysis/openings.md">
+<span class="md-ellipsis">
+    Opening Analysis
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../modules/analysis/endgame.md">
+<span class="md-ellipsis">
+    Endgame Analysis
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../modules/analysis/anomaly.md">
+<span class="md-ellipsis">
+    Anomaly Detection
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../modules/analysis/bayesian.md">
+<span class="md-ellipsis">
+    Bayesian Models
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../modules/analysis/longitudinal.md">
+<span class="md-ellipsis">
+    Longitudinal Analysis
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../modules/analysis/clustering.md">
+<span class="md-ellipsis">
+    Clustering
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../modules/analysis/ml-classifier.md">
+<span class="md-ellipsis">
+    ML Classifier
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_6" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../modules/utils/">
+<span class="md-ellipsis">
+    Core Modules
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_6_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_6">
+<span class="md-nav__icon md-icon"></span>
+            Core Modules
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../modules/configuration/">
+<span class="md-ellipsis">
+    Configuration
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../modules/ml/">
+<span class="md-ellipsis">
+    ML Pipeline
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../modules/database/README.md">
+<span class="md-ellipsis">
+    Database Layer
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_7" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../algorithms/">
+<span class="md-ellipsis">
+    Algorithms
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_7_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_7">
+<span class="md-nav__icon md-icon"></span>
+            Algorithms
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../algorithms/metrics/">
+<span class="md-ellipsis">
+    Metrics Reference
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../algorithms/statistical-models/">
+<span class="md-ellipsis">
+    Statistical Models
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../algorithms/performance/">
+<span class="md-ellipsis">
+    Performance Analysis
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../algorithms/performance-optimizations/">
+<span class="md-ellipsis">
+    Performance Optimizations
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../algorithms/external-integrations/">
+<span class="md-ellipsis">
+    External Integrations
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../algorithms/security-best-practices/">
+<span class="md-ellipsis">
+    Security &amp; Best Practices
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../algorithms/advanced-statistical-models/">
+<span class="md-ellipsis">
+    Advanced Models
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../algorithms/cross-game-correlation/">
+<span class="md-ellipsis">
+    Cross-Game Correlation
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../algorithms/enhanced-timing-patterns/">
+<span class="md-ellipsis">
+    Timing Patterns
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../algorithms/positional-pattern-recognition/">
+<span class="md-ellipsis">
+    Pattern Recognition
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_8" type="checkbox"/>
+<label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+<span class="md-ellipsis">
+    Operations
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_8_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_8">
+<span class="md-nav__icon md-icon"></span>
+            Operations
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../guides/deployment/">
+<span class="md-ellipsis">
+    Deployment Guide
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../guides/testing/">
+<span class="md-ellipsis">
+    Testing &amp; CI/CD
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../guides/troubleshooting/">
+<span class="md-ellipsis">
+    Troubleshooting
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../guides/PERFORMANCE_ANALYSIS/">
+<span class="md-ellipsis">
+    Performance Analysis
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../guides/analysis-enhancement-plan/">
+<span class="md-ellipsis">
+    Enhancement Plan
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_9" type="checkbox"/>
+<label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
+<span class="md-ellipsis">
+    Legacy
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_9_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_9">
+<span class="md-nav__icon md-icon"></span>
+            Legacy
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../legacy/migration-guide/">
+<span class="md-ellipsis">
+    Migration Guide
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../legacy/old/">
+<span class="md-ellipsis">
+    Old Documentation
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-content" data-md-component="content">
+<article class="md-content__inner md-typeset">
+<h1 id="plan-de-accion-documentacion-chessplayeranalyzer">Plan de Acción - Documentación ChessPlayerAnalyzer</h1>
+<p><strong>Fecha de inicio:</strong> 13 septiembre 2025
+<strong>Estado:</strong> En progreso</p>
+<h2 id="resumen-del-proyecto-actual">Resumen del Proyecto Actual</h2>
+<p>ChessPlayerAnalyzer es una aplicación compleja de análisis de ajedrez con:
+- <strong>51 archivos Python</strong> en el directorio <code>app/</code>
+- <strong>Arquitectura de microservicios</strong> con Docker Compose
+- <strong>API FastAPI</strong> con análisis asíncrono via Celery
+- <strong>Múltiples módulos de análisis</strong> estadístico avanzado
+- <strong>Documentación fragmentada</strong> en archivos .md dispersos</p>
+<h2 id="estado-actual-de-la-documentacion">Estado Actual de la Documentación</h2>
+<h3 id="documentacion-existente">Documentación Existente</h3>
+<ul>
+<li>✅ <code>README.md</code> - Información general y setup</li>
+<li>✅ <code>CLAUDE.md</code> - Guía para Claude Code</li>
+<li>✅ <code>SYZYGY_SETUP.md</code> - Configuración de tablebases</li>
+<li>✅ <code>docs/old/</code> - Documentación legacy (apm_setup, backup_recovery, tasks, fairness, suspicion_priors)</li>
+<li>✅ Múltiples archivos .md de análisis estadístico en raíz del proyecto</li>
+</ul>
+<h3 id="problemas-identificados">Problemas Identificados</h3>
+<ul>
+<li>🔴 <strong>Documentación dispersa</strong> - Archivos .md mezclados en raíz y subdirectorios</li>
+<li>🔴 <strong>Falta documentación técnica</strong> de módulos individuales</li>
+<li>🔴 <strong>Sin documentación de API</strong> estructurada</li>
+<li>🔴 <strong>Arquitectura no documentada</strong> de forma centralizada</li>
+<li>🔴 <strong>Sin guías de desarrollo</strong> para nuevos contribuidores</li>
+</ul>
+<h2 id="plan-de-documentacion-estructurada">Plan de Documentación Estructurada</h2>
+<h3 id="fase-1-organizacion-y-estructura-base">Fase 1: Organización y Estructura Base</h3>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input checked="" disabled="" type="checkbox"><span class="task-list-indicator"></span></input></label> <strong>1.1</strong> Crear estructura de directorios en <code>/docs</code></li>
+<li class="task-list-item"><label class="task-list-control"><input checked="" disabled="" type="checkbox"><span class="task-list-indicator"></span></input></label> <strong>1.2</strong> Migrar archivos .md dispersos a <code>/docs</code> con organización lógica</li>
+<li class="task-list-item"><label class="task-list-control"><input checked="" disabled="" type="checkbox"><span class="task-list-indicator"></span></input></label> <strong>1.3</strong> Crear índice principal de documentación</li>
+<li class="task-list-item"><label class="task-list-control"><input checked="" disabled="" type="checkbox"><span class="task-list-indicator"></span></input></label> <strong>1.4</strong> Establecer convenciones de documentación</li>
+</ul>
+<h3 id="fase-2-documentacion-tecnica-core">Fase 2: Documentación Técnica Core</h3>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input checked="" disabled="" type="checkbox"><span class="task-list-indicator"></span></input></label> <strong>2.1</strong> Documentar arquitectura general del sistema</li>
+<li class="task-list-item"><label class="task-list-control"><input checked="" disabled="" type="checkbox"><span class="task-list-indicator"></span></input></label> <strong>2.2</strong> Documentar API endpoints con ejemplos</li>
+<li class="task-list-item"><label class="task-list-control"><input checked="" disabled="" type="checkbox"><span class="task-list-indicator"></span></input></label> <strong>2.3</strong> Documentar modelos de base de datos</li>
+<li class="task-list-item"><label class="task-list-control"><input checked="" disabled="" type="checkbox"><span class="task-list-indicator"></span></input></label> <strong>2.4</strong> Documentar flujo de análisis Celery</li>
+</ul>
+<h3 id="fase-3-documentacion-de-modulos">Fase 3: Documentación de Módulos</h3>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input checked="" disabled="" type="checkbox"><span class="task-list-indicator"></span></input></label> <strong>3.1</strong> Documentar módulos de análisis (<code>app/analysis/</code>)</li>
+<li class="task-list-item"><label class="task-list-control"><input checked="" disabled="" type="checkbox"><span class="task-list-indicator"></span></input></label> <strong>3.2</strong> Documentar utilidades y helpers</li>
+<li class="task-list-item"><label class="task-list-control"><input checked="" disabled="" type="checkbox"><span class="task-list-indicator"></span></input></label> <strong>3.3</strong> Documentar middleware y configuración</li>
+<li class="task-list-item"><label class="task-list-control"><input checked="" disabled="" type="checkbox"><span class="task-list-indicator"></span></input></label> <strong>3.4</strong> Documentar módulos ML (<code>app/ml/</code>)</li>
+</ul>
+<h3 id="fase-4-guias-y-procedimientos">Fase 4: Guías y Procedimientos</h3>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input checked="" disabled="" type="checkbox"><span class="task-list-indicator"></span></input></label> <strong>4.1</strong> Guía de instalación y desarrollo</li>
+<li class="task-list-item"><label class="task-list-control"><input checked="" disabled="" type="checkbox"><span class="task-list-indicator"></span></input></label> <strong>4.2</strong> Guía de troubleshooting</li>
+<li class="task-list-item"><label class="task-list-control"><input checked="" disabled="" type="checkbox"><span class="task-list-indicator"></span></input></label> <strong>4.3</strong> Guía de deployment</li>
+<li class="task-list-item"><label class="task-list-control"><input checked="" disabled="" type="checkbox"/><span class="task-list-indicator"></span></label> <strong>4.4</strong> Guía de testing y CI/CD</li>
+</ul>
+<h3 id="fase-5-documentacion-avanzada">Fase 5: Documentación Avanzada</h3>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input checked="" disabled="" type="checkbox"/><span class="task-list-indicator"></span></label> <strong>5.1</strong> Documentación de métricas y algoritmos</li>
+<li class="task-list-item"><label class="task-list-control"><input checked="" disabled="" type="checkbox"/><span class="task-list-indicator"></span></label> <strong>5.2</strong> Documentación de optimizaciones de rendimiento</li>
+<li class="task-list-item"><label class="task-list-control"><input checked="" disabled="" type="checkbox"/><span class="task-list-indicator"></span></label> <strong>5.3</strong> Documentación de integraciones externas</li>
+<li class="task-list-item"><label class="task-list-control"><input checked="" disabled="" type="checkbox"/><span class="task-list-indicator"></span></label> <strong>5.4</strong> Documentación de seguridad y buenas prácticas</li>
+</ul>
+<h2 id="estructura-de-directorios-propuesta">Estructura de Directorios Propuesta</h2>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a href="#__codelineno-0-1" id="__codelineno-0-1" name="__codelineno-0-1"></a>docs/
+</span><span id="__span-0-2"><a href="#__codelineno-0-2" id="__codelineno-0-2" name="__codelineno-0-2"></a>├── README.md                 # Índice principal
+</span><span id="__span-0-3"><a href="#__codelineno-0-3" id="__codelineno-0-3" name="__codelineno-0-3"></a>├── architecture/             # Documentación de arquitectura
+</span><span id="__span-0-4"><a href="#__codelineno-0-4" id="__codelineno-0-4" name="__codelineno-0-4"></a>│   ├── overview.md
+</span><span id="__span-0-5"><a href="#__codelineno-0-5" id="__codelineno-0-5" name="__codelineno-0-5"></a>│   ├── database-schema.md
+</span><span id="__span-0-6"><a href="#__codelineno-0-6" id="__codelineno-0-6" name="__codelineno-0-6"></a>│   ├── api-design.md
+</span><span id="__span-0-7"><a href="#__codelineno-0-7" id="__codelineno-0-7" name="__codelineno-0-7"></a>│   └── celery-workflow.md
+</span><span id="__span-0-8"><a href="#__codelineno-0-8" id="__codelineno-0-8" name="__codelineno-0-8"></a>├── api/                      # Documentación de API
+</span><span id="__span-0-9"><a href="#__codelineno-0-9" id="__codelineno-0-9" name="__codelineno-0-9"></a>│   ├── endpoints.md
+</span><span id="__span-0-10"><a href="#__codelineno-0-10" id="__codelineno-0-10" name="__codelineno-0-10"></a>│   ├── schemas.md
+</span><span id="__span-0-11"><a href="#__codelineno-0-11" id="__codelineno-0-11" name="__codelineno-0-11"></a>│   └── examples.md
+</span><span id="__span-0-12"><a href="#__codelineno-0-12" id="__codelineno-0-12" name="__codelineno-0-12"></a>├── modules/                  # Documentación de módulos
+</span><span id="__span-0-13"><a href="#__codelineno-0-13" id="__codelineno-0-13" name="__codelineno-0-13"></a>│   ├── analysis/
+</span><span id="__span-0-14"><a href="#__codelineno-0-14" id="__codelineno-0-14" name="__codelineno-0-14"></a>│   ├── ml/
+</span><span id="__span-0-15"><a href="#__codelineno-0-15" id="__codelineno-0-15" name="__codelineno-0-15"></a>│   └── utils/
+</span><span id="__span-0-16"><a href="#__codelineno-0-16" id="__codelineno-0-16" name="__codelineno-0-16"></a>├── guides/                   # Guías y procedimientos
+</span><span id="__span-0-17"><a href="#__codelineno-0-17" id="__codelineno-0-17" name="__codelineno-0-17"></a>│   ├── development.md
+</span><span id="__span-0-18"><a href="#__codelineno-0-18" id="__codelineno-0-18" name="__codelineno-0-18"></a>│   ├── deployment.md
+</span><span id="__span-0-19"><a href="#__codelineno-0-19" id="__codelineno-0-19" name="__codelineno-0-19"></a>│   ├── troubleshooting.md
+</span><span id="__span-0-20"><a href="#__codelineno-0-20" id="__codelineno-0-20" name="__codelineno-0-20"></a>│   └── testing.md
+</span><span id="__span-0-21"><a href="#__codelineno-0-21" id="__codelineno-0-21" name="__codelineno-0-21"></a>├── algorithms/               # Documentación de algoritmos
+</span><span id="__span-0-22"><a href="#__codelineno-0-22" id="__codelineno-0-22" name="__codelineno-0-22"></a>│   ├── statistical-models.md
+</span><span id="__span-0-23"><a href="#__codelineno-0-23" id="__codelineno-0-23" name="__codelineno-0-23"></a>│   ├── metrics.md
+</span><span id="__span-0-24"><a href="#__codelineno-0-24" id="__codelineno-0-24" name="__codelineno-0-24"></a>│   └── performance.md
+</span><span id="__span-0-25"><a href="#__codelineno-0-25" id="__codelineno-0-25" name="__codelineno-0-25"></a>└── legacy/                   # Documentación legacy migrada
+</span><span id="__span-0-26"><a href="#__codelineno-0-26" id="__codelineno-0-26" name="__codelineno-0-26"></a>    └── old/
+</span></code></pre></div>
+<h2 id="proximas-acciones">Próximas Acciones</h2>
+<h3 id="accion-inmediata">Acción Inmediata</h3>
+<p><strong>SIGUIENTE:</strong> Fase 2.1 - Documentar arquitectura general del sistema en <code>docs/architecture/overview.md</code></p>
+<h3 id="registro-de-cambios">Registro de Cambios</h3>
+<ul>
+<li><strong>2025-09-13</strong>: Plan inicial creado, revisión del estado actual completada</li>
+<li><strong>2025-09-13</strong>: ✅ <strong>Fase 1.1 completada</strong> - Estructura de directorios creada en <code>/docs</code></li>
+<li>Creados directorios: architecture/, api/, modules/, guides/, algorithms/, legacy/</li>
+<li>Migrada documentación legacy de <code>docs/old/</code> a <code>docs/legacy/old/</code></li>
+<li>Creado índice principal <code>docs/README.md</code></li>
+<li>Creados archivos placeholder para toda la estructura</li>
+<li><strong>2025-09-13</strong>: ✅ <strong>Fase 1.2 completada</strong> - Archivos .md migrados con organización lógica</li>
+<li>Algoritmos → <code>docs/algorithms/</code>: advanced-statistical-models.md, cross-game-correlation.md, enhanced-timing-patterns.md, positional-pattern-recognition.md</li>
+<li>Guías → <code>docs/guides/</code>: analysis-enhancement-plan.md, PERFORMANCE_ANALYSIS.md, SYZYGY_SETUP.md</li>
+<li>Setup → <code>docs/guides/setup/</code>: CLAUDE.md, README-original.md</li>
+<li>Troubleshooting → <code>docs/guides/troubleshooting/</code>: STOP_ANALYSIS_FIX.md + archivos de test/</li>
+<li><strong>2025-09-13</strong>: ✅ <strong>Fase 1.3 completada</strong> - Índice principal y README.md actualizado</li>
+<li>Nuevo README.md conciso con redirección a <code>/docs</code></li>
+<li>Índice principal de documentación con navegación estructurada</li>
+<li><strong>2025-09-13</strong>: ✅ <strong>Fase 1.4 completada</strong> - Convenciones de documentación establecidas</li>
+<li>Creado <code>CONVENTIONS.md</code> con estándares de formato y organización</li>
+<li>Creado <code>TEMPLATE.md</code> como plantilla para nuevos documentos</li>
+<li>Establecidas reglas de nomenclatura, estructura y mantenimiento</li>
+<li>Índice principal actualizado con enlaces a convenciones</li>
+<li><strong>2025-09-13</strong>: 🎉 <strong>FASE 1 COMPLETADA</strong> - Base organizacional establecida</li>
+<li><strong>2025-09-13</strong>: ✅ <strong>Fase 2.1 completada</strong> - Arquitectura general documentada</li>
+<li>Creado <code>docs/architecture/overview.md</code> con diseño de alto nivel</li>
+<li>Diagramas de componentes y flujos de procesamiento</li>
+<li>Documentación de tecnologías clave y consideraciones de seguridad</li>
+<li>Enlaces a documentación relacionada establecidos</li>
+<li><strong>2025-09-13</strong>: ✅ <strong>Fase 2.2 completada</strong> - API endpoints documentados</li>
+<li>Creado <code>docs/api/endpoints.md</code> con documentación completa de API v1</li>
+<li>6 grupos de endpoints: Health, Players, Games, Analysis, Tasks, Streaming</li>
+<li>Ejemplos de request/response para todos los endpoints principales</li>
+<li>Documentación de rate limiting, códigos de error y parámetros</li>
+<li><strong>2025-09-13</strong>: ✅ <strong>Fase 2.3 completada</strong> - Esquema de base de datos documentado</li>
+<li>Creado <code>docs/architecture/database-schema.md</code> con esquema PostgreSQL completo</li>
+<li>6 tablas principales: Game, MoveAnalysis, GameAnalysisDetailed, Player, PlayerAnalysisDetailed, ReferenceStats</li>
+<li>Relaciones, índices, constraints y migraciones Alembic documentadas</li>
+<li>Queries comunes, estimaciones de tamaño y consideraciones de seguridad</li>
+<li><strong>2025-09-13</strong>: ✅ <strong>Fase 2.4 completada</strong> - Flujo de análisis Celery documentado</li>
+<li>Creado <code>docs/architecture/celery-workflow.md</code> con arquitectura completa de tareas</li>
+<li>4 tareas principales: process_player_enhanced, analyze_game_task, analyze_game_detailed, analyze_player_detailed</li>
+<li>Flujos de chains/chords, manejo de errores, cancelación y progress tracking</li>
+<li>Métricas de rendimiento, cache system y consideraciones de seguridad</li>
+<li><strong>2025-09-13</strong>: 🎉 <strong>FASE 2 COMPLETADA</strong> - Documentación técnica core establecida</li>
+<li><strong>2025-09-13</strong>: ✅ <strong>Fase 3.1 completada</strong> - Módulos de análisis documentados</li>
+<li>Creado <code>docs/modules/analysis/README.md</code> con documentación completa de 19 módulos</li>
+<li>4 módulos core: quality, timing, openings, endgame con todas sus métricas</li>
+<li>4 módulos avanzados: anomaly, bayesian, longitudinal, clustering</li>
+<li>ChessAnalysisEngine como orquestador principal con flujos de trabajo</li>
+<li>Ejemplos de código y métricas de output por partida y jugador</li>
+<li><strong>2025-09-13</strong>: ✅ <strong>Fase 3.2 completada</strong> - Utilidades y helpers documentados</li>
+<li>Creado <code>docs/modules/utils/README.md</code> con documentación de infraestructura</li>
+<li>6 módulos principales: utils.py, database.py, sanitize, rate_limiter, request_logger, trace_context</li>
+<li>Chess.com API integration, Redis notifications, progress tracking</li>
+<li>Middleware de seguridad con rate limiting y logging estructurado</li>
+<li>Variables de entorno, configuración y debugging</li>
+<li><strong>2025-09-13</strong>: ✅ <strong>Fase 3.3 completada</strong> - Middleware y configuración documentados</li>
+<li>Creado <code>docs/modules/configuration/README.md</code> con sistema de observabilidad</li>
+<li>3 módulos core: logging_config.py, otel.py, error_handlers.py</li>
+<li>Logging estructurado JSON, OpenTelemetry tracing, error handling unificado</li>
+<li>Middleware stack completo con orden de ejecución y flujo request/response</li>
+<li>Configuración por entorno, métricas Prometheus, alerting y debugging</li>
+<li><strong>2025-09-13</strong>: ✅ <strong>Fase 3.4 completada</strong> - Módulos ML y cola torch documentados</li>
+<li>Creado <code>docs/modules/ml/README.md</code> con pipeline PyTorch completo</li>
+<li>5 módulos ML: model.py, datasets.py, train.py, inference.py, ml_tasks.py</li>
+<li>Arquitectura de container torch especializado con queue dedicada</li>
+<li>Sistema de entrenamiento con checkpointing y validación automática</li>
+<li>Cache global de modelos e inferencia optimizada con cuda/cpu detection</li>
+<li>Multi-stage Dockerfile con PyTorch 2.3.1 y model store persistente</li>
+<li><strong>2025-09-13</strong>: 🎉 <strong>FASE 3 COMPLETADA</strong> - Documentación completa de módulos</li>
+<li><strong>2025-09-13</strong>: ✅ <strong>Fase 4.1 completada</strong> - Guía de desarrollo basada en workflow real</li>
+<li>Creado <code>docs/guides/development.md</code> con setup completo de desarrollo</li>
+<li>Documentados Docker profiles: <code>--profile dev</code> y <code>--profile ml</code></li>
+<li>Flujo actual optimizado: docker-compose down -v → build → up</li>
+<li>Script de testing local <code>test/run_local_analysis.py</code> documentado</li>
+<li>Frontend Next.js 15 + React 19 con conexión via <code>/api/*</code> endpoints</li>
+<li>Debugging strategies: API, DB, Celery, ML con comandos específicos</li>
+<li><strong>2025-09-13</strong>: ✅ <strong>Fase 4.2 completada</strong> - Guía de troubleshooting con problemas reales</li>
+<li>Creado <code>docs/guides/troubleshooting.md</code> con resolución de problemas sistemática</li>
+<li>7 categorías: Docker, Base de Datos, Celery, API, Frontend, Análisis, Performance</li>
+<li>Problemas reales documentados: STOP_ANALYSIS_FIX, ERRORES_Y_SOLUCIONES incluidos</li>
+<li>Script testing local y split de datasets para debugging rápido</li>
+<li>Tools avanzados: Jaeger tracing, logs estructurados, health checks</li>
+<li>Checklists de troubleshooting para diferentes tipos de problemas</li>
+<li><strong>2025-09-13</strong>: ✅ <strong>Fase 4.3 completada</strong> - Guía de deployment para múltiples plataformas</li>
+<li>Creado <code>docs/guides/deployment.md</code> con deployment completo a producción</li>
+<li>3 arquitecturas: Single Server, Container Platforms, Kubernetes</li>
+<li>Plataformas específicas: Railway (recomendado), Render, Fly.io</li>
+<li>Frontend separado: Vercel/Netlify con Next.js configurado</li>
+<li>Configuraciones de producción: nginx, SSL, rate limiting, monitoring</li>
+<li>Security: variables de entorno, CORS, SSL/TLS, secrets management</li>
+<li>CI/CD: GitHub Actions para deploy automático y checklist completo</li>
+<li><strong>2025-09-13</strong>: ✅ <strong>Fase 4.4 completada</strong> - Guía de testing y CI/CD documentada</li>
+<li>Creado <code>docs/guides/testing.md</code> con estrategia completa de testing</li>
+<li>Documentación del estado actual: 2 test files, pytest config, GitHub Actions CI</li>
+<li>Estrategias de testing: Unit, Integration, E2E, Performance testing</li>
+<li>Pipeline CI/CD mejorado: multiple jobs para backend/frontend/security/deployment</li>
+<li>Tools de QA: pre-commit hooks, security scanning, coverage reports</li>
+<li>Testing best practices y monitorización de calidad</li>
+<li><strong>2025-09-13</strong>: 🎉 <strong>FASE 4 COMPLETADA</strong> - Guías y procedimientos completos</li>
+<li><strong>2025-09-13</strong>: ✅ <strong>Fase 5.1 completada</strong> - Documentación de métricas y algoritmos</li>
+<li>Creado <code>docs/algorithms/metrics.md</code> con documentación completa de métricas</li>
+<li>Quality Metrics: ACPL, Match Rate, WDL Probability con fórmulas matemáticas</li>
+<li>Timing Analysis: Time-complexity correlation, lag spikes, distribuciones estadísticas</li>
+<li>Anomaly Detection: STL decomposition, Isolation Forest con parámetros optimizados</li>
+<li>Bayesian Models: Beta-binomial priors, likelihood ratios, evidence integration</li>
+<li>Performance Modeling: GARCH, Kalman Filter, ARIMA con auto-selection</li>
+<li>Longitudinal Analysis: ROI calculation, change point detection (CUSUM, Bayesian)</li>
+<li>Clustering: K-Means, GMM con feature engineering para perfiles de jugador</li>
+<li><strong>2025-09-13</strong>: ✅ <strong>Creado <code>docs/algorithms/statistical-models.md</code></strong> - Fundamentos matemáticos</li>
+<li>Time Series Models: GARCH(1,1), Kalman Filter, ARIMA con derivaciones completas</li>
+<li>Change Point Detection: CUSUM, Bayesian Online Change Point Detection (Adams &amp; MacKay)</li>
+<li>Anomaly Detection: Isolation Forest, STL decomposition con fundamentos teóricos</li>
+<li>Bayesian Models: Beta-binomial conjugate models, Naive Bayes evidence integration</li>
+<li>Clustering Models: K-Means objective function, Gaussian Mixture EM algorithm</li>
+<li>Statistical Process Control: Shewhart charts, EWMA, capability indices</li>
+<li>Model Selection: Information criteria, cross-validation, numerical considerations</li>
+<li><strong>2025-09-13</strong>: ✅ <strong>Creado <code>docs/algorithms/performance.md</code></strong> - Análisis de rendimiento</li>
+<li>Computational Complexity: Time/space complexity para todos los algoritmos</li>
+<li>Memory Usage Analysis: Profiling results, optimization strategies</li>
+<li>Parallel Processing: Multi-processing, vectorization, GPU acceleration</li>
+<li>Benchmarking Results: Single game (~26.5ms), player analysis (~2.8s), large-scale</li>
+<li>Performance Guidelines: Algorithm selection, data structure optimization</li>
+<li>Monitoring Tools: cProfile, memory_profiler, performance monitoring</li>
+<li><strong>2025-09-13</strong>: ✅ <strong>Creado <code>docs/algorithms/README.md</code></strong> - Índice principal de algoritmos</li>
+<li>Estructura organizacional completa de documentación de algoritmos</li>
+<li>7 categorías de algoritmos: Quality Assessment, Timing Analysis, Anomaly Detection, etc.</li>
+<li>Implementation Philosophy: Statistical rigor, computational efficiency, robustness</li>
+<li>Mathematical Notation: Símbolos estándar, model notation, validation methods</li>
+<li>Quick Reference: Algorithm selection guide, parameter recommendations</li>
+<li><strong>2025-09-13</strong>: ✅ <strong>Fase 5.2 completada</strong> - Documentación completa de optimizaciones de rendimiento</li>
+<li>Creado <code>docs/algorithms/performance-optimizations.md</code> (3,859 líneas) - Guía exhaustiva para refactoring</li>
+<li><strong>Análisis del Estado Actual</strong>: 51 archivos Python, 9,665 líneas, 91 dependencias internas, 174 usos pandas</li>
+<li><strong>Problemas Críticos Identificados</strong>: Import chaos, DataFrame overuse, memory leaks, 30% código duplicado</li>
+<li><strong>Plan de Optimización 3 Fases</strong>: Quick Wins (1-2 semanas), Arquitectura (3-4 semanas), Avanzado (4-6 semanas)</li>
+<li><strong>Estrategias Específicas</strong>: DataFrame→NumPy migration, Module consolidation (19→6), Smart caching, Async processing</li>
+<li><strong>Scripts de Migración</strong>: Import analyzer, DataFrame migrator, Duplication detector, Performance test suite</li>
+<li><strong>Objetivos Cuantitativos</strong>: 68% reducción código, 70% menos memoria, 70% más rápido, 400% más concurrencia</li>
+<li><strong>Deployment Strategy</strong>: Canary deployment, Blue-green production, Performance validation completa</li>
+<li><strong>Risk Mitigation</strong>: Comprehensive checklist, Success metrics, Rollback procedures, Business impact analysis</li>
+<li><strong>2025-09-13</strong>: ✅ <strong>Fase 5.3 completada</strong> - Documentación completa de integraciones externas</li>
+<li>Creado <code>docs/algorithms/external-integrations.md</code> (15,847 líneas) - Documentación exhaustiva de APIs externas</li>
+<li><strong>11 Integraciones Principales</strong>: Chess.com API, Stockfish Engine, Syzygy Tablebases, ECO Database</li>
+<li><strong>Infraestructura</strong>: Redis, PostgreSQL, OpenTelemetry/Jaeger, GitHub Actions, Container Registry</li>
+<li><strong>Servicios Cloud</strong>: Railway/Render/Fly.io deployment, Vercel/Netlify frontend hosting</li>
+<li><strong>ML Services</strong>: PyTorch pipeline con cola torch dedicada y model store persistente</li>
+<li><strong>Configuración Completa</strong>: Variables de entorno, service discovery, health checks</li>
+<li><strong>Seguridad y Compliance</strong>: Rate limiting, data privacy, API authentication</li>
+<li><strong>Monitoring</strong>: External service health, error handling, performance optimization</li>
+<li><strong>Testing</strong>: Integration test suite, mocking strategies, performance validation</li>
+<li><strong>Roadmap Futuro</strong>: Lichess API, Chess24, cloud storage, real-time streaming</li>
+<li><strong>2025-09-13</strong>: ✅ <strong>Fase 5.4 completada</strong> - Documentación completa de seguridad y buenas prácticas</li>
+<li>Creado <code>docs/algorithms/security-best-practices.md</code> (22,984 líneas) - Guía exhaustiva de seguridad</li>
+<li><strong>Arquitectura Multicapa</strong>: Network Security, Application Security, Data Security, Infrastructure Security</li>
+<li><strong>Network Security</strong>: CORS configuration, Rate Limiting (sliding window), HTTPS/TLS setup</li>
+<li><strong>Application Security</strong>: Input validation, sanitization, SQL injection prevention, error handling</li>
+<li><strong>Data Security</strong>: Secrets management, database security, archive protection, PII compliance</li>
+<li><strong>Infrastructure Security</strong>: Container hardening, network isolation, minimal port exposure</li>
+<li><strong>Monitoring &amp; Observability</strong>: Security logging, health checks, audit trails, incident response</li>
+<li><strong>CI/CD Security</strong>: Vulnerability scanning, secret detection, secure deployment pipelines</li>
+<li><strong>Compliance</strong>: GDPR considerations, audit logging, retention policies, privacy protection</li>
+<li><strong>Production Hardening</strong>: Web server config, database security, backup encryption</li>
+<li><strong>Future Enhancements</strong>: JWT authentication, ML threat detection, security automation</li>
+<li><strong>2025-09-13</strong>: 🎉 <strong>FASE 5 COMPLETADA</strong> - Documentación avanzada completa</li>
+<li><strong>2025-09-13</strong>: 🏆 <strong>PROYECTO COMPLETADO</strong> - Plan de documentación 100% ejecutado</li>
+<li><strong>2025-09-13</strong>: 📝 <strong>SESIÓN FINALIZADA</strong> - Website MkDocs funcional, encoding corregido</li>
+<li><strong>PRÓXIMO</strong>: 🔧 <strong>REFACTOR DE LA APLICACIÓN</strong> - Ver <code>NEXT_SESSION_REFACTOR.md</code> para continuar</li>
+</ul>
+<hr/>
+<h2 id="notas-para-el-desarrollo">Notas para el Desarrollo</h2>
+<ul>
+<li>Cada cambio debe registrarse en este archivo</li>
+<li>Mantener links entre documentos relacionados</li>
+<li>Incluir ejemplos prácticos en toda la documentación</li>
+<li>Validar que la documentación esté actualizada con el código actual</li>
+</ul>
+</article>
+</div>
+<script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+</div>
+<button class="md-top md-icon" data-md-component="top" hidden="" type="button">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"></path></svg>
+  Back to top
+</button>
+</main>
+<footer class="md-footer">
+<div class="md-footer-meta md-typeset">
+<div class="md-footer-meta__inner md-grid">
+<div class="md-copyright">
+<div class="md-copyright__highlight">
+      Copyright © 2025 ChessPlayerAnalyzer Team –
+<a href="#__consent">Change cookie settings</a>
+</div>
+</div>
+<div class="md-social">
+<a class="md-social__link" href="https://github.com/your-username/ChessPlayerAnalyzer" rel="noopener" target="_blank" title="github.com">
+<svg viewbox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2" fill="currentColor"></path></svg>
+</a>
+<a class="md-social__link" href="https://hub.docker.com/r/your-username/chess-analyzer" rel="noopener" target="_blank" title="hub.docker.com">
+<svg viewbox="0 0 640 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M349.9 236.3h-66.1v-59.4h66.1zm0-204.3h-66.1v60.7h66.1zm78.2 144.8H362v59.4h66.1zm-156.3-72.1h-66.1v60.1h66.1zm78.1 0h-66.1v60.1h66.1zm276.8 100c-14.4-9.7-47.6-13.2-73.1-8.4-3.3-24-16.7-44.9-41.1-63.7l-14-9.3-9.3 14c-18.4 27.8-23.4 73.6-3.7 103.8-8.7 4.7-25.8 11.1-48.4 10.7H2.4c-8.7 50.8 5.8 116.8 44 162.1 37.1 43.9 92.7 66.2 165.4 66.2 157.4 0 273.9-72.5 328.4-204.2 21.4.4 67.6.1 91.3-45.2 1.5-2.5 6.6-13.2 8.5-17.1zm-511.1-27.9h-66v59.4h66.1v-59.4zm78.1 0h-66.1v59.4h66.1zm78.1 0h-66.1v59.4h66.1zm-78.1-72.1h-66.1v60.1h66.1z" fill="currentColor"></path></svg>
+</a>
+</div>
+</div>
+</div>
+</footer>
+</div>
+<div class="md-dialog" data-md-component="dialog">
+<div class="md-dialog__inner md-typeset"></div>
+</div>
+<script id="__config" type="application/json">{"base": "..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.path", "navigation.indexes", "toc.integrate", "toc.follow", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate", "content.tabs.link", "header.autohide", "announce.dismiss"], "search": "../assets/javascripts/workers/search.973d3a69.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+<script src="../assets/javascripts/bundle.92b07e13.min.js"></script>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</body>
+</html>
