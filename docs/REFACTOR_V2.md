@@ -269,11 +269,37 @@ class Settings:
 
 ---
 
-### Interacción 2 (Pendiente)
-**En progreso**: Mejora del workflow de desarrollo
-- [ ] Setup de testing local sin Docker
-- [ ] Creación de test suite inicial
-- [ ] Documentación de debugging workflow mejorado
+### Interacción 2 (2025-09-21)
+**✅ COMPLETADO**: Mejora del workflow de desarrollo
+- ✅ Setup de testing local sin Docker
+- ✅ Creación de test suite inicial con pytest
+- ✅ Documentación de debugging workflow mejorado
+- ✅ Scripts de testing rápido (`./scripts/test_local.sh`)
+- ✅ Guía completa en `docs/LOCAL_DEVELOPMENT.md`
+
+**🎯 SIGUIENTE**: Sprint 1 - Foundation (nueva estructura de directorios)
+
+---
+
+### Interacción 3 (2025-09-21)
+**✅ COMPLETADO**: Sprint 1 - Foundation
+- ✅ Crear nueva estructura de directorios (core/, domain/, infrastructure/, application/)
+- ✅ Mover configuración a `core/config.py` con tipado fuerte
+- ✅ Crear value objects para métricas (QualityMetrics, TimingMetrics, etc.)
+- ✅ Definir interfaces de repositorio (PlayerRepository, GameRepository, AnalysisRepository)
+- ✅ Crear entidades de dominio (Player, Game, PlayerAnalysis, GameAnalysis)
+- ✅ Tests unitarios para domain layer
+
+**🎯 SIGUIENTE**: Sprint 2 - Domain Refactor (servicios de dominio y repositorios SQL)
+
+---
+
+### Interacción 4 (Pendiente)
+**🚧 SIGUIENTE**: Sprint 2 - Domain Refactor
+- [ ] Refactorizar modelos de dominio
+- [ ] Implementar servicios de dominio
+- [ ] Crear repositorios SQL
+- [ ] Tests unitarios para domain layer extendidos
 
 ---
 

@@ -1,0 +1,1 @@
+# Core layer - Configuración y utilidades centrales
