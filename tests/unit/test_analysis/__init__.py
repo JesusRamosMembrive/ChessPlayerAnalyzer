@@ -1,0 +1,1 @@
+# Tests unitarios para módulos de análisis
