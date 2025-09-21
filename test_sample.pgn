@@ -1,0 +1,74 @@
+[Event "Live Chess"]
+[Site "Chess.com"]
+[Date "2019.07.24"]
+[Round "-"]
+[White "TestUser456"]
+[Black "paulb900"]
+[Result "1-0"]
+[ECO "B00"]
+[WhiteElo "918"]
+[BlackElo "657"]
+[TimeControl "180"]
+[Termination "TestUser456 won on time"]
+
+1. d4 Nc6 2. e4 d5 3. exd5 Nb8 4. Nf3 e6 5. dxe6 Bxe6 6. c4 Nc6 7. d5 Nf6 8. dxe6 Qxd1+ 9. Kxd1 Rd8+ 10. Ke1 fxe6 11. Bg5 Bb4+ 12. Nc3 Bxc3+ 13. bxc3 Ne4 14. Bxd8 Kxd8 15. Rd1+ Kc8 16. Rc1 Rd8 17. Rc2 Rd2 18. Nxd2 Nxd2 19. Kxd2 Ne5 20. g3 Nxc4+ 21. Bxc4 b6 22. Bxe6+ Kb7 23. Bg8 1-0
+
+[Event "Live Chess"]
+[Site "Chess.com"]
+[Date "2019.07.24"]
+[Round "-"]
+[White "TestUser456"]
+[Black "timo555"]
+[Result "1-0"]
+[ECO "C65"]
+[WhiteElo "918"]
+[BlackElo "761"]
+[TimeControl "180"]
+[Termination "timo555 resigned"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 Nf6 1-0
+
+[Event "Live Chess"]
+[Site "Chess.com"]
+[Date "2019.07.24"]
+[Round "-"]
+[White "alice123"]
+[Black "TestUser456"]
+[Result "0-1"]
+[ECO "C20"]
+[WhiteElo "850"]
+[BlackElo "918"]
+[TimeControl "300"]
+[Termination "alice123 resigned"]
+
+1. e4 e5 2. Qh5 Nc6 3. Bc4 g6 4. Qf3 Nf6 5. Ne2 d6 6. h3 Be6 7. Bxe6 fxe6 8. Qb3 Qd7 9. f4 exf4 10. Nxf4 O-O-O 11. Nxe6 Qxe6 12. Qxe6+ Kb8 0-1
+
+[Event "Live Chess"]
+[Site "Chess.com"]
+[Date "2019.07.24"]
+[Round "-"]
+[White "TestUser456"]
+[Black "bob987"]
+[Result "1-0"]
+[ECO "D20"]
+[WhiteElo "925"]
+[BlackElo "880"]
+[TimeControl "600"]
+[Termination "bob987 resigned"]
+
+1. d4 d5 2. c4 dxc4 3. e3 e6 4. Bxc4 Nf6 5. Nf3 c5 6. O-O Nc6 7. dxc5 Bxc5 8. a3 O-O 9. b4 Be7 10. Bb2 a6 11. Nbd2 b5 12. Be2 Bb7 13. Rc1 Rc8 14. Ne5 Nxe5 15. Bxe5 Nd7 16. Bb2 Bf6 17. Bxf6 Nxf6 18. Bf3 Bxf3 19. Nxf3 Qd5 20. Qxd5 exd5 21. Rfd1 Rfd8 22. Ne5 Ne4 23. f3 Nc3 24. Rd2 f6 25. Ng4 Kf7 26. e4 dxe4 27. fxe4 Re8 28. Rcd1 1-0
+
+[Event "Live Chess"]
+[Site "Chess.com"]
+[Date "2019.07.24"]
+[Round "-"]
+[White "charlie456"]
+[Black "TestUser456"]
+[Result "0-1"]
+[ECO "B10"]
+[WhiteElo "780"]
+[BlackElo "925"]
+[TimeControl "900"]
+[Termination "charlie456 resigned"]
+
+1. e4 c6 2. Nf3 d5 3. exd5 cxd5 4. d4 Nc6 5. Bb5 Bd7 6. O-O e6 7. Re1 Nf6 8. Bg5 Be7 9. Nbd2 O-O 10. c3 h6 11. Bh4 Nh5 12. Bxe7 Qxe7 13. Bxc6 Bxc6 14. Ne5 Bb5 15. a4 Bd7 16. Ndf3 f6 17. Nxd7 Qxd7 18. Ne5 Qc7 19. Qxh5 fxe5 20. dxe5 Rf5 21. Qh3 Rxe5 22. Rxe5 Qxe5 23. Re1 Qc5 24. h3 Re8 25. Re4 Qc1+ 26. Kh2 Qxb2 27. Rf4 Qxa4 28. Rf7 Qc2 29. Rxb7 Qxc3 30. Rxa7 Qc4 31. Ra8 Rxa8 32. Qxa8+ Kh7 33. Qh8+ Kg6 34. h4 Qf4+ 35. Kg1 Qf1+ 0-1

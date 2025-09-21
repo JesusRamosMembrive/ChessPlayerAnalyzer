@@ -1,0 +1,20 @@
+[
+  {
+    "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2019.07.24\"]\n[Round \"-\"]\n[White \"TestUser456\"]\n[Black \"paulb900\"]\n[Result \"1-0\"]\n[CurrentPosition \"6B1/pkp3pp/1p6/8/8/2P3P1/P1RK1P1P/7R b - -\"]\n[Timezone \"UTC\"]\n[ECO \"B00\"]\n[ECOUrl \"https://www.chess.com/openings/Nimzowitsch-Defense-Scandinavian-Variation-3.exd5\"]\n[UTCDate \"2019.07.24\"]\n[UTCTime \"19:15:20\"]\n[WhiteElo \"918\"]\n[BlackElo \"657\"]\n[TimeControl \"180\"]\n[Termination \"TestUser456 won on time\"]\n[StartTime \"19:15:20\"]\n[EndDate \"2019.07.24\"]\n[EndTime \"19:19:19\"]\n[Link \"https://www.chess.com/game/live/3891074716\"]\n\n1. d4 {[%clk 0:02:59.9]} 1... Nc6 {[%clk 0:02:57.9]} 2. e4 {[%clk 0:02:49.9]} 2... d5 {[%clk 0:02:56.2]} 3. exd5 {[%clk 0:02:48.4]} 3... Nb8 {[%clk 0:02:51.1]} 4. Nf3 {[%clk 0:02:47]} 4... e6 {[%clk 0:02:37.7]} 5. dxe6 {[%clk 0:02:45.5]} 5... Bxe6 {[%clk 0:02:36.3]} 6. c4 {[%clk 0:02:44.3]} 6... Nc6 {[%clk 0:02:32.7]} 7. d5 {[%clk 0:02:43.4]} 7... Nf6 {[%clk 0:02:18.4]} 8. dxe6 {[%clk 0:02:40.2]} 8... Qxd1+ {[%clk 0:02:15.2]} 9. Kxd1 {[%clk 0:02:40.1]} 9... Rd8+ {[%clk 0:02:12.9]} 10. Ke1 {[%clk 0:02:35]} 10... fxe6 {[%clk 0:02:10.4]} 11. Bg5 {[%clk 0:02:28.5]} 11... Bb4+ {[%clk 0:02:08.3]} 12. Nc3 {[%clk 0:02:27]} 12... Bxc3+ {[%clk 0:02:05.6]} 13. bxc3 {[%clk 0:02:26.9]} 13... Ne4 {[%clk 0:01:58.3]} 14. Bxd8 {[%clk 0:02:25.2]} 14... Kxd8 {[%clk 0:01:56.7]} 15. Rd1+ {[%clk 0:02:23.5]} 15... Kc8 {[%clk 0:01:54.2]} 16. Rc1 {[%clk 0:02:21.2]} 16... Rd8 {[%clk 0:01:46.6]} 17. Rc2 {[%clk 0:02:18.4]} 17... Rd2 {[%clk 0:01:43.6]} 18. Nxd2 {[%clk 0:02:16.9]} 18... Nxd2 {[%clk 0:01:42.2]} 19. Kxd2 {[%clk 0:02:16.8]} 19... Ne5 {[%clk 0:01:40]} 20. g3 {[%clk 0:02:14.8]} 20... Nxc4+ {[%clk 0:01:37.2]} 21. Bxc4 {[%clk 0:02:14.7]} 21... b6 {[%clk 0:01:34.2]} 22. Bxe6+ {[%clk 0:02:14]} 22... Kb7 {[%clk 0:01:33.7]} 23. Bg8 {[%clk 0:02:13]} 1-0",
+    "move_times": [2, 8, -7, 8, -3, 4, 10, -8, 9, -8, 12, -11, 25, -22, 25, -25, 28, -23, 25, -18, 20, -19, 22, -21, 28, -27, 29, -27, 29, -27, 35, -32, 35, -33, 34, -34, 36, -34, 37, -37, 40, -40, 41, -40],
+    "white": "TestUser456",
+    "black": "paulb900"
+  },
+  {
+    "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2019.07.24\"]\n[Round \"-\"]\n[White \"paulb900\"]\n[Black \"TestUser456\"]\n[Result \"0-1\"]\n[CurrentPosition \"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -\"]\n[Timezone \"UTC\"]\n[ECO \"A00\"]\n[UTCDate \"2019.07.24\"]\n[UTCTime \"19:19:33\"]\n[WhiteElo \"657\"]\n[BlackElo \"918\"]\n[TimeControl \"180\"]\n[Termination \"paulb900 abandoned the game\"]\n[StartTime \"19:19:33\"]\n[EndDate \"2019.07.24\"]\n[EndTime \"19:19:47\"]\n[Link \"https://www.chess.com/game/live/3891077996\"]\n\n{paulb900 abandoned the game} 0-1",
+    "move_times": [],
+    "white": "paulb900",
+    "black": "TestUser456"
+  },
+  {
+    "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2019.07.24\"]\n[Round \"-\"]\n[White \"TestUser456\"]\n[Black \"timo555\"]\n[Result \"1-0\"]\n[CurrentPosition \"r1bqkb1r/pppp1ppp/2n2n2/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq -\"]\n[Timezone \"UTC\"]\n[ECO \"C65\"]\n[ECOUrl \"https://www.chess.com/openings/Ruy-Lopez-Opening-Berlin-Defense\"]\n[UTCDate \"2019.07.24\"]\n[UTCTime \"19:19:52\"]\n[WhiteElo \"918\"]\n[BlackElo \"761\"]\n[TimeControl \"180\"]\n[Termination \"timo555 resigned\"]\n[StartTime \"19:19:52\"]\n[EndDate \"2019.07.24\"]\n[EndTime \"19:20:38\"]\n[Link \"https://www.chess.com/game/live/3891078440\"]\n\n1. e4 {[%clk 0:02:59.2]} 1... e5 {[%clk 0:02:59.4]} 2. Nf3 {[%clk 0:02:58.4]} 2... Nc6 {[%clk 0:02:58.7]} 3. Bb5 {[%clk 0:02:57.8]} 3... Nf6 {[%clk 0:02:57.9]} 1-0",
+    "move_times": [8, -6, 8, -3, 6, -8],
+    "white": "TestUser456",
+    "black": "timo555"
+  }
+]

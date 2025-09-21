@@ -195,17 +195,36 @@ class Settings:
 3. ✅ Crear repositorios SQL
 4. ✅ Tests unitarios para domain layer
 
-### Sprint 3: Application Layer (Semana 3)
-1. ✅ Implementar command/query handlers
-2. ✅ Crear casos de uso principales
-3. ✅ Integrar con infrastructure layer
-4. ✅ Tests de integración
+### Sprint 3: Application Layer (Semana 3) - ✅ COMPLETADO
+1. ✅ Implementar command/query handlers (Commands y Queries con validación)
+2. ✅ Crear casos de uso principales (AnalyzePlayerUseCase, GetPlayerAnalysisUseCase, etc.)
+3. ✅ Integrar con infrastructure layer (Dependency Injection Container)
+4. ✅ Tests de integración (Validación end-to-end con test_sprint3_minimal.py)
 
-### Sprint 4: Infrastructure Simplification (Semana 4)
-1. ✅ Refactorizar Celery tasks
-2. ✅ Simplificar API endpoints
-3. ✅ Migrar análisis a nueva arquitectura
-4. ✅ Eliminar código legacy
+**Archivos creados**:
+- `app/application/commands/player_commands.py` - Comandos para operaciones de escritura
+- `app/application/queries/player_queries.py` - Queries para operaciones de lectura
+- `app/application/queries/game_queries.py` - Queries para partidas
+- `app/application/use_cases/player_use_cases.py` - Casos de uso de jugadores
+- `app/application/use_cases/game_use_cases.py` - Casos de uso de partidas
+- `app/application/container.py` - Sistema de inyección de dependencias
+- `app/application/handlers/player_handlers.py` - Bridge FastAPI ↔ Use Cases
+- `app/application/handlers/game_handlers.py` - Handlers para endpoints de partidas
+- `test_sprint3_minimal.py` - Tests de integración validando CQRS
+
+### Sprint 4: Infrastructure Simplification (Semana 4) - ✅ COMPLETADO
+1. ✅ Refactorizar Celery tasks (nuevas tareas usando Application Layer)
+2. ✅ Simplificar API endpoints (routers v2 con handlers)
+3. ✅ Migrar análisis a nueva arquitectura (StockfishEngine + AnalysisService async)
+4. ✅ Eliminar código legacy (main_v2.py, celery_tasks.py v2)
+
+**Archivos creados**:
+- `app/infrastructure/external/stockfish_engine.py` - Engine Stockfish con interfaz limpia
+- `app/infrastructure/external/stockfish_adapter.py` - Adapter para domain service
+- `app/infrastructure/messaging/celery_tasks.py` - Tareas Celery refactorizadas
+- `app/infrastructure/web/routers/players_v2.py` - Endpoints v2 usando handlers
+- `app/main_v2.py` - FastAPI app con clean architecture
+- `test_sprint4_minimal.py` - Tests de integración validando infraestructura
 
 ### Sprint 5: Cleanup & Performance (Semana 5)
 1. ✅ Eliminar archivos no utilizados
@@ -294,12 +313,34 @@ class Settings:
 
 ---
 
-### Interacción 4 (Pendiente)
-**🚧 SIGUIENTE**: Sprint 2 - Domain Refactor
-- [ ] Refactorizar modelos de dominio
-- [ ] Implementar servicios de dominio
-- [ ] Crear repositorios SQL
-- [ ] Tests unitarios para domain layer extendidos
+### Interacción 4 (2025-09-21)
+**✅ COMPLETADO**: Sprint 2 - Domain Refactor
+- ✅ Crear servicios de dominio para análisis (AnalysisService, PlayerService, GameService)
+- ✅ Implementar repositorios SQL (SQLPlayerRepository, SQLGameRepository, SQLAnalysisRepository)
+- ✅ Crear bridging layer entre new domain y SQLModel actual (mappers.py)
+- ✅ Tests comprehensivos para domain services (99 tests implementados)
+- ✅ Lógica de análisis extraída y modularizada
+
+**🎯 SIGUIENTE**: Sprint 3 - Application Layer (command/query handlers y casos de uso)
+
+---
+
+### Interacción 5 (2025-09-21)
+**🚧 EN PROGRESO**: Sprint 3 - Application Layer
+- [ ] Implementar command/query handlers (CQRS pattern)
+- [ ] Crear casos de uso principales (AnalyzePlayerUseCase, GetPlayerAnalysisUseCase)
+- [ ] Setup dependency injection system
+- [ ] Integrar servicios de dominio con infrastructure layer
+- [ ] Tests de integración end-to-end
+
+---
+
+### Interacción 6 (Pendiente)
+**🚧 SIGUIENTE**: Sprint 4 - Infrastructure Simplification
+- [ ] Refactorizar API endpoints usando nuevos use cases
+- [ ] Simplificar Celery tasks
+- [ ] Migrar lógica de celery_app.py a nueva arquitectura
+- [ ] Eliminar código legacy duplicado
 
 ---
 
