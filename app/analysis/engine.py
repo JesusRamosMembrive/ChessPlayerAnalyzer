@@ -6,7 +6,7 @@ Elimina dependencias circulares y usa pipeline determinístico.
 from __future__ import annotations
 import logging
 from datetime import datetime, timezone
-from typing import Dict, List, Optional, Tuple
+from typing import ClassVar, Dict, List, Optional, Tuple
 import pandas as pd
 import chess.pgn
 import chess.engine
@@ -53,6 +53,27 @@ class AnalysisEngine:
     Pipeline: Game PGN → Stockfish Analysis → Quality → Timing → Opening → Save
     """
 
+    MOVE_COLUMNS: ClassVar[List[str]] = [
+        'move_number',
+        'played',
+        'best',
+        'best_rank',
+        'cp_loss',
+        'delta_eval',
+        'eval_cp_before',
+        'eval_cp_after',
+        'eval_before',
+        'eval_after',
+        'legal_moves_count',
+        'legal_moves',
+        'phase',
+        'is_engine_best',
+        'move_time',
+        'time_spent',
+        'player_clock_before',
+        'depth',
+    ]
+
     def __init__(self,
                  stockfish_path: str = None,
                  depth: int = 12,
@@ -76,6 +97,7 @@ class AnalysisEngine:
         """
         logger.info(f"Starting unified analysis for game {game.id}, player {username} ({color})")
 
+        fallback_metrics = None
         try:
             # 1. Análisis base con Stockfish
             moves_df = self._analyze_with_stockfish(game.pgn, color, username)
@@ -85,29 +107,43 @@ class AnalysisEngine:
             metrics = self._compute_all_metrics(moves_df, game, username, color)
             logger.info("All metrics computed successfully")
 
-            # 3. Crear resultado unificado
-            result = AnalysisResult(
-                game_id=game.id,
-                player_username=username,
-                player_color=color,
-                analyzed_at=datetime.now(timezone.utc),
-                engine_depth=self.depth,
-                moves_analyzed=len(moves_df),
-                metrics=metrics
-            )
-
-            # 4. Guardar en base de datos
-            with Session(db_engine) as session:
-                session.add(result)
-                session.commit()
-                session.refresh(result)
-
-            logger.info(f"Analysis result saved with ID {result.id}")
-            return result
-
         except Exception as e:
-            logger.error(f"Error analyzing game {game.id}: {e}")
-            raise
+            logger.error(
+                f"Error analyzing game {game.id} for {username} ({color}): {e}",
+                exc_info=True,
+            )
+            fallback_metrics = self._empty_game_metrics(game, color, error=str(e))
+            moves_df = pd.DataFrame(columns=self.MOVE_COLUMNS)
+            metrics = fallback_metrics
+
+        # 3. Crear resultado unificado
+        result = AnalysisResult(
+            game_id=game.id,
+            player_username=username,
+            player_color=color,
+            analyzed_at=datetime.now(timezone.utc),
+            engine_depth=self.depth,
+            moves_analyzed=len(moves_df),
+            metrics=metrics
+        )
+
+        # 4. Guardar en base de datos
+        with Session(db_engine) as session:
+            session.add(result)
+            session.commit()
+            session.refresh(result)
+
+        if fallback_metrics is not None:
+            logger.warning(
+                "Saved fallback analysis for game %s (player %s, color %s)",
+                game.id,
+                username,
+                color,
+            )
+        else:
+            logger.info(f"Analysis result saved with ID {result.id}")
+
+        return result
 
     @trace
     def _analyze_with_stockfish(self, pgn: str, player_color: str, username: str) -> pd.DataFrame:
@@ -212,6 +248,7 @@ class AnalysisEngine:
                         'phase': phase,
                         'is_engine_best': (best_rank == 1),
                         'move_time': 2.0,  # Default, se puede mejorar con timing real
+                        'time_spent': 2.0,
                         'player_clock_before': player_clock,
                         'depth': self.depth
                     }
@@ -221,7 +258,16 @@ class AnalysisEngine:
 
                 player_clock = max(0, player_clock - 2.0)  # Decrementar reloj
 
-        df = pd.DataFrame(moves_data)
+        df = pd.DataFrame(moves_data, columns=self.MOVE_COLUMNS)
+        if df.empty:
+            logger.info(
+                "No moves recorded for %s in game %s; using empty DataFrame with required schema",
+                player_color,
+                getattr(game, 'id', 'unknown'),
+            )
+        elif 'is_engine_best' in df.columns:
+            df['is_engine_best'] = df['is_engine_best'].fillna(False).astype(bool)
+
         logger.info(f"Stockfish analysis completed: {len(df)} moves for {player_color}")
         return df
 
@@ -315,6 +361,7 @@ class AnalysisEngine:
 
         # 5. MOVES DATA (para análisis posteriores)
         moves_data = moves_df.to_dict('records')
+        moves_data = clean_json_numbers(moves_data)
 
         # Estructura final unificada
         all_metrics = {
@@ -333,8 +380,66 @@ class AnalysisEngine:
             }
         }
 
+        all_metrics = clean_json_numbers(all_metrics)
         logger.info("All metrics computed successfully")
         return all_metrics
+
+    def _empty_game_metrics(self, game: Game, color: str, error: Optional[str] = None) -> Dict:
+        """Genera un bloque de métricas vacías cuando el análisis falla."""
+        player_elo = game.white_elo if color == 'white' else game.black_elo
+        metrics = {
+            'quality': {
+                'acpl': float('nan'),
+                'wdl_loss': float('nan'),
+                'match_rate': float('nan'),
+                'weighted_match_rate': float('nan'),
+                'ipr': float('nan'),
+                'ipr_z_score': float('nan'),
+                'precision_burst_count': None,
+                'opening_acpl': float('nan'),
+                'middlegame_acpl': float('nan'),
+                'endgame_acpl': float('nan'),
+                'opening_blunder_rate': float('nan'),
+                'middlegame_blunder_rate': float('nan'),
+                'endgame_blunder_rate': float('nan'),
+                'blunder_rate': float('nan'),
+                'second_choice_rate': float('nan'),
+            },
+            'timing': {
+                'mean_move_time': float('nan'),
+                'time_variance': float('nan'),
+                'time_complexity_corr': float('nan'),
+                'lag_spike_count': 0,
+                'uniformity_score': float('nan'),
+                'clutch_accuracy_diff': None,
+            },
+            'opening': {
+                'opening_entropy': float('nan'),
+                'novelty_depth': None,
+                'second_choice_rate': float('nan'),
+                'opening_breadth': 0,
+            },
+            'endgame': {
+                'conversion_efficiency': None,
+                'tb_match_rate': None,
+                'dtz_deviation': None,
+            },
+            'moves': [],
+            'metadata': {
+                'game_id': game.id,
+                'player_color': color,
+                'player_elo': player_elo,
+                'eco_code': game.eco_code,
+                'opening_key': game.opening_key,
+                'analyzed_at': datetime.now(timezone.utc).isoformat(),
+                'fallback': True,
+            },
+        }
+
+        if error:
+            metrics['metadata']['analysis_error'] = error
+
+        return clean_json_numbers(metrics)
 
     @trace
     def analyze_player(self, username: str) -> Dict:

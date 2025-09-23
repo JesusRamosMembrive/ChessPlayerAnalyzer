@@ -393,14 +393,55 @@ def process_player_enhanced(self, username: str, force_reanalysis: bool = False)
 
             # Paso 3: Analizar partidas
             analyzed_count = 0
+            username_ci = username.lower()
             for i, game_id in enumerate(game_ids):
-                # Determinar color del jugador en esta partida
+                # Determinar color del jugador en esta partida (case-insensitive)
                 game = session.get(Game, game_id)
                 color = None
-                if game.white_username == username:
+                white_user = (game.white_username or "").lower()
+                black_user = (game.black_username or "").lower()
+
+                if white_user == username_ci:
                     color = 'white'
-                elif game.black_username == username:
+                elif black_user == username_ci:
                     color = 'black'
+
+                if color is None:
+                    logger.warning(
+                        "Player %s not found in game %s participants (white=%s, black=%s)",
+                        username,
+                        game_id,
+                        game.white_username,
+                        game.black_username,
+                    )
+                    # Guardar análisis vacío para mantener el conteo consistente
+                    fallback_metrics = analysis_engine._empty_game_metrics(
+                        game,
+                        'white',
+                        error="player_not_found",
+                    )
+                    fallback_result = AnalysisResult(
+                        game_id=game_id,
+                        player_username=username,
+                        player_color='white',
+                        analyzed_at=datetime.now(timezone.utc),
+                        engine_depth=MAX_DEPTH,
+                        moves_analyzed=0,
+                        metrics=fallback_metrics,
+                    )
+                    session.add(fallback_result)
+                    analyzed_count += 1
+                    progress = 40 + (analyzed_count * 50 / len(game_ids)) if game_ids else 100
+                    player.done_games = analyzed_count
+                    player.progress = int(progress)
+                    session.add(player)
+                    session.commit()
+                    update_progress(
+                        username,
+                        int(progress),
+                        f"Analyzed {analyzed_count}/{len(game_ids)} games (fallback)",
+                    )
+                    continue
 
                 if color:
                     try:

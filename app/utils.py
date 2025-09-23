@@ -273,6 +273,10 @@ def clean_json_numbers(obj):
         return {k: clean_json_numbers(v) for k, v in obj.items()}
     if isinstance(obj, list):
         return [clean_json_numbers(v) for v in obj]
+    if obj is None:
+        return None
+    if obj.__class__.__name__ == "NAType":  # pandas.NA without importing pandas
+        return None
     if isinstance(obj, (np.floating, np.integer)):
         obj = obj.item()           # np.float64 → float, np.int64 → int
     if isinstance(obj, float) and (math.isnan(obj) or math.isinf(obj)):
