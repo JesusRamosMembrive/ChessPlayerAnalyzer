@@ -12,7 +12,7 @@ except ImportError:
 from app.database import get_session
 from app.schemas import HealthOut
 from app.utils import redis_client
-from app.celery_app import celery_app
+from app.celery_tasks import celery_app
 
 router = APIRouter()
 

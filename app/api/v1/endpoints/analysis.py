@@ -4,7 +4,7 @@ from sqlmodel import Session
 
 from app import models
 from app.database import get_session
-from app.analysis.engine import ChessAnalysisEngine
+from app.analysis.engine import AnalysisEngine
 from app.schemas import GameMetricsOut, PlayerMetricsSummaryOut
 
 router = APIRouter()

@@ -9,7 +9,7 @@ import chess.pgn
 
 from app import models
 from app.database import get_session
-from app.celery_app import analyze_game_task, analyze_game_detailed, extract_game_id, celery_app
+from app.celery_tasks import analyze_game, celery_app
 from celery.result import AsyncResult
 from app.schemas import (
     AnalyzeGameIn,

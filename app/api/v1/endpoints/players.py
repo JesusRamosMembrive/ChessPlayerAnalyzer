@@ -1,20 +1,30 @@
+# app/api/v1/endpoints/players.py
+"""
+Players endpoints for the chess analyzer API.
+Unified architecture - standard implementation.
+"""
 from datetime import datetime, timezone
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
-from app import models
 from app.database import get_session
-from app.celery_app import process_player_enhanced as process_player
-from app.utils import redis_client, notify_ws, player_lock
+from app.celery_tasks import process_player_enhanced
+from app.models import Player, PlayerStatus
 from app.schemas import (
     PlayerStatusOut,
     PlayerAnalyzeOut,
     PlayerDeleteOut,
     PlayerListItemOut,
+    PlayerMetricsOut,
 )
+from app.utils import redis_client, notify_ws, player_lock
+
+import logging
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
 
 @router.get(
     "/{username}",
@@ -25,118 +35,291 @@ router = APIRouter()
 )
 async def get_player(username: str, session: Session = Depends(get_session)):
     """Get player analysis status."""
-    player = session.get(models.Player, username)
 
-    if not player:
+    try:
+        player = session.exec(
+            select(Player).where(Player.username == username)
+        ).first()
+
+        if not player:
+            return {
+                "username": username,
+                "status": "not_analyzed",
+                "progress": 0,
+                "total_games": 0,
+                "done_games": 0,
+                "requested_at": None,
+                "finished_at": None,
+                "error": None,
+                "last_task_id": None
+            }
+
         return {
-            "username": username,
-            "status": "not_analyzed",
-            "progress": 0,
-            "message": "Player not analyzed yet. Use POST to start analysis."
+            "username": player.username,
+            "status": player.status.value if hasattr(player.status, 'value') else player.status,
+            "progress": player.progress,
+            "total_games": player.total_games,
+            "done_games": player.done_games,
+            "requested_at": player.requested_at.isoformat() if player.requested_at else None,
+            "finished_at": player.finished_at.isoformat() if player.finished_at else None,
+            "error": player.error,
+            "last_task_id": player.last_task_id
         }
+    except Exception as e:
+        logger.error(f"Error getting player status for {username}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving player status: {str(e)}"
+        )
 
-    return {
-        "username": player.username,
-        "status": player.status,
-        "progress": player.progress,
-        "total_games": player.total_games,
-        "done_games": player.done_games,
-        "requested_at": player.requested_at.isoformat() if player.requested_at else None,
-        "finished_at": player.finished_at.isoformat() if player.finished_at else None,
-        "error": player.error,
-        "last_task_id": player.last_task_id
-    }
 
 @router.post(
     "/{username}",
     response_model=PlayerAnalyzeOut,
     status_code=status.HTTP_202_ACCEPTED,
-    summary="Encolar análisis de jugador",
-    description="Inicia el procesamiento de partidas de **username** en los últimos *months* meses.",
+    summary="Iniciar análisis de jugador",
+    description="Inicia el análisis completo de todas las partidas de **username**.",
+    responses={
+        202: {"description": "Análisis iniciado correctamente"},
+        423: {"description": "Análisis en progreso para otro usuario"},
+        409: {"description": "Usuario ya está siendo analizado"}
+    },
 )
 async def analyze_player(
     username: str,
-    months: int = 12,
-    session: Session = Depends(get_session),
+    force_reanalysis: bool = False,
+    session: Session = Depends(get_session)
 ):
-    """Start analyzing a player's games."""
-    with player_lock(username):
-        player = session.get(models.Player, username)
-        
-        if player and player.status == "pending":
-            return {
-                "status": "already_processing",
-                "username": username,
-                "task_id": player.last_task_id,
-                "progress": player.progress
-            }
-            
+    """Start player analysis."""
+
+    # Verificar locks Redis
+    CLEANUP_IN_PROGRESS_KEY = "cleanup_in_progress"
+    ANALYSIS_IN_PROGRESS_KEY = "analysis_in_progress"
+
+    # Check if cleanup is in progress
+    if redis_client.get(CLEANUP_IN_PROGRESS_KEY):
+        cleanup_user = redis_client.get(CLEANUP_IN_PROGRESS_KEY)
+        raise HTTPException(
+            status_code=423,
+            detail=f"Cleanup in progress for user {cleanup_user}. Please wait."
+        )
+
+    # Check if analysis is in progress for another user
+    if redis_client.get(ANALYSIS_IN_PROGRESS_KEY):
+        active_user = redis_client.get(ANALYSIS_IN_PROGRESS_KEY)
+        if active_user != username:
+            raise HTTPException(
+                status_code=423,
+                detail=f"Analysis in progress for user {active_user}. Please wait."
+            )
+
+    try:
+        # Establecer lock de análisis
+        redis_client.setex(ANALYSIS_IN_PROGRESS_KEY, 7200, username)  # 2 horas
+
+        # Iniciar análisis usando task estándar
+        task = process_player_enhanced.delay(username, force_reanalysis)
+
+        # Actualizar player en BD
+        player = session.exec(
+            select(Player).where(Player.username == username)
+        ).first()
+
         if not player:
-            player = models.Player(username=username, status="pending")
+            player = Player(
+                username=username,
+                status=PlayerStatus.pending,
+                requested_at=datetime.now(timezone.utc),
+                last_task_id=task.id
+            )
             session.add(player)
         else:
-            player.status = "pending"
-            player.progress = 0
-            player.error = None
-            
-        player.requested_at = datetime.now(timezone.utc)
-        player.finished_at = None
+            player.status = PlayerStatus.pending
+            player.last_task_id = task.id
+            player.requested_at = datetime.now(timezone.utc)
+            session.add(player)
         session.commit()
-        session.refresh(player)
-        
-        task = process_player.delay(username, months)
-        player.last_task_id = task.id
-        session.commit()
-        
-        return {
-            "status": "queued",
+
+        result = {
+            "message": f"Analysis started for player {username}",
+            "task_id": task.id,
             "username": username,
-            "task_id": task.id
+            "status": "pending"
         }
 
-@router.delete(
-    "/{username}",
-    response_model=PlayerDeleteOut,
-    summary="Eliminar análisis de jugador",
-    description="Borra al jugador y todos sus datos de análisis.",
-    responses={404: {"description": "Jugador no encontrado"}},
-)
-async def delete_player(username: str, session: Session = Depends(get_session)):
-    """Delete a player and their analysis data."""
-    player = session.get(models.Player, username)
-    if not player:
-        raise HTTPException(status_code=404, detail="Player not found")
-    
-    session.delete(player)
-    session.commit()
-    return {"status": "deleted", "username": username}
+        # Notificar vía WebSocket
+        try:
+            notify_ws(username, {
+                'type': 'analysis_started',
+                'username': username,
+                'task_id': result['task_id']
+            })
+        except Exception as e:
+            logger.warning(f"Failed to send WebSocket notification: {e}")
+
+        return result
+
+    except Exception as e:
+        # Limpiar lock en caso de error
+        redis_client.delete(ANALYSIS_IN_PROGRESS_KEY)
+        logger.error(f"Error starting analysis for {username}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error starting analysis: {str(e)}"
+        )
+
 
 @router.get(
     "/",
     response_model=List[PlayerListItemOut],
     summary="Listar jugadores",
-    description="Devuelve la lista de jugadores analizados o en cola con opción de filtrar por *status*.",
+    description="Lista jugadores con filtros opcionales.",
 )
 async def list_players(
-    status: Optional[models.PlayerStatus] = None,
-    session: Session = Depends(get_session),
+    status: Optional[str] = None,
+    limit: int = 100,
+    offset: int = 0,
+    session: Session = Depends(get_session)
 ):
-    """List all players with optional status filter."""
-    query = select(models.Player)
-    if status:
-        query = query.where(models.Player.status == status)
-        
-    players = session.exec(query.order_by(models.Player.requested_at.desc())).all()
-    
-    return [
-        {
-            "username": p.username,
-            "status": p.status,
-            "progress": p.progress,
-            "total_games": p.total_games,
-            "done_games": p.done_games,
-            "requested_at": p.requested_at.isoformat() if p.requested_at else None,
-            "finished_at": p.finished_at.isoformat() if p.finished_at else None,
-        }
-        for p in players
-    ]
+    """List players."""
+
+    try:
+        query = select(Player)
+        if status:
+            query = query.where(Player.status == status)
+
+        query = query.offset(offset).limit(limit)
+        players = session.exec(query).all()
+
+        return [
+            {
+                "username": p.username,
+                "status": p.status.value if hasattr(p.status, 'value') else p.status,
+                "progress": p.progress,
+                "total_games": p.total_games,
+                "done_games": p.done_games,
+                "requested_at": p.requested_at.isoformat() if p.requested_at else None,
+                "finished_at": p.finished_at.isoformat() if p.finished_at else None,
+            }
+            for p in players
+        ]
+
+    except Exception as e:
+        logger.error(f"Error listing players: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error listing players: {str(e)}"
+        )
+
+
+@router.delete(
+    "/{username}",
+    status_code=204,
+    summary="Eliminar jugador",
+    description="Elimina un jugador y todos sus datos.",
+)
+async def delete_player(username: str, session: Session = Depends(get_session)):
+    """Delete player."""
+
+    try:
+        player = session.exec(
+            select(Player).where(Player.username == username)
+        ).first()
+
+        if not player:
+            raise HTTPException(404, "Player not found")
+
+        session.delete(player)
+        session.commit()
+
+        # Notificar vía WebSocket
+        try:
+            notify_ws(username, {
+                'type': 'player_deleted',
+                'username': username
+            })
+        except Exception as e:
+            logger.warning(f"Failed to send WebSocket notification: {e}")
+
+        return  # 204 No Content debe estar vacío
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting player {username}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error deleting player: {str(e)}"
+        )
+
+
+@router.post(
+    "/{username}/refresh",
+    response_model=PlayerAnalyzeOut,
+    summary="Refrescar análisis de jugador",
+    description="Vuelve a analizar un jugador.",
+)
+async def refresh_player(username: str, session: Session = Depends(get_session)):
+    """Refresh player analysis."""
+
+    # Verificar que el jugador existe
+    player = session.exec(
+        select(Player).where(Player.username == username)
+    ).first()
+
+    if not player:
+        raise HTTPException(status_code=404, detail="Player not found")
+
+    # Forzar re-análisis
+    return await analyze_player(username, force_reanalysis=True, session=session)
+
+
+@router.post(
+    "/{username}/stop",
+    summary="Detener análisis de jugador",
+    description="Detiene el análisis en progreso de un jugador.",
+)
+async def stop_player_analysis(username: str, session: Session = Depends(get_session)):
+    """Stop player analysis."""
+
+    try:
+        # Obtener estado del jugador
+        player = session.exec(
+            select(Player).where(Player.username == username)
+        ).first()
+
+        if not player:
+            raise HTTPException(status_code=404, detail="Player not found")
+
+        task_id = player.last_task_id
+        if not task_id:
+            raise HTTPException(status_code=400, detail="No active task found")
+
+        # Revocar task usando celery estándar
+        from app.celery_tasks import celery_app
+        celery_app.control.revoke(task_id, terminate=True)
+
+        # Limpiar locks Redis
+        redis_client.delete("analysis_in_progress")
+        redis_client.delete("cleanup_in_progress")
+
+        # Notificar vía WebSocket
+        try:
+            notify_ws(username, {
+                'type': 'analysis_stopped',
+                'username': username,
+                'task_id': task_id
+            })
+        except Exception as e:
+            logger.warning(f"Failed to send WebSocket notification: {e}")
+
+        return {"message": f"Analysis stopped for player {username}", "task_id": task_id}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error stopping analysis for {username}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error stopping analysis: {str(e)}"
+        )

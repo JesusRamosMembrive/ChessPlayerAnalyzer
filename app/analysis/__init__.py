@@ -8,7 +8,7 @@ from . import timing
 from . import openings
 from . import endgame
 from . import longitudinal
-from .engine import ChessAnalysisEngine, prepare_moves_dataframe
+from .engine import AnalysisEngine
 
 from .quality   import aggregate_quality_features
 from .timing    import aggregate_time_features
@@ -17,12 +17,11 @@ from .endgame   import aggregate_endgame_features
 
 __all__ = [
     'quality',
-    'timing', 
+    'timing',
     'openings',
     'endgame',
     'longitudinal',
-    'prepare_moves_dataframe',
-    'ChessAnalysisEngine',
+    'AnalysisEngine',
     'aggregate_quality_features',
     'aggregate_time_features',
     'aggregate_opening_features',

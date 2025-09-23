@@ -19,7 +19,7 @@ import chess.pgn
 from app.logging_config import setup_logging
 setup_logging()
 
-from app.analysis.engine_v2 import AnalysisEngine
+from app.analysis.engine import AnalysisEngine
 from app.database import engine
 
 # Application Performance Monitoring (APM)
@@ -47,7 +47,7 @@ from sqlmodel import Session, select
 from sqlalchemy import func
 
 # Modelos V2
-from app.models_v2 import Game, AnalysisResult, Player, PlayerStatus
+from app.models import Game, AnalysisResult, Player, PlayerStatus
 
 from kombu import Queue  # Añadido para configurar colas con prioridad
 from celery.exceptions import SoftTimeLimitExceeded
@@ -70,19 +70,16 @@ TASK_TIME_LIMIT      = int(os.getenv("TASK_TIME_LIMIT", "1860"))      # hard lim
 TASK_MAX_RETRIES     = int(os.getenv("TASK_MAX_RETRIES", "3"))         # default max retries
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
-celery_app_v2 = Celery("chess_tasks_v2", broker=REDIS_URL, backend=REDIS_URL)
-
-# Hacer que celery_app_v2 sea el app por defecto para este módulo
-celery_app = celery_app_v2
+celery_app = Celery("chess_tasks", broker=REDIS_URL, backend=REDIS_URL)
 
 # Declarar la cola por defecto con soporte de prioridad (máx. 10 en Redis)
-celery_app_v2.conf.task_default_queue = "default_v2"
+celery_app.conf.task_default_queue = "default"
 # El tuple final debe contener únicamente el objeto Queue
-celery_app_v2.conf.task_queues = (
-    Queue("default_v2", max_priority=10),
+celery_app.conf.task_queues = (
+    Queue("default", max_priority=10),
 )
 
-celery_app_v2.conf.update(
+celery_app.conf.update(
     # When a worker is lost (OOM/timeout) we want the broker to re-queue the task
     task_reject_on_worker_lost=True,
     # Force ACK *after* the task finishes so it can be retried on crash
@@ -103,7 +100,7 @@ celery_app_v2.conf.update(
 #  Utility functions for V2
 # ──────────────────────────────────────────────────────────────
 
-def update_progress_v2(username: str, progress: int, message: str = "") -> None:
+def update_progress(username: str, progress: int, message: str = "") -> None:
     """Update player progress for V2 using simplified models."""
     try:
         with Session(engine) as session:
@@ -129,14 +126,14 @@ analysis_engine = AnalysisEngine(
 )
 
 
-@celery_app_v2.task(
+@celery_app.task(
     bind=True,
     autoretry_for=(Exception,),
     retry_kwargs={'max_retries': 3, 'countdown': 60},
     soft_time_limit=1800,  # 30 minutos
     time_limit=1860,       # 31 minutos
 )
-def analyze_game_v2(self, game_id: int, username: str, color: str) -> dict:
+def analyze_game(self, game_id: int, username: str, color: str) -> dict:
     """
     Analiza una partida específica para un jugador usando AnalysisEngine V2.
 
@@ -201,14 +198,14 @@ def analyze_game_v2(self, game_id: int, username: str, color: str) -> dict:
         raise
 
 
-@celery_app_v2.task(
+@celery_app.task(
     bind=True,
     autoretry_for=(Exception,),
     retry_kwargs={'max_retries': 2, 'countdown': 120},
     soft_time_limit=3600,  # 1 hora
     time_limit=3660,       # 61 minutos
 )
-def analyze_player_v2(self, username: str) -> dict:
+def analyze_player(self, username: str) -> dict:
     """
     Analiza todas las partidas de un jugador y genera métricas agregadas V2.
 
@@ -302,14 +299,14 @@ def analyze_player_v2(self, username: str) -> dict:
         raise
 
 
-@celery_app_v2.task(
+@celery_app.task(
     bind=True,
     autoretry_for=(Exception,),
     retry_kwargs={'max_retries': 3, 'countdown': 60},
     soft_time_limit=7200,  # 2 horas
     time_limit=7260,       # 2 horas 1 minuto
 )
-def process_player_enhanced_v2(self, username: str, force_reanalysis: bool = False) -> dict:
+def process_player_enhanced(self, username: str, force_reanalysis: bool = False) -> dict:
     """
     Procesa completamente un jugador: descarga partidas + análisis V2.
 
@@ -352,7 +349,7 @@ def process_player_enhanced_v2(self, username: str, force_reanalysis: bool = Fal
 
             # Paso 1: Descargar partidas
             logger.info(f"Fetching games for {username}")
-            update_progress_v2(username, 5, "Downloading games...")
+            update_progress(username, 5, "Downloading games...")
 
             games_data = fetch_games(username)
             if not games_data:
@@ -362,7 +359,7 @@ def process_player_enhanced_v2(self, username: str, force_reanalysis: bool = Fal
             session.add(player)
             session.commit()
 
-            update_progress_v2(username, 10, f"Found {len(games_data)} games")
+            update_progress(username, 10, f"Found {len(games_data)} games")
 
             # Paso 2: Procesar partidas y crear registros Game
             logger.info(f"Processing {len(games_data)} games")
@@ -372,8 +369,8 @@ def process_player_enhanced_v2(self, username: str, force_reanalysis: bool = Fal
                 # Crear registro Game V2
                 game = Game(
                     pgn=game_data['pgn'],
-                    white_username=game_data.get('white_username'),
-                    black_username=game_data.get('black_username'),
+                    white_username=game_data.get('white'),  # Corregido: usar 'white' en lugar de 'white_username'
+                    black_username=game_data.get('black'),  # Corregido: usar 'black' en lugar de 'black_username'
                     white_elo=game_data.get('white_elo'),
                     black_elo=game_data.get('black_elo'),
                     time_control=game_data.get('time_control'),
@@ -389,10 +386,10 @@ def process_player_enhanced_v2(self, username: str, force_reanalysis: bool = Fal
 
                 # Actualizar progreso
                 progress = 10 + (i * 30 / len(games_data))
-                update_progress_v2(username, int(progress), f"Processing game {i+1}/{len(games_data)}")
+                update_progress(username, int(progress), f"Processing game {i+1}/{len(games_data)}")
 
             session.commit()
-            update_progress_v2(username, 40, f"Games processed, starting analysis...")
+            update_progress(username, 40, f"Games processed, starting analysis...")
 
             # Paso 3: Analizar partidas
             analyzed_count = 0
@@ -419,14 +416,14 @@ def process_player_enhanced_v2(self, username: str, force_reanalysis: bool = Fal
                         session.add(player)
                         session.commit()
 
-                        update_progress_v2(username, int(progress),
+                        update_progress(username, int(progress),
                                       f"Analyzed {analyzed_count}/{len(game_ids)} games")
 
                     except Exception as e:
                         logger.warning(f"Failed to analyze game {game_id}: {e}")
                         continue
 
-            update_progress_v2(username, 90, "Computing player metrics...")
+            update_progress(username, 90, "Computing player metrics...")
 
             # Paso 4: Análisis agregado del jugador
             logger.info(f"Computing aggregated metrics for {username}")
@@ -440,7 +437,7 @@ def process_player_enhanced_v2(self, username: str, force_reanalysis: bool = Fal
             session.add(player)
             session.commit()
 
-            update_progress_v2(username, 100, "Analysis completed!")
+            update_progress(username, 100, "Analysis completed!")
 
             # Notificación final
             try:
@@ -493,12 +490,12 @@ def process_player_enhanced_v2(self, username: str, force_reanalysis: bool = Fal
 # ──────────────────────────────────────────────────────────────
 
 @task_failure.connect
-def task_failure_handler_v2(sender=None, task_id=None, exception=None, traceback=None, einfo=None, **kwargs):
+def task_failure_handler(sender=None, task_id=None, exception=None, traceback=None, einfo=None, **kwargs):
     """Maneja fallos de tasks V2"""
     logger.error(f"Task V2 failed: {task_id}, Exception: {exception}")
 
 @task_revoked.connect
-def task_revoked_handler_v2(sender=None, task_id=None, reason=None, **kwargs):
+def task_revoked_handler(sender=None, task_id=None, reason=None, **kwargs):
     """Maneja revocación de tasks V2"""
     logger.warning(f"Task V2 revoked: {task_id}, Reason: {reason}")
 
@@ -507,10 +504,10 @@ def task_revoked_handler_v2(sender=None, task_id=None, reason=None, **kwargs):
 # Utilidades de compatibilidad
 # ──────────────────────────────────────────────────────────────
 
-def get_task_result_v2(task_id: str) -> dict:
+def get_task_result(task_id: str) -> dict:
     """Obtiene el resultado de una task V2"""
     try:
-        result = celery_app_v2.AsyncResult(task_id)
+        result = celery_app.AsyncResult(task_id)
         return {
             'task_id': task_id,
             'status': result.status,

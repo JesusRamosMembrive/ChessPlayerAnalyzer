@@ -1,4 +1,4 @@
-# docker-compose.yml  (Compose V2, sin clave 'version')
+# docker-compose.v2.yml - Configuración para testing V2
 services:
 # ──────────────────────────────────────────────────────────────
   # Application Performance Monitoring (APM) - Jaeger
@@ -42,8 +42,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: ["python", "-m", "app.init_db"]   # o ["alembic", "upgrade", "head"]
+    command: ["python", "/app/create_v2_tables.py"]
     working_dir: /app
+    volumes:
+      - ./create_v2_tables.py:/app/create_v2_tables.py
+      - ./app:/app/app
     environment:
       DATABASE_URL: postgresql+psycopg://chess:chess@postgres:5432/chessdb
     depends_on:
@@ -65,7 +68,8 @@ services:
       DATABASE_URL: postgresql+psycopg://chess:chess@postgres:5432/chessdb
       REDIS_URL: redis://redis:6379/0
       STOCKFISH_PATH: /usr/games/stockfish
-      STOCKFISH_DEPTH: 12
+      STOCKFISH_DEPTH: 1  # Reducido para testing más rápido
+      # Unified system - no version flags needed
       ENABLE_TRACING: "true"
       OTEL_SERVICE_NAME: chess-analyzer-api
       OTEL_EXPORTER_JAEGER_AGENT_HOST: jaeger
@@ -83,7 +87,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: celery -A app.celery_app worker --loglevel=info
+    command: celery -A app.celery_tasks:celery_app worker --loglevel=info --concurrency=1
     volumes:
       - ./app:/app/app
       - ./debug_results:/app/debug_results
@@ -91,7 +95,8 @@ services:
       DATABASE_URL: postgresql+psycopg://chess:chess@postgres:5432/chessdb
       REDIS_URL: redis://redis:6379/0
       STOCKFISH_PATH: /usr/games/stockfish
-      STOCKFISH_DEPTH: 12
+      STOCKFISH_DEPTH: 1  # Reducido para testing más rápido
+      # Unified system - no version flags needed
       ENABLE_TRACING: "true"
       OTEL_SERVICE_NAME: chess-analyzer-worker
       OTEL_EXPORTER_JAEGER_AGENT_HOST: jaeger
@@ -102,6 +107,5 @@ services:
       redis:
         condition: service_healthy
 
-# ──────────────────────────────────────────────────────────────
 volumes:
   postgres_data:

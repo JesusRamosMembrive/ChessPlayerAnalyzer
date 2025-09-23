@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session
 from celery.result import AsyncResult
 
-from app.celery_app import celery_app
+from app.celery_tasks import celery_app
 from app.database import get_session
 from app.schemas import TaskStatusOut, TaskCancelOut, TaskResultOut
 
