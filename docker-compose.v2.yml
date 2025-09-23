@@ -1,0 +1,133 @@
+# docker-compose.v2.yml - Configuración para testing V2
+services:
+# ──────────────────────────────────────────────────────────────
+  # Application Performance Monitoring (APM) - Jaeger
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    ports:
+      - "16686:16686"  # UI web
+      - "6831:6831/udp"  # Thrift compact protocol (agent)
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: chess
+      POSTGRES_PASSWORD: chess
+      POSTGRES_DB: chessdb
+    volumes:
+      - postgres_data_v2:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chess -d chessdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5432:5432"
+
+# ──────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "6379:6379"
+
+# ──────────────────────────────────────────────────────────────
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["python", "-c", "
+import sys;
+sys.path.append('/app');
+from app.database import init_db;
+from app.models_v2 import Game, AnalysisResult, Player, ReferenceStats;
+from sqlmodel import SQLModel, create_engine;
+import os;
+db_url = os.getenv('DATABASE_URL');
+print('Creating V1 and V2 tables...');
+init_db();
+engine = create_engine(db_url);
+SQLModel.metadata.create_all(engine);
+print('✅ All tables created successfully!');
+"]
+    working_dir: /app
+    environment:
+      DATABASE_URL: postgresql+psycopg://chess:chess@postgres:5432/chessdb
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+# ──────────────────────────────────────────────────────────────
+  backend_v2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: uvicorn app.main_v2:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./app:/app/app
+      - ./alembic/versions:/app/alembic/versions
+      - ./archives:/app/archives
+      - ./debug_results:/app/debug_results
+    environment:
+      DATABASE_URL: postgresql+psycopg://chess:chess@postgres:5432/chessdb
+      REDIS_URL: redis://redis:6379/0
+      STOCKFISH_PATH: /usr/games/stockfish
+      STOCKFISH_DEPTH: 1  # Reducido para testing más rápido
+      # ===== FLAGS V2 =====
+      USE_V2_ENGINE: "true"
+      USE_V2_MODELS: "true"
+      USE_V2_TASKS: "true"
+      USE_V2_ANALYSIS: "true"
+      DEBUG_V2: "true"
+      # =====================
+      ENABLE_TRACING: "true"
+      OTEL_SERVICE_NAME: chess-analyzer-api-v2
+      OTEL_EXPORTER_JAEGER_AGENT_HOST: jaeger
+      OTEL_EXPORTER_JAEGER_AGENT_PORT: 6831
+    ports:
+      - "8000:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+# ──────────────────────────────────────────────────────────────
+  celery_v2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: celery -A app.celery_tasks_v2:celery_app_v2 worker --loglevel=info --concurrency=1
+    volumes:
+      - ./app:/app/app
+      - ./debug_results:/app/debug_results
+    environment:
+      DATABASE_URL: postgresql+psycopg://chess:chess@postgres:5432/chessdb
+      REDIS_URL: redis://redis:6379/0
+      STOCKFISH_PATH: /usr/games/stockfish
+      STOCKFISH_DEPTH: 1  # Reducido para testing más rápido
+      # ===== FLAGS V2 =====
+      USE_V2_ENGINE: "true"
+      USE_V2_MODELS: "true"
+      USE_V2_TASKS: "true"
+      USE_V2_ANALYSIS: "true"
+      DEBUG_V2: "true"
+      # =====================
+      ENABLE_TRACING: "true"
+      OTEL_SERVICE_NAME: chess-analyzer-worker-v2
+      OTEL_EXPORTER_JAEGER_AGENT_HOST: jaeger
+      OTEL_EXPORTER_JAEGER_AGENT_PORT: 6831
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres_data_v2:

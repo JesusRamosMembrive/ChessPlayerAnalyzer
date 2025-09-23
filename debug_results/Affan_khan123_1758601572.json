@@ -1,0 +1,88 @@
+{
+  "username": "Affan_khan123",
+  "games_analyzed": 258,
+  "avg_acpl": 67.28682170542636,
+  "avg_wdl_loss": 0.09548548135781204,
+  "robust_loss": 0.0,
+  "avg_match_rate": 0.2982013063722086,
+  "avg_ipr": 2135.150192384588,
+  "std_acpl": 56.555223354627664,
+  "std_match_rate": 0.16452500188676192,
+  "roi_mean": 2204.9176342450537,
+  "roi_max": 2797.5,
+  "roi_std": 143.97691508722207,
+  "step_function_detected": true,
+  "step_function_magnitude": 49.550000000000004,
+  "peer_delta_acpl": 0.0,
+  "peer_delta_match": 0.0,
+  "longest_streak": 258,
+  "selectivity_score": 48.837209302325576,
+  "time_patterns": null,
+  "opening_patterns": {
+    "mean_entropy": -0.0,
+    "novelty_depth": 4.616279069767442,
+    "opening_breadth": 1,
+    "second_choice_rate": 0.8960190884147304
+  },
+  "suspicious_games_ids": [],
+  "performance": {
+    "trend_acpl": -3.07094974545881,
+    "trend_match_rate": 0.015197542731931897,
+    "roi_curve": [
+      2204.92
+    ]
+  },
+  "phase_quality": {
+    "opening_acpl": 48.0,
+    "middlegame_acpl": 75.0,
+    "endgame_acpl": 27.0,
+    "opening_blunder_rate": 0.1034047919293821,
+    "middlegame_blunder_rate": 0.16920943134535368,
+    "endgame_blunder_rate": 0.2064516129032258,
+    "blunder_rate": 0.15901926444833625
+  },
+  "benchmark": {
+    "percentile_acpl": 10,
+    "percentile_entropy": 5
+  },
+  "risk_score": 45,
+  "risk_factors": {
+    "high_roi": true,
+    "step_function": true
+  },
+  "confidence_level": 0,
+  "first_game_date": "2025-09-23 04:22:53.163629",
+  "last_game_date": "2025-09-23 04:22:54.433431",
+  "analyzed_at": "2025-09-23 04:26:12.936904",
+  "time_management": {
+    "mean_move_time": 34.121190893169874,
+    "time_variance": 53682.11245812643,
+    "uniformity_score": -5.79,
+    "lag_spike_count": 357
+  },
+  "clutch_accuracy": {
+    "avg_clutch_diff": 5036.6,
+    "clutch_games_pct": 0.639
+  },
+  "tactical": {},
+  "endgame": {
+    "conversion_efficiency": 16,
+    "tb_match_rate": null,
+    "dtz_deviation": null
+  },
+  "time_complexity": {
+    "time_complexity_corr": null
+  },
+  "player": {
+    "username": "Affan_khan123",
+    "status": "pending",
+    "requested_at": "2025-09-23 04:22:53.152424",
+    "finished_at": null,
+    "progress": 98,
+    "total_games": 258,
+    "done_games": 510,
+    "error": null,
+    "last_task_id": "842943d9-3269-4fb6-9403-edd03fc75774",
+    "analysis": null
+  }
+}
