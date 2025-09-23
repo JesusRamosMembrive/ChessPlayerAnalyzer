@@ -42,21 +42,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: ["python", "-c", "
-import sys;
-sys.path.append('/app');
-from app.database import init_db;
-from app.models_v2 import Game, AnalysisResult, Player, ReferenceStats;
-from sqlmodel import SQLModel, create_engine;
-import os;
-db_url = os.getenv('DATABASE_URL');
-print('Creating V1 and V2 tables...');
-init_db();
-engine = create_engine(db_url);
-SQLModel.metadata.create_all(engine);
-print('✅ All tables created successfully!');
-"]
+    command: ["python", "/app/create_v2_tables.py"]
     working_dir: /app
+    volumes:
+      - ./create_v2_tables.py:/app/create_v2_tables.py
+      - ./app:/app/app
     environment:
       DATABASE_URL: postgresql+psycopg://chess:chess@postgres:5432/chessdb
     depends_on:

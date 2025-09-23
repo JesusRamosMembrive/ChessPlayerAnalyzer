@@ -33,7 +33,6 @@ init_otel()
 from app.utils import (
     fetch_games,
     notify_ws,
-    update_progress,
     task_progress,
     sa_to_dict,
     redis_client,
@@ -98,8 +97,29 @@ celery_app_v2.conf.update(
     result_expires=3600,  # 1 hour
     # Worker settings
     worker_prefetch_multiplier=1,
-    task_acks_late=True,
 )
+
+# ──────────────────────────────────────────────────────────────
+#  Utility functions for V2
+# ──────────────────────────────────────────────────────────────
+
+def update_progress_v2(username: str, progress: int, message: str = "") -> None:
+    """Update player progress for V2 using simplified models."""
+    try:
+        with Session(engine) as session:
+            player = session.exec(
+                select(Player).where(Player.username == username)
+            ).first()
+
+            if player:
+                player.progress = progress
+                session.add(player)
+                session.commit()
+                logger.debug(f"Updated progress for {username}: {progress}% - {message}")
+            else:
+                logger.warning(f"Player {username} not found for progress update")
+    except Exception as e:
+        logger.error(f"Error updating progress for {username}: {e}")
 
 # Crear instancia del motor de análisis
 analysis_engine = AnalysisEngine(
@@ -311,6 +331,7 @@ def process_player_enhanced_v2(self, username: str, force_reanalysis: bool = Fal
             ).first()
 
             if not player:
+                # Player debería existir ya (creado en endpoint), pero por si acaso
                 player = Player(
                     username=username,
                     status=PlayerStatus.pending,
@@ -321,10 +342,17 @@ def process_player_enhanced_v2(self, username: str, force_reanalysis: bool = Fal
                 session.add(player)
                 session.commit()
                 session.refresh(player)
+            else:
+                # Actualizar player existente con task_id actual
+                player.status = PlayerStatus.pending
+                player.last_task_id = task_id
+                player.progress = 0
+                session.add(player)
+                session.commit()
 
             # Paso 1: Descargar partidas
             logger.info(f"Fetching games for {username}")
-            update_progress(username, 5, "Downloading games...")
+            update_progress_v2(username, 5, "Downloading games...")
 
             games_data = fetch_games(username)
             if not games_data:
@@ -334,7 +362,7 @@ def process_player_enhanced_v2(self, username: str, force_reanalysis: bool = Fal
             session.add(player)
             session.commit()
 
-            update_progress(username, 10, f"Found {len(games_data)} games")
+            update_progress_v2(username, 10, f"Found {len(games_data)} games")
 
             # Paso 2: Procesar partidas y crear registros Game
             logger.info(f"Processing {len(games_data)} games")
@@ -361,10 +389,10 @@ def process_player_enhanced_v2(self, username: str, force_reanalysis: bool = Fal
 
                 # Actualizar progreso
                 progress = 10 + (i * 30 / len(games_data))
-                update_progress(username, int(progress), f"Processing game {i+1}/{len(games_data)}")
+                update_progress_v2(username, int(progress), f"Processing game {i+1}/{len(games_data)}")
 
             session.commit()
-            update_progress(username, 40, f"Games processed, starting analysis...")
+            update_progress_v2(username, 40, f"Games processed, starting analysis...")
 
             # Paso 3: Analizar partidas
             analyzed_count = 0
@@ -391,14 +419,14 @@ def process_player_enhanced_v2(self, username: str, force_reanalysis: bool = Fal
                         session.add(player)
                         session.commit()
 
-                        update_progress(username, int(progress),
+                        update_progress_v2(username, int(progress),
                                       f"Analyzed {analyzed_count}/{len(game_ids)} games")
 
                     except Exception as e:
                         logger.warning(f"Failed to analyze game {game_id}: {e}")
                         continue
 
-            update_progress(username, 90, "Computing player metrics...")
+            update_progress_v2(username, 90, "Computing player metrics...")
 
             # Paso 4: Análisis agregado del jugador
             logger.info(f"Computing aggregated metrics for {username}")
@@ -412,7 +440,7 @@ def process_player_enhanced_v2(self, username: str, force_reanalysis: bool = Fal
             session.add(player)
             session.commit()
 
-            update_progress(username, 100, "Analysis completed!")
+            update_progress_v2(username, 100, "Analysis completed!")
 
             # Notificación final
             try:
@@ -465,7 +493,7 @@ def process_player_enhanced_v2(self, username: str, force_reanalysis: bool = Fal
 # ──────────────────────────────────────────────────────────────
 
 @task_failure.connect
-def task_failure_handler_v2(sender=None, task_id=None, exception=None, traceback=None, einfo=None):
+def task_failure_handler_v2(sender=None, task_id=None, exception=None, traceback=None, einfo=None, **kwargs):
     """Maneja fallos de tasks V2"""
     logger.error(f"Task V2 failed: {task_id}, Exception: {exception}")
 

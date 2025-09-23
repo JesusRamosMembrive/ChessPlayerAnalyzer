@@ -195,7 +195,7 @@ def analyze_player(
         )
 
     if is_analysis_in_progress():
-        active_user = redis_client.get(ANALYSIS_IN_PROGRESS_KEY).decode('utf-8')
+        active_user = redis_client.get(ANALYSIS_IN_PROGRESS_KEY)
         if active_user != username:
             raise HTTPException(
                 status_code=423,

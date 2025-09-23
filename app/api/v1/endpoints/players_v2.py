@@ -174,7 +174,6 @@ async def list_players_v2(
 
 @router.delete(
     "/{username}",
-    response_model=PlayerDeleteOut,
     status_code=204,
     summary="Eliminar jugador (V1/V2)",
     description="Elimina un jugador y todos sus datos. Compatible con V1 y V2.",
@@ -199,7 +198,7 @@ async def delete_player_v2(username: str, session: Session = Depends(get_session
         except Exception as e:
             logger.warning(f"Failed to send WebSocket notification: {e}")
 
-        return {"message": f"Player {username} deleted successfully"}
+        return  # 204 No Content debe estar vacío
 
     except HTTPException:
         raise
