@@ -29,6 +29,10 @@ class AnalysisRepository(ABC):
         """Guarda análisis de partida."""
         pass
 
+    async def get_game_analysis_by_id(self, game_id: int) -> Optional[GameAnalysis]:
+        """Alias temporal para compatibilidad."""
+        return await self.get_game_analysis(game_id)
+
     @abstractmethod
     async def get_game_analyses_by_player(self, username: str) -> List[GameAnalysis]:
         """Obtiene todos los análisis de partidas de un jugador."""

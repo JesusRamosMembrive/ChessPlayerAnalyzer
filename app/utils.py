@@ -25,10 +25,21 @@ import hashlib
 from celery import current_task, Task  # noqa: E402 (circular import safe here)
 
 # ──────────────────────────────────────────────────────────────────────────────
-#  Configuración común
+#  Redis configuration - simplified to avoid connection issues
 # ──────────────────────────────────────────────────────────────────────────────
-REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
-redis_client = redis.Redis.from_url(REDIS_URL, decode_responses=True)
+from .core.config import get_config
+
+config = get_config()
+
+# Create Redis client with basic settings to avoid connection issues
+redis_client = redis.Redis.from_url(
+    config.redis.url,
+    decode_responses=True,
+    max_connections=20,
+    retry_on_timeout=True,
+    socket_timeout=5,
+    socket_connect_timeout=5
+)
 
 CLK_RGX = re.compile(r"\[%clk\s+([\d:.]+)]")
 UA = "chess-analyzer/0.2 (+https://github.com/tu_usuario)"
@@ -87,12 +98,26 @@ def fetch_games(username: str, months: int = 12) -> List[Dict]:
                     for i in range(1, len(clocks))
                 ] if clocks else []
 
+                white_data = g.get("white", {})
+                black_data = g.get("black", {})
+
+                end_time = g.get("end_time")
+
                 games.append({
                     "pgn": pgn,
                     "move_times": move_times,
-                    "white": g["white"]["username"],
-                    "black": g["black"]["username"],
-                    "end_time": datetime.fromtimestamp(g["end_time"], UTC).isoformat(),
+                    "white": white_data.get("username"),
+                    "black": black_data.get("username"),
+                    "white_result": white_data.get("result"),
+                    "black_result": black_data.get("result"),
+                    "white_rating": white_data.get("rating"),
+                    "black_rating": black_data.get("rating"),
+                    "time_control": g.get("time_control"),
+                    "time_class": g.get("time_class"),
+                    "rules": g.get("rules"),
+                    "url": g.get("url"),
+                    "end_time": datetime.fromtimestamp(end_time, UTC).isoformat() if end_time else None,
+                    "rated": g.get("rated"),
                 })
         except Exception as e:
             logging.error(f"fetch_games: Error processing archive {url}: {e}")

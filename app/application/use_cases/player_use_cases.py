@@ -5,7 +5,7 @@ Orquestan domain services y repositories.
 from typing import List, Optional
 from dataclasses import dataclass
 
-from ...domain.entities.player import Player
+from ...domain.entities.player import Player, PlayerStatus
 from ...domain.entities.game import Game
 from ...domain.entities.analysis import PlayerAnalysis
 from ...domain.repositories.player_repository import PlayerRepository
@@ -68,29 +68,35 @@ class AnalyzePlayerUseCase:
     async def execute(self, command: AnalyzePlayerCommand) -> AnalyzePlayerResult:
         """Ejecuta el análisis de jugador."""
         try:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"Starting analyze player use case for {command.username}")
+
             # Verificar si el jugador ya existe
             existing_player = await self._player_repository.get_by_username(command.username)
+            logger.info(f"Retrieved existing player: {existing_player is not None}")
 
             if existing_player and not command.force_refresh:
                 # Si ya tiene análisis completo, no hacer nada
-                if existing_player.status == "completed":
+                if existing_player.status == PlayerStatus.READY:
                     return AnalyzePlayerResult(
                         success=True,
                         player_id=existing_player.id,
                         error_message="Player already analyzed"
                     )
 
-            # Crear o actualizar jugador
-            if existing_player:
-                player = self._player_service.reset_for_reanalysis(existing_player)
-            else:
-                player = self._player_service.create_new_player(
-                    username=command.username,
-                    months_to_analyze=command.months_to_analyze
-                )
+            # Solicitar análisis del jugador (crea nuevo o actualiza existente)
+            logger.info("About to call player service request_analysis")
+            player = await self._player_service.request_analysis(
+                username=command.username,
+                force_refresh=command.force_refresh
+            )
+            logger.info(f"Player service returned player with ID: {player.id}")
 
             # Guardar en repositorio
+            logger.info("About to save player to repository")
             saved_player = await self._player_repository.save(player)
+            logger.info(f"Repository returned saved player with ID: {saved_player.id}")
 
             # TODO: Aquí se enviaría tarea a Celery para análisis asíncrono
             # Por ahora solo marcamos como pending

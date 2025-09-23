@@ -3,6 +3,7 @@ Handlers para endpoints relacionados con partidas.
 Actúan como bridge entre FastAPI y los use cases.
 """
 from typing import List, Optional
+from dataclasses import asdict
 from datetime import datetime
 from fastapi import HTTPException
 
@@ -69,7 +70,7 @@ class GameHandlers:
             }
 
         if result.moves_data and include_moves:
-            response["moves"] = result.moves_data
+            response["moves"] = [asdict(move) for move in result.moves_data]
 
         return response
 

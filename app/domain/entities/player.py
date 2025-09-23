@@ -18,7 +18,7 @@ class PlayerStatus(str, Enum):
 @dataclass
 class Player:
     """Jugador de ajedrez."""
-    username: str
+    username: str  # Primary key, no need for separate id
     status: PlayerStatus = PlayerStatus.NOT_ANALYZED
     requested_at: Optional[datetime] = None
     finished_at: Optional[datetime] = None
@@ -27,6 +27,11 @@ class Player:
     done_games: int = 0
     error: Optional[str] = None
     last_task_id: Optional[str] = None
+
+    @property
+    def id(self) -> str:
+        """Return username as id for backward compatibility."""
+        return self.username
 
     def mark_as_pending(self, task_id: str) -> None:
         """Marca el jugador como en proceso."""

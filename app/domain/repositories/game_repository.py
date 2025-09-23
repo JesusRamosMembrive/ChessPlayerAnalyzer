@@ -25,6 +25,11 @@ class GameRepository(ABC):
         pass
 
     @abstractmethod
+    async def get_by_player_id(self, player_id: str) -> List[Game]:
+        """Alias que acepta identificador lógico del jugador."""
+        pass
+
+    @abstractmethod
     async def get_analyzed_count(self, username: str) -> int:
         """Cuenta partidas analizadas de un jugador."""
         pass

@@ -8,7 +8,13 @@ from app.domain.entities.analysis import PlayerAnalysis as DomainPlayerAnalysis,
 from app.domain.repositories.analysis_repository import AnalysisRepository
 from app.models import PlayerAnalysisDetailed as SQLPlayerAnalysis
 from app.models import GameAnalysisDetailed as SQLGameAnalysis, Game as SQLGame
-from .mappers import analysis_to_domain, domain_to_analysis
+from .mappers import (
+    analysis_to_domain,
+    domain_to_analysis,
+    game_analysis_to_domain,
+    domain_to_game_analysis,
+    update_sql_game_analysis
+)
 
 
 class SQLAnalysisRepository(AnalysisRepository):
@@ -86,16 +92,28 @@ class SQLAnalysisRepository(AnalysisRepository):
         """Obtiene el análisis de una partida."""
         sql_analysis = self.session.get(SQLGameAnalysis, game_id)
         if sql_analysis:
-            # Nota: Aquí necesitaríamos un mapper específico para GameAnalysis
-            # Por ahora retornamos None hasta implementar
-            return None
+            return game_analysis_to_domain(sql_analysis)
         return None
+
+    async def get_game_analysis_by_id(self, game_id: int) -> Optional[DomainGameAnalysis]:
+        """Alias para compatibilidad con llamados existentes."""
+        return await self.get_game_analysis(game_id)
 
     async def save_game_analysis(self, analysis: DomainGameAnalysis) -> DomainGameAnalysis:
         """Guarda análisis de partida."""
-        # Nota: Similar al anterior, necesitaríamos mapper específico
-        # Por ahora implementación simplificada
-        return analysis
+        existing = self.session.get(SQLGameAnalysis, analysis.game_id)
+
+        if existing:
+            update_sql_game_analysis(existing, analysis)
+            sql_analysis = existing
+        else:
+            sql_analysis = domain_to_game_analysis(analysis)
+            self.session.add(sql_analysis)
+
+        self.session.commit()
+        self.session.refresh(sql_analysis)
+
+        return game_analysis_to_domain(sql_analysis)
 
     async def get_game_analyses_by_player(self, username: str) -> List[DomainGameAnalysis]:
         """Obtiene todos los análisis de partidas de un jugador."""
@@ -109,8 +127,7 @@ class SQLAnalysisRepository(AnalysisRepository):
 
         sql_analyses = self.session.exec(statement).all()
 
-        # Por ahora retornamos lista vacía hasta implementar mapper completo
-        return []
+        return [game_analysis_to_domain(analysis) for analysis in sql_analyses]
 
     async def delete_player_analysis(self, username: str) -> bool:
         """Elimina análisis de un jugador."""

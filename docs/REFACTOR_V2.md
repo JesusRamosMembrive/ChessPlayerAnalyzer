@@ -226,11 +226,13 @@ class Settings:
 - `app/main_v2.py` - FastAPI app con clean architecture
 - `test_sprint4_minimal.py` - Tests de integración validando infraestructura
 
-### Sprint 5: Cleanup & Performance (Semana 5)
-1. ✅ Eliminar archivos no utilizados
-2. ✅ Optimizar queries de BD
-3. ✅ Revisar configuración de Celery
-4. ✅ Tests end-to-end
+### Sprint 5: Cleanup & Performance (Semana 5) - 🚀 EN PROGRESO
+1. 🔄 Eliminar archivos legacy y código obsoleto
+2. ⏳ Optimizar performance y configuraciones
+3. ⏳ Documentar migración y deployment
+4. ⏳ Validación final y benchmarks
+
+**Objetivo**: Completar el refactor con sistema production-ready optimizado
 
 ## Beneficios Esperados
 

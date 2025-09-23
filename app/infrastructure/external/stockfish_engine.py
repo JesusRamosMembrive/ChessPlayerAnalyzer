@@ -87,20 +87,17 @@ class StockfishEngine:
                     info = self._engine.analyse(board, chess.engine.Limit(depth=self.config.depth))
                     position_eval = self._extract_evaluation(info)
 
+                    best_move = None
+                    pv = info.get("pv")
+                    if pv:
+                        best_move = pv[0]
+
                     # Make the move
                     board.push(move)
 
                     # Analyze position after move
                     post_info = self._engine.analyse(board, chess.engine.Limit(depth=self.config.depth))
                     post_eval = self._extract_evaluation(post_info)
-
-                    # Calculate best move and metrics
-                    best_move_info = self._engine.analyse(
-                        board.copy().pop(),  # Position before move
-                        chess.engine.Limit(depth=self.config.depth),
-                        multipv=1
-                    )
-                    best_move = best_move_info.get("pv", [chess.Move.null()])[0]
 
                     # Calculate metrics
                     move_analysis = self._calculate_move_metrics(
@@ -155,7 +152,11 @@ class StockfishEngine:
 
         # Handle mate scores
         if score.is_mate():
-            mate_in = score.mate()
+            mate_in = getattr(score, "mate", None)
+            if callable(mate_in):
+                mate_in = mate_in()
+            if mate_in is None:
+                mate_in = score.relative.mate()
             return 1000.0 if mate_in > 0 else -1000.0
 
         # Handle centipawn scores
@@ -165,13 +166,13 @@ class StockfishEngine:
     def _calculate_move_metrics(
         self,
         move: chess.Move,
-        best_move: chess.Move,
+        best_move: Optional[chess.Move],
         position_eval: float,
         post_eval: float,
         board: chess.Board
     ) -> MoveAnalysis:
         """Calculate comprehensive metrics for a move."""
-        is_best = move == best_move
+        is_best = best_move is not None and move == best_move
 
         # Centipawn loss calculation
         eval_change = abs(post_eval - position_eval)
@@ -185,7 +186,7 @@ class StockfishEngine:
         match_rate = 1.0 if is_best else 0.0
 
         return MoveAnalysis(
-            move=str(move),
+            move=move.uci(),
             evaluation=post_eval,
             is_best=is_best,
             centipawn_loss=centipawn_loss,

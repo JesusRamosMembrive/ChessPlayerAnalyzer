@@ -3,9 +3,10 @@ Use cases relacionados con partidas.
 Orquestan domain services y repositories.
 """
 from typing import List, Optional
+import logging
 from dataclasses import dataclass
 
-from ...domain.entities.game import Game
+from ...domain.entities.game import Game, MoveData
 from ...domain.entities.analysis import GameAnalysis
 from ...domain.repositories.game_repository import GameRepository
 from ...domain.repositories.analysis_repository import AnalysisRepository
@@ -24,7 +25,7 @@ class GameAnalysisResult:
     """Resultado del análisis de partida."""
     game: Game
     analysis: Optional[GameAnalysis]
-    moves_data: Optional[List[dict]] = None
+    moves_data: Optional[List[MoveData]] = None
 
 
 @dataclass
@@ -193,6 +194,7 @@ class AnalyzeGameUseCase:
         self._analysis_repository = analysis_repository
         self._analysis_service = analysis_service
         self._game_service = game_service
+        self._logger = logging.getLogger(__name__)
 
     async def execute(self, game_id: int, force_reanalysis: bool = False) -> Optional[GameAnalysisResult]:
         """Analiza una partida y guarda el resultado."""
@@ -215,27 +217,45 @@ class AnalyzeGameUseCase:
             if not game.pgn_data:
                 return GameAnalysisResult(game=game, analysis=None)
 
-            # Extraer movimientos del PGN
-            moves_data = self._game_service.extract_moves_from_pgn(game.pgn_data)
-            if not moves_data:
-                return GameAnalysisResult(game=game, analysis=None)
+            # Reutilizar movimientos existentes si ya fueron analizados
+            existing_moves = game.moves_data if game.moves_data else None
 
-            # Realizar análisis con Stockfish
-            analysis = self._analysis_service.analyze_game(game, moves_data)
+            # Realizar análisis con Stockfish (y obtener movimientos enriquecidos)
+            analyzed_moves = existing_moves or []
+            analysis = None
+            try:
+                analysis = await self._analysis_service.analyze_game(
+                    game,
+                    existing_moves
+                )
+                analyzed_moves = game.moves_data or analyzed_moves
+            except ValueError as exc:
+                self._logger.warning(
+                    "Analysis skipped due to invalid PGN",
+                    extra={
+                        "game_id": game.id,
+                        "reason": str(exc)
+                    }
+                )
 
-            # Guardar análisis
-            saved_analysis = await self._analysis_repository.save_game_analysis(analysis)
+            saved_analysis = None
+            if analysis:
+                # Guardar análisis
+                saved_analysis = await self._analysis_repository.save_game_analysis(analysis)
 
             # Actualizar partida con datos de movimientos si no los tenía
-            if not game.moves_data:
-                updated_game = game.with_moves_data(moves_data)
-                await self._game_repository.save(updated_game)
-                game = updated_game
+            if analyzed_moves:
+                if not game.moves_data:
+                    updated_game = game.with_moves_data(analyzed_moves)
+                    await self._game_repository.save(updated_game)
+                    game = updated_game
+                else:
+                    game = game.with_moves_data(analyzed_moves)
 
             return GameAnalysisResult(
                 game=game,
                 analysis=saved_analysis,
-                moves_data=moves_data
+                moves_data=analyzed_moves
             )
 
         except Exception as e:

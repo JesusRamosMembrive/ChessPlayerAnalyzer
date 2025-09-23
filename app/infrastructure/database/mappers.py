@@ -67,7 +67,9 @@ def game_to_domain(sql_game: SQLGame, include_moves: bool = False) -> DomainGame
                 cp_loss=move.cp_loss,
                 eval_before=move.eval_before,
                 eval_after=move.eval_after,
-                time_spent=move.time_spent
+                time_spent=move.time_spent,
+                best_rank=getattr(move, "best_rank", None),
+                match_rate=None
             )
             for move in sql_game.moves
         ]
@@ -331,3 +333,117 @@ def domain_to_analysis(domain_analysis: DomainPlayerAnalysis) -> SQLPlayerAnalys
         tactical={},  # TODO: Implementar si es necesario
         time_patterns=None  # TODO: Implementar si es necesario
     )
+
+
+def game_analysis_to_domain(sql_analysis: SQLGameAnalysis) -> DomainGameAnalysis:
+    """Convierte SQLGameAnalysis a DomainGameAnalysis."""
+
+    quality_metrics = QualityMetrics(
+        avg_acpl=sql_analysis.acpl,
+        avg_wdl_loss=sql_analysis.wdl_loss,
+        robust_loss=sql_analysis.weighted_match_rate,
+        avg_match_rate=sql_analysis.match_rate,
+        avg_ipr=sql_analysis.ipr
+    )
+
+    timing_metrics = TimingMetrics(
+        mean_move_time=sql_analysis.mean_move_time,
+        time_variance=sql_analysis.time_variance,
+        uniformity_score=sql_analysis.uniformity_score,
+        lag_spike_count=sql_analysis.lag_spike_count
+    )
+
+    opening_metrics = OpeningMetrics(
+        mean_entropy=sql_analysis.opening_entropy,
+        novelty_depth=sql_analysis.novelty_depth,
+        opening_breadth=sql_analysis.opening_breadth,
+        second_choice_rate=sql_analysis.second_choice_rate
+    )
+
+    endgame_metrics = EndgameMetrics(
+        conversion_efficiency=sql_analysis.conversion_efficiency,
+        tb_match_rate=sql_analysis.tb_match_rate,
+        dtz_deviation=sql_analysis.dtz_deviation
+    )
+
+    return DomainGameAnalysis(
+        game_id=sql_analysis.game_id,
+        quality_metrics=quality_metrics,
+        timing_metrics=timing_metrics,
+        opening_metrics=opening_metrics,
+        endgame_metrics=endgame_metrics,
+        suspicious_quality=sql_analysis.suspicious_quality,
+        suspicious_timing=sql_analysis.suspicious_timing,
+        suspicious_opening=sql_analysis.suspicious_opening,
+        overall_suspicion_score=sql_analysis.overall_suspicion_score,
+        analyzed_at=sql_analysis.analyzed_at
+    )
+
+
+def domain_to_game_analysis(domain_analysis: DomainGameAnalysis) -> SQLGameAnalysis:
+    """Convierte DomainGameAnalysis a SQLGameAnalysis."""
+
+    analyzed_at = domain_analysis.analyzed_at or datetime.utcnow()
+
+    return SQLGameAnalysis(
+        game_id=domain_analysis.game_id,
+        acpl=domain_analysis.quality_metrics.avg_acpl,
+        wdl_loss=domain_analysis.quality_metrics.avg_wdl_loss,
+        match_rate=domain_analysis.quality_metrics.avg_match_rate,
+        weighted_match_rate=domain_analysis.quality_metrics.robust_loss,
+        ipr=domain_analysis.quality_metrics.avg_ipr,
+        ipr_z_score=0.0,
+        precision_burst_count=0,
+        mean_move_time=domain_analysis.timing_metrics.mean_move_time,
+        time_variance=domain_analysis.timing_metrics.time_variance,
+        time_complexity_corr=0.0,
+        lag_spike_count=domain_analysis.timing_metrics.lag_spike_count,
+        uniformity_score=domain_analysis.timing_metrics.uniformity_score,
+        clutch_accuracy_diff=None,
+        opening_entropy=domain_analysis.opening_metrics.mean_entropy,
+        novelty_depth=domain_analysis.opening_metrics.novelty_depth,
+        second_choice_rate=domain_analysis.opening_metrics.second_choice_rate,
+        opening_breadth=domain_analysis.opening_metrics.opening_breadth,
+        tb_match_rate=domain_analysis.endgame_metrics.tb_match_rate,
+        dtz_deviation=domain_analysis.endgame_metrics.dtz_deviation,
+        conversion_efficiency=domain_analysis.endgame_metrics.conversion_efficiency,
+        suspicious_quality=domain_analysis.suspicious_quality,
+        suspicious_timing=domain_analysis.suspicious_timing,
+        suspicious_opening=domain_analysis.suspicious_opening,
+        overall_suspicion_score=domain_analysis.overall_suspicion_score,
+        analyzed_at=analyzed_at
+    )
+
+
+def update_sql_game_analysis(sql_analysis: SQLGameAnalysis, domain_analysis: DomainGameAnalysis) -> SQLGameAnalysis:
+    """Actualiza un análisis SQL existente con datos del dominio."""
+
+    sql_analysis.acpl = domain_analysis.quality_metrics.avg_acpl
+    sql_analysis.wdl_loss = domain_analysis.quality_metrics.avg_wdl_loss
+    sql_analysis.match_rate = domain_analysis.quality_metrics.avg_match_rate
+    sql_analysis.weighted_match_rate = domain_analysis.quality_metrics.robust_loss
+    sql_analysis.ipr = domain_analysis.quality_metrics.avg_ipr
+
+    sql_analysis.mean_move_time = domain_analysis.timing_metrics.mean_move_time
+    sql_analysis.time_variance = domain_analysis.timing_metrics.time_variance
+    sql_analysis.uniformity_score = domain_analysis.timing_metrics.uniformity_score
+    sql_analysis.lag_spike_count = domain_analysis.timing_metrics.lag_spike_count
+
+    sql_analysis.opening_entropy = domain_analysis.opening_metrics.mean_entropy
+    sql_analysis.novelty_depth = domain_analysis.opening_metrics.novelty_depth
+    sql_analysis.opening_breadth = domain_analysis.opening_metrics.opening_breadth
+    sql_analysis.second_choice_rate = domain_analysis.opening_metrics.second_choice_rate
+
+    sql_analysis.conversion_efficiency = domain_analysis.endgame_metrics.conversion_efficiency
+    sql_analysis.tb_match_rate = domain_analysis.endgame_metrics.tb_match_rate
+    sql_analysis.dtz_deviation = domain_analysis.endgame_metrics.dtz_deviation
+
+    sql_analysis.suspicious_quality = domain_analysis.suspicious_quality
+    sql_analysis.suspicious_timing = domain_analysis.suspicious_timing
+    sql_analysis.suspicious_opening = domain_analysis.suspicious_opening
+    sql_analysis.overall_suspicion_score = domain_analysis.overall_suspicion_score
+
+    if domain_analysis.analyzed_at:
+        sql_analysis.analyzed_at = domain_analysis.analyzed_at
+
+    return sql_analysis

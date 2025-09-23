@@ -24,30 +24,58 @@ def setup_logging() -> None:
       Elastic, Loki o Datadog.
     • Nivel configurable con ``LOG_LEVEL``.
     • No desactiva loggers existentes, simplemente unifica formato.
+    • Fallback to standard logging if JSON logger is not available.
     """
-    log_level = os.getenv("LOG_LEVEL", "DEBUG").upper()
+    log_level = os.getenv("LOG_LEVEL", "INFO").upper()
 
-    logging_config: Dict[str, Any] = {
-        "version": 1,
-        "disable_existing_loggers": False,
-        "formatters": {
-            "json": {
-                "()": "pythonjsonlogger.jsonlogger.JsonFormatter",
-                # Añadimos identificadores de traza para correlación
-                "fmt": "%(asctime)s %(levelname)s %(name)s %(trace_id)s %(span_id)s %(message)s",
+    # Try JSON logging first, fallback to standard logging
+    try:
+        # Check if pythonjsonlogger is available
+        import pythonjsonlogger.jsonlogger
+
+        logging_config: Dict[str, Any] = {
+            "version": 1,
+            "disable_existing_loggers": False,
+            "formatters": {
+                "json": {
+                    "()": "pythonjsonlogger.jsonlogger.JsonFormatter",
+                    "fmt": "%(asctime)s %(levelname)s %(name)s %(message)s",
+                },
             },
-        },
-        "handlers": {
-            "console": {
-                "class": "logging.StreamHandler",
-                "formatter": "json",
-                "stream": "ext://sys.stdout",
+            "handlers": {
+                "console": {
+                    "class": "logging.StreamHandler",
+                    "formatter": "json",
+                    "stream": "ext://sys.stdout",
+                },
             },
-        },
-        "root": {
-            "handlers": ["console"],
-            "level": log_level,
-        },
-    }
+            "root": {
+                "handlers": ["console"],
+                "level": log_level,
+            },
+        }
+    except ImportError:
+        # Fallback to standard logging
+        logging_config: Dict[str, Any] = {
+            "version": 1,
+            "disable_existing_loggers": False,
+            "formatters": {
+                "standard": {
+                    "format": "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+                    "datefmt": "%Y-%m-%d %H:%M:%S",
+                },
+            },
+            "handlers": {
+                "console": {
+                    "class": "logging.StreamHandler",
+                    "formatter": "standard",
+                    "stream": "ext://sys.stdout",
+                },
+            },
+            "root": {
+                "handlers": ["console"],
+                "level": log_level,
+            },
+        }
 
     logging.config.dictConfig(logging_config) 

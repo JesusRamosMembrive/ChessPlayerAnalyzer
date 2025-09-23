@@ -34,25 +34,50 @@ class PlayerService:
         Raises:
             ValueError: Si el jugador no puede ser analizado
         """
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"PlayerService.request_analysis called for {username}")
+
         # Obtener o crear jugador
         player = await self.player_repo.get_by_username(username)
         if not player:
+            logger.info("Creating new player")
             player = Player(username=username)
+        else:
+            logger.info(f"Found existing player with ID: {player.id}")
 
         # Verificar si se puede analizar
+        logger.info(f"About to check if player can be analyzed, force_refresh={force_refresh}")
         if not force_refresh and not player.is_ready_for_analysis():
+            logger.info(f"Player cannot be analyzed, status={player.status}")
             if player.status == PlayerStatus.PENDING:
                 raise ValueError(f"Player {username} is already being analyzed")
             if player.status == PlayerStatus.READY and not player.can_be_refreshed():
                 raise ValueError(f"Player {username} has recent analysis, use force_refresh=True")
 
         # Marcar como pendiente
+        logger.info("About to mark player as pending")
         task_id = f"analyze_{username}_{int(datetime.utcnow().timestamp())}"
         player.mark_as_pending(task_id)
 
         # Guardar estado
-        await self.player_repo.save(player)
+        logger.info("About to save player to repository")
+        saved_player = await self.player_repo.save(player)
+        logger.info(f"Player saved successfully with ID: {saved_player.id}")
 
+        return saved_player
+
+    def update_progress(
+        self,
+        player: Player,
+        done_games: int,
+        total_games: int,
+        task_id: Optional[str] = None
+    ) -> Player:
+        """Actualiza progreso en memoria para el jugador dado."""
+        player.update_progress(done_games, total_games)
+        if task_id:
+            player.last_task_id = task_id
         return player
 
     async def update_analysis_progress(self, username: str, done_games: int,

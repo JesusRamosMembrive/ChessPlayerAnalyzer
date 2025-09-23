@@ -1,6 +1,5 @@
 # app/database.py
-"""Conexión global a PostgreSQL y helper para obtener sesiones."""
-import os
+"""Performance-optimized PostgreSQL connection with clean architecture."""
 import logging
 import time
 from sqlalchemy import text
@@ -13,96 +12,61 @@ from sqlalchemy.orm import sessionmaker
 from sqlmodel import Session as SQLModelSession
 from sqlalchemy.engine import Engine
 
-# La URL debe coincidir con docker-compose.yml
-DB_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql+psycopg://chess:chess@postgres:5432/chessdb",  # <-- chessdb, no chess!
-)
+from .core.config import get_config, get_optimized_database_settings
 
-# Configuración de pool de conexiones; valores predeterminados razonables pero override mediante variables de entorno
-POOL_SIZE = int(os.getenv("DB_POOL_SIZE", "10"))  # conexiones persistentes en el pool
-MAX_OVERFLOW = int(os.getenv("DB_MAX_OVERFLOW", "20"))  # conexiones adicionales temporales
-POOL_TIMEOUT = int(os.getenv("DB_POOL_TIMEOUT", "30"))  # segundos para esperar una conexión libre
-POOL_RECYCLE = int(os.getenv("DB_POOL_RECYCLE", "1800"))  # reciclar después de 30 min
-
-# Configuración para reintentos de conexión
-MAX_RETRIES = int(os.getenv("DB_MAX_RETRIES", "5"))  # número máximo de reintentos
-INITIAL_RETRY_DELAY = float(os.getenv("DB_RETRY_DELAY", "2.0"))  # segundos entre reintentos inicial
+# Get configuration from centralized config
+config = get_config()
+optimized_settings = get_optimized_database_settings()
 
 
 def _create_engine_retry(url: str, **kwargs) -> Engine:
-    """Crea un Engine con reintentos exponenciales.
-
-    Parametros (via kwargs) se pasan directamente a ``create_engine``.
-    El algoritmo usa espera exponencial (2x) con un máximo de ``MAX_RETRIES``.
-    Si no se logra establecer conexión, se vuelve a lanzar la excepción para
-    que el proceso se caiga de forma explícita (útil para orquestadores).
-    """
-
+    """Performance-optimized engine creation with exponential backoff retries."""
     attempt = 0
-    delay = INITIAL_RETRY_DELAY
+    delay = config.database.initial_retry_delay
     log = logging.getLogger(__name__)
 
     while True:
         try:
             eng: Engine = create_engine(url, **kwargs)
 
-            # Intento rápido de comprobar la conexión.
+            # Quick connection test
             with eng.connect() as conn:
                 conn.execute(text("SELECT 1"))
 
-            # Cerramos todas las conexiones abiertas para que los workers forked
-            # (p.ej. Celery) no hereden FDs de la conexión creada en el proceso
-            # padre. Se crearán conexiones nuevas y seguras en cada hijo cuando
-            # sea necesario.
+            # Dispose connections to prevent forked workers from inheriting FDs
             eng.dispose()
 
-            if attempt:  # Hubo reintentos previos
-                log.info("Conexión a la base de datos restablecida tras %d intento(s)", attempt)
+            if attempt:
+                log.info("Database connection restored after %d attempt(s)", attempt)
             return eng
 
         except OperationalError as exc:
             attempt += 1
-            if attempt > MAX_RETRIES:
-                log.error("No se pudo conectar a la base de datos tras %d intentos: %s", attempt - 1, exc)
+            if attempt > config.database.max_retries:
+                log.error("Failed to connect to database after %d attempts: %s", attempt - 1, exc)
                 raise
 
             log.warning(
-                "Error al conectar con la base de datos (intento %d/%d). Reintentando en %.1f s…", 
+                "Database connection error (attempt %d/%d). Retrying in %.1f s...",
                 attempt,
-                MAX_RETRIES,
+                config.database.max_retries,
                 delay,
             )
             time.sleep(delay)
-            delay *= 2  # back-off exponencial
+            delay *= 2  # exponential backoff
 
-# Engine global con pooling configurado explícitamente con reintentos
+# Performance-optimized global engine with retry logic
 engine = _create_engine_retry(
-    DB_URL,
-    echo=False,
-    pool_pre_ping=True,
-    pool_size=POOL_SIZE,
-    max_overflow=MAX_OVERFLOW,
-    pool_timeout=POOL_TIMEOUT,
-    pool_recycle=POOL_RECYCLE,
+    config.database.url,
+    **optimized_settings
 )
 
-# Variable de entorno con URLs separadas por coma para las réplicas
-READ_REPLICA_URLS = os.getenv("READ_REPLICA_URLS", "")
-
-read_engines: List[Engine] = []  # lista de engines de solo-lectura
-if READ_REPLICA_URLS:
-    for url in [u.strip() for u in READ_REPLICA_URLS.split(",") if u.strip()]:
+# Performance-optimized read replicas
+read_engines: List[Engine] = []
+if config.database.read_replica_urls:
+    for url in [u.strip() for u in config.database.read_replica_urls.split(",") if u.strip()]:
         read_engines.append(
-            _create_engine_retry(
-                url,
-                echo=False,
-                pool_pre_ping=True,
-                pool_size=POOL_SIZE,
-                max_overflow=MAX_OVERFLOW,
-                pool_timeout=POOL_TIMEOUT,
-                pool_recycle=POOL_RECYCLE,
-            )
+            _create_engine_retry(url, **optimized_settings)
         )
 
 # Ciclo round-robin para balanceo; fallback a primaria si no hay réplicas

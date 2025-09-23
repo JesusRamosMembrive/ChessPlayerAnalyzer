@@ -39,7 +39,11 @@ class AnalysisService:
     def __init__(self, chess_engine: ChessEngine):
         self._engine = chess_engine
 
-    async def analyze_game(self, game: Game, moves_data: Optional[List[MoveData]] = None) -> GameAnalysis:
+    async def analyze_game(
+        self,
+        game: Game,
+        moves_data: Optional[List[MoveData]] = None
+    ) -> GameAnalysis:
         """
         Analiza una partida individual usando engine de ajedrez.
 
@@ -54,7 +58,9 @@ class AnalysisService:
             raise ValueError("Game must have PGN data for analysis")
 
         # Si no hay moves_data, analizar con engine
-        if not moves_data:
+        needs_engine_analysis = not moves_data or not self._moves_data_has_metrics(moves_data)
+
+        if needs_engine_analysis:
             engine_result = await self._engine.analyze_moves(game.pgn_data, game.move_times)
             moves_data = self._convert_engine_result_to_moves_data(engine_result)
 
@@ -83,7 +89,7 @@ class AnalysisService:
             quality_metrics, timing_metrics, opening_metrics
         )
 
-        return GameAnalysis(
+        analysis = GameAnalysis(
             game_id=game.id,
             quality_metrics=quality_metrics,
             timing_metrics=timing_metrics,
@@ -95,6 +101,12 @@ class AnalysisService:
             overall_suspicion_score=overall_suspicion_score,
             analyzed_at=datetime.utcnow()
         )
+
+        # Actualizar entidad de juego con los datos de movimientos generados
+        game.moves_data = moves_data
+        game.moves = moves_data
+
+        return analysis
 
     def analyze_player(self, username: str, game_analyses: List[GameAnalysis],
                       games: List[Game]) -> PlayerAnalysis:
@@ -515,17 +527,31 @@ class AnalysisService:
 
     def _convert_engine_result_to_moves_data(self, engine_result) -> List[MoveData]:
         """Convierte resultado del engine a formato MoveData."""
-        moves_data = []
+        moves_data: List[MoveData] = []
 
-        for move_analysis in engine_result.moves:
+        for index, move_analysis in enumerate(engine_result.moves, start=1):
+            best_move = move_analysis.move if move_analysis.is_best else None
+            centipawn_loss = None
+            if move_analysis.centipawn_loss is not None:
+                centipawn_loss = int(round(move_analysis.centipawn_loss))
+
+            best_rank = 1 if move_analysis.is_best else 2
+
             move_data = MoveData(
-                move=move_analysis.move,
-                evaluation=move_analysis.evaluation,
-                centipawn_loss=move_analysis.centipawn_loss,
-                wdl_loss=move_analysis.wdl_loss,
-                is_best=move_analysis.is_best,
+                move_number=index,
+                played=move_analysis.move,
+                best=best_move,
+                cp_loss=centipawn_loss,
+                eval_before=None,
+                eval_after=None,
+                time_spent=None,
+                best_rank=best_rank,
                 match_rate=move_analysis.match_rate
             )
             moves_data.append(move_data)
 
         return moves_data
+
+    def _moves_data_has_metrics(self, moves_data: List[MoveData]) -> bool:
+        """Verifica si los datos de movimientos ya contienen métricas calculadas."""
+        return all(move.cp_loss is not None for move in moves_data)

@@ -12,9 +12,9 @@ from ..domain.repositories.analysis_repository import AnalysisRepository
 from ..domain.services.player_service import PlayerService
 from ..domain.services.game_service import GameService
 from ..domain.services.analysis_service import AnalysisService
-from ..infrastructure.database.repositories.sql_player_repository import SQLPlayerRepository
-from ..infrastructure.database.repositories.sql_game_repository import SQLGameRepository
-from ..infrastructure.database.repositories.sql_analysis_repository import SQLAnalysisRepository
+from ..infrastructure.database.sql_player_repository import SQLPlayerRepository
+from ..infrastructure.database.sql_game_repository import SQLGameRepository
+from ..infrastructure.database.sql_analysis_repository import SQLAnalysisRepository
 from ..infrastructure.external.stockfish_engine import StockfishEngine
 
 from .use_cases.player_use_cases import (
@@ -62,19 +62,25 @@ class DIContainer:
     def _get_player_repository(self) -> PlayerRepository:
         """Obtiene repository de jugadores."""
         if 'player_repo' not in self._instances:
-            self._instances['player_repo'] = SQLPlayerRepository(self._config.database)
+            from ..database import SessionLocal
+            session = SessionLocal()
+            self._instances['player_repo'] = SQLPlayerRepository(session)
         return self._instances['player_repo']
 
     def _get_game_repository(self) -> GameRepository:
         """Obtiene repository de partidas."""
         if 'game_repo' not in self._instances:
-            self._instances['game_repo'] = SQLGameRepository(self._config.database)
+            from ..database import SessionLocal
+            session = SessionLocal()
+            self._instances['game_repo'] = SQLGameRepository(session)
         return self._instances['game_repo']
 
     def _get_analysis_repository(self) -> AnalysisRepository:
         """Obtiene repository de análisis."""
         if 'analysis_repo' not in self._instances:
-            self._instances['analysis_repo'] = SQLAnalysisRepository(self._config.database)
+            from ..database import SessionLocal
+            session = SessionLocal()
+            self._instances['analysis_repo'] = SQLAnalysisRepository(session)
         return self._instances['analysis_repo']
 
     # === Domain Services ===
@@ -82,13 +88,18 @@ class DIContainer:
     def _get_player_service(self) -> PlayerService:
         """Obtiene servicio de jugadores."""
         if 'player_service' not in self._instances:
-            self._instances['player_service'] = PlayerService()
+            self._instances['player_service'] = PlayerService(
+                player_repo=self._get_player_repository(),
+                analysis_repo=self._get_analysis_repository()
+            )
         return self._instances['player_service']
 
     def _get_game_service(self) -> GameService:
         """Obtiene servicio de partidas."""
         if 'game_service' not in self._instances:
-            self._instances['game_service'] = GameService()
+            self._instances['game_service'] = GameService(
+                game_repo=self._get_game_repository()
+            )
         return self._instances['game_service']
 
     def _get_analysis_service(self) -> AnalysisService:

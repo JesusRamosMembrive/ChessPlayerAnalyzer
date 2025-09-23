@@ -1,7 +1,7 @@
 """
 Implementación SQL del repositorio de partidas.
 """
-from typing import Optional, List
+from typing import Optional, List, Union
 from sqlmodel import Session, select, or_
 
 from app.domain.entities.game import Game as DomainGame
@@ -65,6 +65,14 @@ class SQLGameRepository(GameRepository):
 
         sql_games = self.session.exec(statement).all()
         return [game_to_domain(game) for game in sql_games]
+
+    async def get_by_player_id(self, player_id: Union[str, int]) -> List[DomainGame]:
+        """Compat wrapper para obtener partidas usando player_id lógico."""
+        if player_id is None:
+            return []
+
+        username = str(player_id)
+        return await self.get_by_player(username)
 
     async def get_analyzed_count(self, username: str) -> int:
         """Cuenta partidas analizadas de un jugador."""

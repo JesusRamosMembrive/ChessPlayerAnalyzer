@@ -1,0 +1,51 @@
+# Chess Player Analyzer - Minimal Requirements for Fast Development
+# Remove heavy dependencies for quick testing
+
+# Core FastAPI stack (FAST)
+fastapi~=0.115.12
+uvicorn[standard]~=0.34.3
+pydantic~=2.11.3
+
+# Database (FAST)
+sqlmodel~=0.0.24
+SQLAlchemy~=2.0.41
+psycopg[binary]
+alembic~=1.16.1
+
+# Task Queue (FAST)
+celery[redis]~=5.5.1
+redis
+celery_once
+
+# Chess Engine (FAST)
+python-chess>=1.999
+stockfish
+
+# Basic utilities (FAST)
+python-dotenv
+requests~=2.32.3
+colorama~=0.4.6
+tabulate~=0.9.0
+tqdm~=4.67.1
+
+# Streaming (FAST)
+sse-starlette~=2.3.6
+sseclient-py
+httpx~=0.27.0
+
+# Monitoring basic (FAST)
+psutil~=6.1.0
+python-json-logger~=2.0.7
+
+# REMOVED for speed (can add back later):
+# pandas~=2.3.0                    # ~100MB+ VERY SLOW
+# numpy~=2.3.0                     # ~50MB+ SLOW
+# scikit-learn                     # ~200MB+ VERY SLOW
+# prometheus-fastapi-instrumentator # Can add back if needed
+# opentelemetry-sdk                # All OpenTelemetry stack SLOW
+# opentelemetry-exporter-jaeger-thrift
+# opentelemetry-instrumentation-fastapi
+# opentelemetry-instrumentation-celery
+# opentelemetry-instrumentation-sqlalchemy
+# opentelemetry-instrumentation-requests
+# opentelemetry-instrumentation-httpx
