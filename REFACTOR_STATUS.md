@@ -1,7 +1,7 @@
 # 🚀 Refactor V3 - Estado Actual
 
 > **Última actualización**: 2024-09-24
-> **Progreso FASE 1**: 40% (2 de 5 sub-fases completadas)
+> **Progreso FASE 1**: 60% (3 de 5 sub-fases completadas)
 
 ## 🎯 Inicio rápido para próxima sesión
 
@@ -49,6 +49,13 @@ app.factories → app.otel → app.database → ¡conexión DB!
 - **✅ Mantenida** backward compatibility 100%
 - **✅ Actualizado** `app/utils.py` para usar RedisService
 
+### FASE 1C: AnalysisLockService unificado
+- **✅ Creado** `app/services/analysis_lock.py`
+- **✅ Unificadas** 3 implementaciones diferentes de locks
+- **✅ Consolidada** lógica compleja en `check_analysis_preconditions()`
+- **✅ Mantenida** backward compatibility 100%
+- **✅ Actualizado** `app/main.py`, `app/api/v1/endpoints/players.py`, `app/utils.py`
+
 ### Testing Infrastructure
 - **✅ Estructura** `tests/refactor/` creada
 - **✅ Tests unitarios** con mocks completos
@@ -62,13 +69,21 @@ app.factories → app.otel → app.database → ¡conexión DB!
 - **✅ setup_dev.sh** y **install_deps.py** para instalación fácil
 - **✅ Validación** automática de dependencies
 
-## 🎯 Próximo objetivo: FASE 1C
+## ✅ FASE 1C COMPLETADA
 
-**AnalysisLockService** - Unificar locks distribuidos
-- **Target**: 3 implementaciones diferentes de locks Redis encontradas
-- **Ubicación**: `app/main.py:41-65`, `app/api/v1/endpoints/players.py`, `app/utils.py`
-- **Beneficio**: Un solo punto de control de concurrencia
-- **Complejidad**: Baja (reorganización de código existente)
+**AnalysisLockService** - Locks unificados ✅
+- **✅ Completado**: Unificadas 3 implementaciones de locks diferentes
+- **✅ Consolidada**: Lógica compleja en `check_analysis_preconditions()`
+- **✅ Tests pasando**: 37/37 tests unitarios pasan con dependencias reales
+- **✅ Backward compatibility**: 100% mantenida
+
+## 🎯 Próximo objetivo: FASE 1D
+
+**HttpClient** - Extraer Chess.com API calls
+- **Target**: `app/utils.py` líneas 50-150 (HTTP calls y fetch_games)
+- **Beneficio**: HTTP client testeable independientemente
+- **Complejidad**: Baja (extracción sin cambio de lógica)
+- **Duración estimada**: 1 día
 
 ## 📁 Archivos importantes
 
@@ -76,10 +91,13 @@ app.factories → app.otel → app.database → ¡conexión DB!
 ```
 app/factories.py                              # ✅ Factory patterns
 app/infrastructure/redis_service.py           # ✅ Redis operations
+app/services/analysis_lock.py                 # ✅ Unified lock service
 tests/refactor/run_refactor_tests.py          # ✅ Test runner
 tests/refactor/test_dependencies.py           # ✅ Dependency validation
 tests/refactor/unit/test_redis_service.py     # ✅ Unit tests
+tests/refactor/unit/test_analysis_lock_service.py  # ✅ Lock service tests
 tests/refactor/integration/test_redis_backward_compatibility.py  # ✅ Integration tests
+tests/refactor/integration/test_analysis_lock_unification.py     # ✅ Lock unification tests
 setup_dev.sh                                  # ✅ Bash setup script
 install_deps.py                              # ✅ Python setup script
 requirements-dev.txt                         # ✅ Dev dependencies
@@ -87,9 +105,10 @@ requirements-dev.txt                         # ✅ Dev dependencies
 
 ### Modificados:
 ```
-app/main.py                                   # ✅ Usa factories
+app/main.py                                   # ✅ Usa factories + AnalysisLockService
 app/celery_tasks.py                          # ✅ Usa factories
-app/utils.py                                 # ✅ Usa RedisService
+app/utils.py                                 # ✅ Usa RedisService + AnalysisLockService
+app/api/v1/endpoints/players.py              # ✅ Usa AnalysisLockService
 app/__init__.py                              # ✅ Sin side effects
 requirements.txt                             # ✅ Limpiado
 docs/REFACTOR_PLAN_UNIFICADO.md              # ✅ Actualizado

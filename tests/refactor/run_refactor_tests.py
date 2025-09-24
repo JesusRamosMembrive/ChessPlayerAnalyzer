@@ -87,6 +87,10 @@ def test_imports():
         from app.infrastructure.redis_service import RedisService, get_redis_service
         print("✅ RedisService imports work")
 
+        # Test AnalysisLockService (should be independent)
+        from app.services.analysis_lock import AnalysisLockService, get_analysis_lock_service
+        print("✅ AnalysisLockService imports work")
+
         # Skip factories and utils.py for now (have database dependencies)
         # from app.factories import create_app, create_worker
         # from app.utils import cache_get, cache_set, notify_ws, player_lock

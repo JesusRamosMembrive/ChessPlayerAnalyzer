@@ -101,15 +101,29 @@
 
 #### FASE 1C: Crear AnalysisLockService (1 día)
 **Target**: Múltiples implementaciones de locks en codebase
-**Status**: ⏳ PENDING
+**Status**: ✅ COMPLETADA (2024-09-24)
 
-**Plan de acción**:
-1. Crear `app/services/analysis_lock.py`
-2. Unificar las 3 variantes de locks Redis encontradas
-3. Implementar cleanup automático de locks obsoletos
-4. Reemplazar usage en main.py, endpoints/players.py, utils.py
+**Logros realizados**:
+1. ✅ Creado `app/services/analysis_lock.py` con `AnalysisLockService`
+2. ✅ Unificadas las 3 implementaciones de locks encontradas:
+   - `app/main.py` (global analysis/cleanup flags)
+   - `app/api/v1/endpoints/players.py` (logic duplicada)
+   - `app/utils.py` (player_lock context manager)
+3. ✅ Actualizado `app/main.py` para usar AnalysisLockService manteniendo backward compatibility
+4. ✅ Actualizado `app/api/v1/endpoints/players.py` con `check_analysis_preconditions()`
+5. ✅ Actualizado `app/utils.py` player_lock para usar servicio unificado
+6. ✅ Creados tests unitarios en `tests/refactor/unit/test_analysis_lock_service.py`
+7. ✅ Creados tests de integración en `tests/refactor/integration/test_analysis_lock_unification.py`
 
-**Criterio de éxito**: Un solo punto de control de concurrencia
+**Beneficios obtenidos**:
+- Un solo punto de control de concurrencia
+- API consistente para todos los tipos de locks
+- Mejor manejo de errores y logging
+- Lógica compleja consolidada en `check_analysis_preconditions()`
+- 100% backward compatibility mantenida
+- Cleanup automático de locks obsoletos
+
+**Próximo paso**: FASE 1D - Mover Chess.com API calls a HttpClient
 
 #### FASE 1D: Mover Chess.com HttpClient (1 día)
 **Target**: `app/utils.py` líneas 50-150 (HTTP calls)

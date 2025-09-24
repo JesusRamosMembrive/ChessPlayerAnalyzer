@@ -21,8 +21,11 @@ from app.database import get_session, init_db
 # Application factories
 from app.factories import create_app
 
+# Services
+from app.services.analysis_lock import get_analysis_lock_service
+
 # Utils
-from app.utils import notify_ws, player_lock, redis_client
+from app.utils import notify_ws, player_lock
 
 # Configurar logging estructurado (JSON)
 from app.logging_config import setup_logging
@@ -31,32 +34,33 @@ from app.logging_config import setup_logging
 setup_logging()
 logger = logging.getLogger(__name__)
 
-CLEANUP_IN_PROGRESS_KEY = "cleanup_in_progress"
-ANALYSIS_IN_PROGRESS_KEY = "analysis_in_progress"
+# Get analysis lock service instance
+_analysis_lock_service = get_analysis_lock_service()
 
+# Backward compatibility functions (deprecated - use AnalysisLockService directly)
 def is_cleanup_in_progress():
     """Check if cleanup is currently in progress."""
-    return redis_client.get(CLEANUP_IN_PROGRESS_KEY) is not None
+    return _analysis_lock_service.is_cleanup_in_progress()
 
 def is_analysis_in_progress():
     """Check if any analysis is currently in progress."""
-    return redis_client.get(ANALYSIS_IN_PROGRESS_KEY) is not None
+    return _analysis_lock_service.is_global_analysis_in_progress()
 
 def set_cleanup_in_progress(username: str):
     """Set cleanup in progress for the given username."""
-    redis_client.setex(CLEANUP_IN_PROGRESS_KEY, 3600, username)  # 1 hour
+    return _analysis_lock_service.set_cleanup_lock(username)
 
 def clear_cleanup_in_progress():
     """Clear cleanup in progress flag."""
-    redis_client.delete(CLEANUP_IN_PROGRESS_KEY)
+    return _analysis_lock_service.clear_cleanup_lock()
 
 def set_analysis_in_progress(username: str):
     """Set analysis in progress for the given username."""
-    redis_client.setex(ANALYSIS_IN_PROGRESS_KEY, 7200, username)  # 2 hours
+    return _analysis_lock_service.set_global_analysis_lock(username)
 
 def clear_analysis_in_progress():
     """Clear analysis in progress flag."""
-    redis_client.delete(ANALYSIS_IN_PROGRESS_KEY)
+    return _analysis_lock_service.clear_global_analysis_lock()
 
 # Create application using factory
 app = create_app()

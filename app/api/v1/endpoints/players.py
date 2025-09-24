@@ -18,7 +18,8 @@ from app.schemas import (
     PlayerListItemOut,
     PlayerMetricsOut,
 )
-from app.utils import redis_client, notify_ws, player_lock
+from app.utils import notify_ws, player_lock
+from app.services.analysis_lock import get_analysis_lock_service
 
 import logging
 logger = logging.getLogger(__name__)
@@ -92,30 +93,21 @@ async def analyze_player(
 ):
     """Start player analysis."""
 
-    # Verificar locks Redis
-    CLEANUP_IN_PROGRESS_KEY = "cleanup_in_progress"
-    ANALYSIS_IN_PROGRESS_KEY = "analysis_in_progress"
+    # Check analysis preconditions using unified lock service
+    analysis_lock_service = get_analysis_lock_service()
+    preconditions = analysis_lock_service.check_analysis_preconditions(username)
 
-    # Check if cleanup is in progress
-    if redis_client.get(CLEANUP_IN_PROGRESS_KEY):
-        cleanup_user = redis_client.get(CLEANUP_IN_PROGRESS_KEY)
+    if not preconditions["can_proceed"]:
+        # Return the first conflict found
+        conflict = preconditions["conflicts"][0]
         raise HTTPException(
             status_code=423,
-            detail=f"Cleanup in progress for user {cleanup_user}. Please wait."
+            detail=conflict["message"]
         )
 
-    # Check if analysis is in progress for another user
-    if redis_client.get(ANALYSIS_IN_PROGRESS_KEY):
-        active_user = redis_client.get(ANALYSIS_IN_PROGRESS_KEY)
-        if active_user != username:
-            raise HTTPException(
-                status_code=423,
-                detail=f"Analysis in progress for user {active_user}. Please wait."
-            )
-
     try:
-        # Establecer lock de análisis
-        redis_client.setex(ANALYSIS_IN_PROGRESS_KEY, 7200, username)  # 2 horas
+        # Establecer lock de análisis usando el servicio unificado
+        analysis_lock_service.set_global_analysis_lock(username)
 
         # Iniciar análisis usando task estándar
         task = process_player_enhanced.delay(username, force_reanalysis)
@@ -160,8 +152,8 @@ async def analyze_player(
         return result
 
     except Exception as e:
-        # Limpiar lock en caso de error
-        redis_client.delete(ANALYSIS_IN_PROGRESS_KEY)
+        # Limpiar lock en caso de error usando el servicio unificado
+        analysis_lock_service.clear_global_analysis_lock()
         logger.error(f"Error starting analysis for {username}: {e}")
         raise HTTPException(
             status_code=500,
@@ -299,9 +291,10 @@ async def stop_player_analysis(username: str, session: Session = Depends(get_ses
         from app.celery_tasks import celery_app
         celery_app.control.revoke(task_id, terminate=True)
 
-        # Limpiar locks Redis
-        redis_client.delete("analysis_in_progress")
-        redis_client.delete("cleanup_in_progress")
+        # Limpiar locks Redis usando el servicio unificado
+        analysis_lock_service = get_analysis_lock_service()
+        analysis_lock_service.clear_global_analysis_lock()
+        analysis_lock_service.clear_cleanup_lock()
 
         # Notificar vía WebSocket
         try:

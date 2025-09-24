@@ -23,14 +23,16 @@ import hashlib
 
 from celery import current_task, Task  # noqa: E402 (circular import safe here)
 
-# Import new Redis service
+# Import new Redis service and Analysis Lock service
 from app.infrastructure.redis_service import get_redis_service
+from app.services.analysis_lock import get_analysis_lock_service
 
 # ──────────────────────────────────────────────────────────────────────────────
 #  Configuration & Backward Compatibility
 # ──────────────────────────────────────────────────────────────────────────────
-# Get Redis service instance
+# Get service instances
 _redis_service = get_redis_service()
+_analysis_lock_service = get_analysis_lock_service()
 
 # Maintain backward compatibility with direct redis_client usage
 redis_client = _redis_service.client
@@ -222,16 +224,11 @@ def player_lock(username: str, timeout: int = 900, block: int = 5):
                   (p.ej. 15 min).
     * `block`   → segundos que un segundo hilo espera antes de abortar con
                   HTTP 423 (Locked).
+
+    Note: This now uses the unified AnalysisLockService internally.
     """
-    lock_name = f"lock:player:{username}"
-    try:
-        with _redis_service.lock(lock_name, timeout=timeout, blocking_timeout=block):
-            yield
-    except Exception as e:
-        # Convert Redis lock errors to the expected RuntimeError
-        if "Could not acquire lock" in str(e):
-            raise RuntimeError(f"player {username!r} is already locked")
-        raise
+    with _analysis_lock_service.player_lock(username, timeout=timeout, blocking_timeout=block):
+        yield
 
 
 def sa_to_dict(obj, _seen=None):
