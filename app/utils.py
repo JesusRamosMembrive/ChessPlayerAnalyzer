@@ -10,7 +10,6 @@ from contextlib import contextmanager
 from datetime import datetime, UTC
 from typing import List, Dict
 
-import redis
 import requests
 from sqlalchemy.inspection import inspect
 from app import models
@@ -24,11 +23,17 @@ import hashlib
 
 from celery import current_task, Task  # noqa: E402 (circular import safe here)
 
+# Import new Redis service
+from app.infrastructure.redis_service import get_redis_service
+
 # ──────────────────────────────────────────────────────────────────────────────
-#  Configuración común
+#  Configuration & Backward Compatibility
 # ──────────────────────────────────────────────────────────────────────────────
-REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
-redis_client = redis.Redis.from_url(REDIS_URL, decode_responses=True)
+# Get Redis service instance
+_redis_service = get_redis_service()
+
+# Maintain backward compatibility with direct redis_client usage
+redis_client = _redis_service.client
 
 CLK_RGX = re.compile(r"\[%clk\s+([\d:.]+)]")
 UA = "chess-analyzer/0.2 (+https://github.com/tu_usuario)"
@@ -132,7 +137,7 @@ def notify_ws(username: str, payload: dict) -> None:
     Los listeners (SSE / WebSocket) lo reenvían a los clientes.
     """
     channel = f"player:{username}"
-    redis_client.publish(channel, json.dumps(payload))
+    _redis_service.publish(channel, payload)
 
 
 def update_progress(username: str, *, increment: int = 1) -> None:
@@ -218,14 +223,15 @@ def player_lock(username: str, timeout: int = 900, block: int = 5):
     * `block`   → segundos que un segundo hilo espera antes de abortar con
                   HTTP 423 (Locked).
     """
-    lock = redis_client.lock(f"lock:player:{username}", timeout=timeout)
-    if not lock.acquire(blocking=True, blocking_timeout=block):
-        raise RuntimeError(f"player {username!r} is already locked")
+    lock_name = f"lock:player:{username}"
     try:
-        yield
-    finally:
-        # Si el código dentro del with explota no dejamos el lock colgado
-        lock.release()
+        with _redis_service.lock(lock_name, timeout=timeout, blocking_timeout=block):
+            yield
+    except Exception as e:
+        # Convert Redis lock errors to the expected RuntimeError
+        if "Could not acquire lock" in str(e):
+            raise RuntimeError(f"player {username!r} is already locked")
+        raise
 
 
 def sa_to_dict(obj, _seen=None):
@@ -287,35 +293,11 @@ def clean_json_numbers(obj):
 #  Task result caching helpers
 # ──────────────────────────────────────────────────────────────────────────────
 
-def _make_cache_key(task_name: str, args: list | tuple, kwargs: dict) -> str:
-    """Generate a deterministic Redis key for a task invocation."""
-    try:
-        payload = json.dumps({"args": args, "kwargs": kwargs}, default=str, sort_keys=True)
-        digest = hashlib.md5(payload.encode("utf-8")).hexdigest()
-        return f"cache:{task_name}:{digest}"
-    except Exception as exc:
-        logging.error(f"_make_cache_key error: {exc}")
-        # Fallback – not ideal but avoids crashing
-        return f"cache:{task_name}:fallback"
-
-
 def cache_get(task_name: str, args: list | tuple, kwargs: dict) -> dict | None:
     """Return cached task result or None if missing/invalid."""
-    key = _make_cache_key(task_name, args, kwargs)
-    cached = redis_client.get(key)
-    if cached is None:
-        return None
-    try:
-        return json.loads(cached)
-    except Exception as exc:
-        logging.warning(f"cache_get: could not decode cached value for {task_name}: {exc}")
-        return None
+    return _redis_service.cache_get(task_name, args, kwargs)
 
 
 def cache_set(task_name: str, args: list | tuple, kwargs: dict, result: dict, ttl: int = 86_400) -> None:
     """Store task result in Redis with TTL (default 24h)."""
-    key = _make_cache_key(task_name, args, kwargs)
-    try:
-        redis_client.setex(key, ttl, json.dumps(result, default=str))
-    except Exception as exc:
-        logging.error(f"cache_set: could not store result for {task_name}: {exc}")
+    _redis_service.cache_set(task_name, args, kwargs, result, ttl)

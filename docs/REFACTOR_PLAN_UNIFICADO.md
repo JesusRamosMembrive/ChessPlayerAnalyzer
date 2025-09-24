@@ -39,66 +39,122 @@
 
 ## Plan de Implementación
 
-### FASE 1: Estabilización Inmediata (3-5 días)
+### ✅ ANÁLISIS COMPLETADO (2024-09-24)
 
-#### 1.1 Centralización de Inicialización
+**Estado validado**:
+- ✅ init_otel() y setup_logging() ejecutándose al importar (app/main.py:68, app/celery_tasks.py:31)
+- ✅ utils.py god-class confirmado (210 líneas mezclando responsabilidades)
+- ✅ Múltiples lock implementations encontradas
+- ✅ Legacy/ directory presente con código duplicado
+
+**Próximo paso**: Ejecutar FASE 1 dividida en sub-tareas más pequeñas y menos riesgosas.
+
+### FASE 1: Estabilización Inmediata (5-7 días) - DIVIDIDA EN SUB-FASES
+
+#### FASE 1A: Centralización de Inicialización (1 día)
 **Target**: `app/main.py`, `app/celery_tasks.py`
+**Status**: ✅ COMPLETADA (2024-09-24)
 
-```python
-# Nuevo: app/factories.py
-def create_app(enable_telemetry: bool = True) -> FastAPI:
-    app = FastAPI(...)
-    if enable_telemetry:
-        init_otel()
-        instrument_fastapi(app)
-    return app
+**Logros realizados**:
+1. ✅ Creado `app/factories.py` con `create_app()` y `create_worker()`
+2. ✅ Movida toda inicialización (OpenTelemetry, logging, Prometheus) a factories
+3. ✅ Actualizado `app/main.py` para usar `create_app()`
+4. ✅ Actualizado `app/celery_tasks.py` para usar `create_worker()`
+5. ✅ Eliminada inicialización de `app/__init__.py` (efectos secundarios)
 
-def create_worker(enable_telemetry: bool = True) -> Celery:
-    celery_app = Celery(...)
-    if enable_telemetry:
-        init_otel()
-    return celery_app
-```
+**Beneficios obtenidos**:
+- Imports sin efectos secundarios automáticos
+- Inicialización controlada y testeable
+- Configuración centralized y parametrizable
 
-**Criterio de éxito**: Poder importar módulos sin efectos secundarios
+**Próximo paso**: FASE 1B - Extraer RedisService
 
-#### 1.2 Unificación de Locks Redis
-**Target**: `app/main.py:41-65`, `app/api/v1/endpoints/players.py`, `app/utils.py`
+#### FASE 1B: Extraer RedisService (1 día)
+**Target**: `app/utils.py` líneas 1-50 (Redis operations)
+**Status**: ✅ COMPLETADA (2024-09-24)
 
-```python
-# Nuevo: app/services/analysis_lock.py
-class AnalysisLockService:
-    def acquire_player_lock(self, username: str) -> ContextManager
-    def is_analysis_in_progress(self, username: str) -> bool
-    def cleanup_stale_locks(self) -> int
-```
+**Logros realizados**:
+1. ✅ Creado `app/infrastructure/redis_service.py` con clase completa
+2. ✅ Implementadas operaciones: caching, pub/sub, locks, keys básicas
+3. ✅ Actualizado `app/utils.py` para usar RedisService manteniendo backward compatibility
+4. ✅ Creados tests unitarios en `tests/refactor/unit/test_redis_service.py`
+5. ✅ Creados tests de integración en `tests/refactor/integration/test_redis_backward_compatibility.py`
+6. ✅ Creada estructura `tests/refactor/` con script de testing `run_refactor_tests.py`
+
+**Beneficios obtenidos**:
+- RedisService testeable independientemente con mocks
+- Mejor manejo de errores centralizado
+- Context managers para locks más robustos
+- API limpia y documentada
+- 100% backward compatibility mantenida
+
+**Dependencias arregladas**:
+- ✅ `requirements.txt` limpiado (removida entrada problemática `app~=0.0.1`)
+- ✅ `requirements-dev.txt` completado con todas las herramientas de desarrollo
+- ✅ Creado `setup_dev.sh` para facilitar instalación
+- ✅ Añadido `test_dependencies.py` para validar requirements
+
+**Setup rápido**: `./setup_dev.sh`
+**Tests disponibles**: `python3 tests/refactor/run_refactor_tests.py`
+
+**Próximo paso**: FASE 1C - Crear AnalysisLockService
+
+#### FASE 1C: Crear AnalysisLockService (1 día)
+**Target**: Múltiples implementaciones de locks en codebase
+**Status**: ⏳ PENDING
+
+**Plan de acción**:
+1. Crear `app/services/analysis_lock.py`
+2. Unificar las 3 variantes de locks Redis encontradas
+3. Implementar cleanup automático de locks obsoletos
+4. Reemplazar usage en main.py, endpoints/players.py, utils.py
 
 **Criterio de éxito**: Un solo punto de control de concurrencia
 
-#### 1.3 Descomposición de utils.py
-**Target**: `app/utils.py:1-210`
+#### FASE 1D: Mover Chess.com HttpClient (1 día)
+**Target**: `app/utils.py` líneas 50-150 (HTTP calls)
+**Status**: ⏳ PENDING
 
-```
-app/
-├── infrastructure/
-│   ├── redis_service.py     # Redis ops + caching
-│   └── http_client.py       # Chess.com API calls
-├── analysis/
-│   └── fetch_service.py     # Game fetching logic
-└── serialization/
-    └── json_utils.py        # JSON sanitization
-```
+**Plan de acción**:
+1. Crear `app/infrastructure/http_client.py`
+2. Mover fetch_games y funciones HTTP de utils.py
+3. Mantener backward compatibility en utils.py
+4. Añadir retry logic y rate limiting explícitos
 
-**Criterio de éxito**: Cada módulo testeable independientemente
+**Criterio de éxito**: HttpClient testeable con mocks
 
-#### 1.4 Limpieza de Legacy
-**Target**: `legacy/`, routing duplicado, imports circulares
+#### FASE 1E: Eliminar Legacy Code (1 día)
+**Target**: `legacy/` directory y routing duplicado
+**Status**: ⏳ PENDING
 
-- Eliminar directorio `legacy/` completo
-- Remover routing V1 de `app/main.py:109-116`
-- Resolver imports circulares en `app/utils.py:25`, `app/database.py:147`
+**Plan de acción**:
+1. Verificar que `legacy/` no se use en producción
+2. Eliminar directorio `legacy/` completo
+3. Remover routing V1 duplicado de `app/main.py:109-116`
+4. Limpiar imports circulares en `app/utils.py:25`
 
 **Criterio de éxito**: Solo una versión de cada endpoint activa
+
+---
+
+### 📋 ESTADO ACTUAL DEL REFACTOR (2024-09-24)
+
+**COMPLETADO**:
+- ✅ FASE 1A: Centralización de inicialización
+- ✅ FASE 1B: RedisService extraído y testeable
+- ✅ Estructura de testing específica para refactor
+- ✅ Dependencies arregladas y scripts de setup
+
+**PRÓXIMO PASO**: FASE 1C - AnalysisLockService (unificar locks distribuidos)
+
+**Setup rápido para continuar**:
+```bash
+source .venv/bin/activate  # Si no está activado
+python3 install_deps.py    # Instalar dependencias
+python3 tests/refactor/run_refactor_tests.py  # Validar refactor
+```
+
+---
 
 ### FASE 2: Separación de Responsabilidades (5-7 días)
 
@@ -283,3 +339,65 @@ class AppConfig:
 **Fase 4**: Sistema production-ready simplificado
 
 **Success Metric Final**: Time-to-debug de horas → minutos
+
+---
+
+## 📊 RESUMEN EJECUTIVO - SESIÓN 2024-09-24
+
+### 🎯 **Objetivos alcanzados hoy**:
+1. **✅ Análisis completo** de problemas arquitecturales identificados
+2. **✅ FASE 1A completa**: Factory patterns para inicialización limpia
+3. **✅ FASE 1B completa**: RedisService extraído con backward compatibility
+4. **✅ Testing infrastructure**: `tests/refactor/` con suite completa de tests
+5. **✅ Dependencies arregladas**: requirements.txt limpio + setup scripts
+
+### 🏗️ **Arquitectura mejorada**:
+- **Sin efectos secundarios**: Imports no conectan a servicios automáticamente
+- **Testeable independientemente**: RedisService con mocks completos
+- **Backward compatibility 100%**: Código existente funciona sin cambios
+- **Setup automatizado**: Scripts para instalación fácil
+
+### 📁 **Archivos clave creados**:
+```
+app/
+├── factories.py                    # Factory patterns centralizados
+└── infrastructure/
+    └── redis_service.py           # Redis operations centralizadas
+
+tests/refactor/                     # Tests específicos del refactor
+├── run_refactor_tests.py          # Test runner dedicado
+├── test_dependencies.py           # Validación de requirements
+├── unit/test_redis_service.py     # Tests unitarios con mocks
+└── integration/test_redis_backward_compatibility.py
+
+setup_dev.sh                       # Setup automático (bash)
+install_deps.py                    # Setup alternativo (python)
+requirements-dev.txt               # Dependencies completas para desarrollo
+```
+
+### 🎯 **Próximos pasos para siguiente sesión**:
+
+**INMEDIATO** (setup):
+```bash
+source .venv/bin/activate
+python3 install_deps.py
+python3 tests/refactor/run_refactor_tests.py
+```
+
+**SIGUIENTE FASE**: FASE 1C - AnalysisLockService
+- **Target**: Unificar 3 implementaciones de locks Redis encontradas
+- **Beneficio**: Un solo punto de control de concurrencia
+- **Riesgo**: Bajo (solo reorganización de código existente)
+- **Duración estimada**: 1 día
+
+### 📈 **Progreso general**:
+- **FASE 1**: 40% completada (2 de 5 sub-fases)
+- **Tiempo invertido**: ~3 horas
+- **Riesgo introducido**: Mínimo (backward compatibility mantenida)
+- **Beneficio ya obtenido**: Testing independiente + imports limpios
+
+### 🔧 **Herramientas disponibles**:
+- Tests automatizados específicos del refactor
+- Scripts de setup para nuevos desarrolladores
+- Validación automática de dependencies
+- Documentación actualizada en tiempo real

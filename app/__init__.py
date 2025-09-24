@@ -1,4 +1,2 @@
-from app.logging_config import setup_logging
-
-# Configurar logging estructurado (JSON)
-setup_logging()
+# app/__init__.py
+# No initialization code here to avoid side effects when importing

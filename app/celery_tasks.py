@@ -15,20 +15,11 @@ from pathlib import Path
 import chess.engine
 import chess.pgn
 
-# Configurar logging estructurado JSON
-from app.logging_config import setup_logging
-setup_logging()
+# Application factories
+from app.factories import create_worker, get_logger
 
 from app.analysis.engine import AnalysisEngine
 from app.database import engine
-
-# Application Performance Monitoring (APM)
-from app.otel import init_otel
-
-logger = logging.getLogger(__name__)
-
-# Inicializar OpenTelemetry (solo una vez en worker)
-init_otel()
 
 from app.utils import (
     fetch_games,
@@ -39,7 +30,6 @@ from app.utils import (
     cache_get,
     cache_set,
 )
-from celery import Celery
 from celery import chain, group, chord
 from celery import current_task
 from celery.signals import task_failure, task_revoked
@@ -49,7 +39,6 @@ from sqlalchemy import func
 # Modelos V2
 from app.models import Game, AnalysisResult, Player, PlayerStatus
 
-from kombu import Queue  # Añadido para configurar colas con prioridad
 from celery.exceptions import SoftTimeLimitExceeded
 
 # Configuración de prioridades (0 = más alta)
@@ -62,39 +51,9 @@ ENGINE_PATH = os.getenv("STOCKFISH_PATH", "stockfish")
 MAX_DEPTH = int(os.getenv("STOCKFISH_DEPTH", "12"))
 TB_PATH = os.getenv("TABLEBASE_PATH", None)
 
-# ──────────────────────────────────────────────────────────────
-#  Task timeout & retry configuration (env-driven)
-# ──────────────────────────────────────────────────────────────
-TASK_SOFT_TIME_LIMIT = int(os.getenv("TASK_SOFT_TIME_LIMIT", "1800"))  # 30 min default
-TASK_TIME_LIMIT      = int(os.getenv("TASK_TIME_LIMIT", "1860"))      # hard limit (soft + 1 min)
-TASK_MAX_RETRIES     = int(os.getenv("TASK_MAX_RETRIES", "3"))         # default max retries
-
-REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
-celery_app = Celery("chess_tasks", broker=REDIS_URL, backend=REDIS_URL)
-
-# Declarar la cola por defecto con soporte de prioridad (máx. 10 en Redis)
-celery_app.conf.task_default_queue = "default"
-# El tuple final debe contener únicamente el objeto Queue
-celery_app.conf.task_queues = (
-    Queue("default", max_priority=10),
-)
-
-celery_app.conf.update(
-    # When a worker is lost (OOM/timeout) we want the broker to re-queue the task
-    task_reject_on_worker_lost=True,
-    # Force ACK *after* the task finishes so it can be retried on crash
-    task_acks_late=True,
-    # Apply global time limits – individual tasks can override these
-    task_soft_time_limit=TASK_SOFT_TIME_LIMIT,
-    task_time_limit=TASK_TIME_LIMIT,
-    # Global retry defaults (used by autoretry_for)
-    task_default_retry_delay=60,  # seconds between automatic retries
-    task_max_retries=TASK_MAX_RETRIES,
-    # Result expiration
-    result_expires=3600,  # 1 hour
-    # Worker settings
-    worker_prefetch_multiplier=1,
-)
+# Create Celery worker using factory
+celery_app = create_worker()
+logger = get_logger(__name__)
 
 # ──────────────────────────────────────────────────────────────
 #  Utility functions for V2

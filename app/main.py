@@ -8,8 +8,7 @@ import os
 from datetime import datetime, UTC
 from typing import List, Optional, Literal
 
-from fastapi import FastAPI, Depends, HTTPException, status
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import Depends, HTTPException, status
 from sqlmodel import Session, select
 
 # API Router
@@ -18,14 +17,9 @@ from app.api.v1.api import api_router
 # Common imports
 from app.schemas import PlayerMetricsOut, TaskQueuedOut, AnalyzeGameIn
 from app.database import get_session, init_db
-from app.error_handlers import register_exception_handlers
-from app.middleware.rate_limiter import RateLimitMiddleware
-from app.middleware.request_logger import RequestLoggingMiddleware
-from app.middleware.trace_context import TraceContextMiddleware
-from prometheus_fastapi_instrumentator import Instrumentator
 
-# Application Performance Monitoring (APM)
-from app.otel import init_otel, instrument_fastapi
+# Application factories
+from app.factories import create_app
 
 # Utils
 from app.utils import notify_ws, player_lock, redis_client
@@ -64,47 +58,8 @@ def clear_analysis_in_progress():
     """Clear analysis in progress flag."""
     redis_client.delete(ANALYSIS_IN_PROGRESS_KEY)
 
-# Inicializar OpenTelemetry
-init_otel()
-
-# Crear aplicación FastAPI
-app = FastAPI(
-    title="Chess Player Analyzer API",
-    description="API para análisis avanzado de jugadores de ajedrez usando Stockfish",
-    version="2.0.0",  # Incrementar versión para indicar soporte V2
-    contact={
-        "name": "Chess Analyzer Support",
-        "email": "support@example.com",
-    },
-    license_info={
-        "name": "MIT",
-        "url": "https://opensource.org/licenses/MIT",
-    },
-)
-
-# Instrumentar con OpenTelemetry
-instrument_fastapi(app)
-
-# Configurar CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # En producción, especificar dominios exactos
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Añadir middlewares personalizados
-app.add_middleware(RateLimitMiddleware)
-app.add_middleware(RequestLoggingMiddleware)
-app.add_middleware(TraceContextMiddleware)
-
-# Registrar manejadores de errores
-register_exception_handlers(app)
-
-# Instrumentar con Prometheus
-instrumentator = Instrumentator()
-instrumentator.instrument(app).expose(app)
+# Create application using factory
+app = create_app()
 
 # Incluir routers principales
 app.include_router(api_router, prefix="/api/v1")
