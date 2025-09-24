@@ -87,6 +87,19 @@ app.factories → app.otel → app.database → ¡conexión DB!
 
 ## 📁 Archivos importantes
 
+### Estructura de tests reorganizada:
+```
+tests/refactor/phases/                        # ✅ Tests organizados por fase
+├── fase1a/test_factories.py                 # ✅ Factory pattern tests
+├── fase1b/test_redis_service.py              # ✅ RedisService tests
+├── fase1c/test_fase_1c.py                   # ✅ AnalysisLockService tests
+├── run_all_phases.py                        # ✅ Unified phase runner
+└── test_status.py                           # ✅ Quick status check
+tests/refactor/fixtures/                      # ✅ Test data from old_tests_with_real_data
+tests/refactor/unit/                         # ✅ Mock-based unit tests
+tests/refactor/integration/                  # ✅ Backward compatibility tests
+```
+
 ### Creados en esta sesión:
 ```
 app/factories.py                              # ✅ Factory patterns
@@ -117,7 +130,18 @@ docs/REFACTOR_PLAN_UNIFICADO.md              # ✅ Actualizado
 ## 🧪 Cómo ejecutar tests
 
 ```bash
-# Tests completos del refactor
+# ⚡ Status rápido sin dependencias
+python3 tests/refactor/phases/test_status.py
+
+# 🎯 Tests por fase específica
+python3 tests/refactor/phases/fase1a/test_factories.py      # Factory patterns
+python3 tests/refactor/phases/fase1b/test_redis_service.py  # RedisService
+python3 tests/refactor/phases/fase1c/test_fase_1c.py       # AnalysisLockService
+
+# 📊 Todos las fases (con dependencias)
+python3 tests/refactor/phases/run_all_phases.py
+
+# 🧪 Tests completos del refactor
 python3 tests/refactor/run_refactor_tests.py
 
 # Solo tests unitarios

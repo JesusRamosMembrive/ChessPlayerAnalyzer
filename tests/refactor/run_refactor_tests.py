@@ -4,7 +4,7 @@
 Test runner for refactor-specific tests.
 
 This script runs all tests related to the refactor process,
-allowing us to validate changes without running the full test suite.
+allowing us to validate changes without running the full old_tests_with_real_data suite.
 """
 import sys
 import os

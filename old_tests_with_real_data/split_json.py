@@ -45,10 +45,10 @@ def split_chunks(games, out_dir: Path, chunk_size: int):
 
 def main():
     p = argparse.ArgumentParser(description="Split Chess.com games JSON")
-    p.add_argument("--input", "-i", default="test/data/input.json", help="Ruta del JSON de entrada")
+    p.add_argument("--input", "-i", default="old_tests_with_real_data/data/input.json", help="Ruta del JSON de entrada")
     p.add_argument("--mode", "-m", choices=["per-game", "chunks"], required=True, help="Modo de salida")
     p.add_argument("--chunk-size", "-s", type=int, default=10, help="Tamaño del chunk (para mode=chunks)")
-    p.add_argument("--out-dir", "-o", default="test/out", help="Directorio de salida")
+    p.add_argument("--out-dir", "-o", default="old_tests_with_real_data/out", help="Directorio de salida")
     args = p.parse_args()
 
     input_path = Path(args.input)

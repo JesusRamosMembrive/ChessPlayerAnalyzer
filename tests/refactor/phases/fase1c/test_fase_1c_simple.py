@@ -2,7 +2,7 @@
 """
 Test simple para FASE 1C - Solo validación de código.
 
-Este test valida que el código de AnalysisLockService esté bien estructurado
+Este old_tests_with_real_data valida que el código de AnalysisLockService esté bien estructurado
 sin requerir dependencias externas.
 """
 import sys
@@ -159,8 +159,8 @@ def validate_files_were_modified():
 
 
 def validate_test_files_exist():
-    """Valida que los archivos de test fueron creados."""
-    print("\n🧪 Validando archivos de test...")
+    """Valida que los archivos de old_tests_with_real_data fueron creados."""
+    print("\n🧪 Validando archivos de old_tests_with_real_data...")
 
     test_files = [
         "tests/refactor/unit/test_analysis_lock_service.py",
@@ -202,7 +202,7 @@ def main():
     if not validate_files_were_modified():
         all_passed = False
 
-    # Test que archivos de test existen
+    # Test que archivos de old_tests_with_real_data existen
     if not validate_test_files_exist():
         all_passed = False
 

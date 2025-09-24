@@ -166,7 +166,7 @@ class TestBackwardCompatibility:
 
         for task_name, args, kwargs in test_cases:
             # Should not raise exceptions
-            service.cache_set(task_name, args, kwargs, {"test": "data"})
+            service.cache_set(task_name, args, kwargs, {"old_tests_with_real_data": "data"})
             service.cache_get(task_name, args, kwargs)
 
         # Verify all calls succeeded

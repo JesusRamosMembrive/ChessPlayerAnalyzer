@@ -48,6 +48,25 @@ python create_v2_tables.py
 ```
 
 ### Testing
+
+#### Refactor Tests (Organized by Phase)
+```bash
+# Run all refactor phases validation
+python3 tests/refactor/phases/run_all_phases.py
+
+# Run specific phase tests
+python3 tests/refactor/phases/fase1a/test_factories.py          # Factory patterns
+python3 tests/refactor/phases/fase1b/test_redis_service.py      # RedisService
+python3 tests/refactor/phases/fase1c/test_fase_1c.py           # AnalysisLockService
+
+# Run refactor unit tests (with pytest)
+python3 -m pytest tests/refactor/unit/ -v
+
+# Run refactor integration tests
+python3 -m pytest tests/refactor/integration/ -v
+```
+
+#### Legacy Tests
 ```bash
 # Run specific test
 python3 -m pytest tests/unit/test_analysis/test_quality.py::TestCalculateACPL::test_acpl_perfect_game -v
@@ -142,6 +161,33 @@ You are a staff software architect. You always analyse potential risks in code e
 * Special cases must be eliminated
 * Be pragmatic and solve only actual problems, not imaginary threats.
 * Express yourself in a direct, pragmatic zero-nonsense way.
+
+## Test Structure
+
+This project uses an organized test structure to separate different types of testing:
+
+### Refactor Tests (`tests/refactor/`)
+- **`phases/`**: Phase-specific validation tests organized by refactor phase
+  - `fase1a/`: Factory pattern tests
+  - `fase1b/`: RedisService extraction tests
+  - `fase1c/`: AnalysisLockService unification tests
+  - `fase1d/`: HttpClient extraction tests (future)
+  - `fase1e/`: Legacy cleanup tests (future)
+- **`unit/`**: Mock-based unit tests for refactor components
+- **`integration/`**: Integration tests for backward compatibility
+- **`fixtures/`**: Test data and fixtures from `old_tests_with_real_data/`
+
+### Legacy Tests (`tests/`)
+- **`api/`**: API endpoint tests
+- **`services/`**: Service layer tests
+- **`unit/`**: Original unit tests
+
+### Test Data (`old_tests_with_real_data/`)
+- Contains real PGN data and analysis results
+- **Should not be deleted** - valuable for integration testing
+- Large JSON files with real Chess.com data
+
+**When creating new tests**: Always place refactor-related tests in `tests/refactor/phases/faseXX/` to maintain organization.
 
 ## Rules
 

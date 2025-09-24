@@ -547,7 +547,7 @@ def main():
     ap.add_argument("--input", "-i")
     ap.add_argument("--input-dir", "-d")
     ap.add_argument("--pattern", "-p", default="*.json")
-    ap.add_argument("--out-dir", "-o", default="test/out/results")
+    ap.add_argument("--out-dir", "-o", default="old_tests_with_real_data/out/results")
     ap.add_argument("--username", "-u")
     ap.add_argument("--reconstruct-clock", action="store_true")
     ap.add_argument("--summary-only", action="store_true")

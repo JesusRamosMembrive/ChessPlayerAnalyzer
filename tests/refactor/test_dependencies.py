@@ -49,7 +49,7 @@ def test_refactor_modules():
         from app.infrastructure.redis_service import RedisService, get_redis_service
         from app.factories import create_app, create_worker
 
-        # Basic smoke test
+        # Basic smoke old_tests_with_real_data
         redis_service = get_redis_service()
         assert redis_service is not None
 
@@ -67,5 +67,5 @@ def test_python_version():
 
 
 if __name__ == "__main__":
-    # Allow running this test directly
+    # Allow running this old_tests_with_real_data directly
     pytest.main([__file__, "-v"])

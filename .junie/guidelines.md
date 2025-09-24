@@ -91,8 +91,8 @@ celery_app.conf.update(task_always_eager=True, task_eager_propagates=True)
 ```python
 def test_example(client):
     """
-    Example test to demonstrate how to write tests for this project.
-    This test checks if the /health endpoint returns the expected response.
+    Example old_tests_with_real_data to demonstrate how to write tests for this project.
+    This old_tests_with_real_data checks if the /health endpoint returns the expected response.
     """
     # Make a GET request to the health endpoint
     response = client.get("/health")

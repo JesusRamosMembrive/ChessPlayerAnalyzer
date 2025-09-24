@@ -128,7 +128,7 @@ def test_v2_adapter_compatibility():
         "requested_at": "2025-09-23T10:00:00.000000",
         "finished_at": "2025-09-23T10:30:00.000000",
         "error": None,
-        "last_task_id": "test-task-id"
+        "last_task_id": "old_tests_with_real_data-task-id"
     }
 
     print("1. Player Status Structure:")

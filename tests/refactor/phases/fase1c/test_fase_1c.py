@@ -2,14 +2,14 @@
 """
 Test directo para FASE 1C - AnalysisLockService.
 
-Este test se puede ejecutar independientemente sin dependencias externas
+Este old_tests_with_real_data se puede ejecutar independientemente sin dependencias externas
 para validar que la FASE 1C funcione correctamente.
 """
 import sys
 from pathlib import Path
 
 # Add project root to path
-project_root = Path(__file__).parent
+project_root = Path(__file__).parent.parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 
@@ -106,7 +106,7 @@ def test_analysis_lock_service_basic():
         return True
 
     except Exception as e:
-        print(f"\n❌ Error durante test de FASE 1C: {e}")
+        print(f"\n❌ Error durante old_tests_with_real_data de FASE 1C: {e}")
         import traceback
         traceback.print_exc()
         return False

@@ -110,17 +110,17 @@ class TestRedisService:
         mock_redis.keys.return_value = ["key1", "key2"]
         mock_redis.delete.return_value = 2
 
-        result = redis_service.cache_clear_pattern("test:*")
+        result = redis_service.cache_clear_pattern("old_tests_with_real_data:*")
 
         assert result == 2
-        mock_redis.keys.assert_called_once_with("test:*")
+        mock_redis.keys.assert_called_once_with("old_tests_with_real_data:*")
         mock_redis.delete.assert_called_once_with("key1", "key2")
 
     def test_publish(self, redis_service, mock_redis):
         """Test message publishing."""
         mock_redis.publish.return_value = 1
 
-        message = {"type": "test", "data": "value"}
+        message = {"type": "old_tests_with_real_data", "data": "value"}
         result = redis_service.publish("test_channel", message)
 
         assert result is True
@@ -218,7 +218,7 @@ class TestModuleFunctions:
 
     def test_create_redis_service(self):
         """Test create_redis_service function."""
-        service = create_redis_service("redis://test:6379")
+        service = create_redis_service("redis://old_tests_with_real_data:6379")
 
         assert isinstance(service, RedisService)
-        assert service.redis_url == "redis://test:6379"
+        assert service.redis_url == "redis://old_tests_with_real_data:6379"
