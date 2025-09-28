@@ -59,6 +59,7 @@ def main():
         ("FASE 1B - RedisService", phases_dir / "fase1b" / "test_redis_service.py"),
         ("FASE 1C - AnalysisLockService", phases_dir / "fase1c" / "test_fase_1c.py"),
         ("FASE 1D - HttpClient", phases_dir / "fase1d" / "test_http_client.py"),
+        ("FASE 1E - Clean Imports", phases_dir / "fase1e" / "test_clean_imports.py"),
     ]
 
     results = []

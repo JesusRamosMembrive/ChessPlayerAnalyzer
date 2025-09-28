@@ -5,13 +5,8 @@ import logging
 import math
 from contextlib import contextmanager
 from typing import List, Dict
-from sqlalchemy.inspection import inspect
-from app import models
-from app.database import engine
-from sqlmodel import Session, select
+# Database imports moved to function level to avoid side effects
 import numpy as np
-
-import hashlib
 
 from celery import current_task, Task  # noqa: E402 (circular import safe here)
 
@@ -73,6 +68,11 @@ def notify_ws(username: str, payload: dict) -> None:
 
 def update_progress(username: str, *, increment: int = 1) -> None:
     """Atomic progress update for player analysis."""
+    # Import database components locally to avoid side effects at module level
+    from app.database import engine
+    from app import models
+    from sqlmodel import Session, select
+
     with Session(engine) as s:
         pl = s.exec(
             select(models.Player)
@@ -166,6 +166,9 @@ def sa_to_dict(obj, _seen=None):
     Incluye todos los atributos de columna y todas las relaciones,
     evitando ciclos mediante el conjunto `_seen`.
     """
+    # Import inspection locally to avoid side effects at module level
+    from sqlalchemy.inspection import inspect
+
     if _seen is None:
         _seen = set()
 
@@ -194,6 +197,7 @@ def pretty_print_sa(obj):
     Imprime en pantalla todo el contenido del objeto SQLAlchemy (y sub‑objetos)
     con formato JSON legible.
     """
+    import json
     print(json.dumps(sa_to_dict(obj), indent=2, ensure_ascii=False, default=str))
 
 def clean_json_numbers(obj):

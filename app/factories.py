@@ -15,7 +15,7 @@ from celery import Celery
 from kombu import Queue
 from prometheus_fastapi_instrumentator import Instrumentator
 
-from app.otel import init_otel, instrument_fastapi
+# OTEL imports moved to function level to avoid side effects
 from app.error_handlers import register_exception_handlers
 from app.middleware.rate_limiter import RateLimitMiddleware
 from app.middleware.request_logger import RequestLoggingMiddleware
@@ -36,6 +36,7 @@ def create_app(enable_telemetry: bool = True, enable_cors: bool = True) -> FastA
     """
     # Initialize telemetry if enabled
     if enable_telemetry:
+        from app.otel import init_otel
         init_otel()
 
     # Create FastAPI app
@@ -55,6 +56,7 @@ def create_app(enable_telemetry: bool = True, enable_cors: bool = True) -> FastA
 
     # Configure telemetry
     if enable_telemetry:
+        from app.otel import instrument_fastapi
         instrument_fastapi(app)
 
         # Instrument with Prometheus
@@ -99,6 +101,7 @@ def create_worker(enable_telemetry: bool = True, enable_logging: bool = True) ->
 
     # Initialize telemetry if enabled
     if enable_telemetry:
+        from app.otel import init_otel
         init_otel()
 
     # Environment configuration

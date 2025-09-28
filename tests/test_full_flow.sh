@@ -32,8 +32,15 @@ python3 tests/refactor/phases/fase1d/test_http_client.py
 echo "✅ Phase 1D passed"
 
 # =============================================================================
+# PHASE 1E: Clean Imports (implemented: 2024-09-28)
+# =============================================================================
+echo "📋 Testing Phase 1E: Clean Imports (Legacy Cleanup)..."
+python3 tests/refactor/phases/fase1e/test_clean_imports.py
+echo "✅ Phase 1E passed"
+
+# =============================================================================
 # CLEANUP
 # =============================================================================
 echo "🧹 Cleaning up test data..."
 find . -name "*.tmp" -delete 2>/dev/null || true
-echo "🎉 All tests passed! System working correctly."
+echo "🎉 All tests passed! FASE 1 REFACTOR COMPLETE!"
