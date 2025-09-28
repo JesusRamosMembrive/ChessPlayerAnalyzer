@@ -8,7 +8,8 @@ from . import timing
 from . import openings
 from . import endgame
 from . import longitudinal
-from .engine import AnalysisEngine
+# BULLDOZER TOTAL: Use bulldozer_engine instead
+from .bulldozer_engine import analyze_game_complete as AnalysisEngine
 
 from .quality   import aggregate_quality_features
 from .timing    import aggregate_time_features

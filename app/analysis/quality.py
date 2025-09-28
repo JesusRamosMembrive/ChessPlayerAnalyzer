@@ -502,9 +502,10 @@ def phase_acpl_single(game_df: pd.DataFrame, cap_cp: int | None = 1500) -> dict:
         return {}
     grp = tmp.groupby("phase")["delta"].mean()
     return {
-        "opening_acpl": float(grp.get("opening", np.nan)),
-        "middlegame_acpl": float(grp.get("middlegame", np.nan)),
-        "endgame_acpl": float(grp.get("endgame", np.nan)),
+        # BULLDOZER: Return None instead of NaN when no data available
+        "opening_acpl": None if "opening" not in grp else float(grp["opening"]),
+        "middlegame_acpl": None if "middlegame" not in grp else float(grp["middlegame"]),
+        "endgame_acpl": None if "endgame" not in grp else float(grp["endgame"]),
     }
 
 @trace

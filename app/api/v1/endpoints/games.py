@@ -7,9 +7,9 @@ import io
 import chess.pgn
 
 
-from app import models
+from app.models import GameAnalysis
 from app.database import get_session
-from app.celery_tasks import analyze_game, celery_app
+from app.celery_tasks import celery_app
 from celery.result import AsyncResult
 from app.schemas import (
     AnalyzeGameIn,
@@ -31,122 +31,138 @@ router = APIRouter()
     responses={404: {"description": "Partida no encontrada"}},
 )
 async def get_game(game_id: int, session: Session = Depends(get_session)):
-    """Get details of an analyzed game."""
-    game = session.get(models.Game, game_id)
-    if not game:
-        raise HTTPException(status_code=404, detail="Game not found")
+    """Get details of an analyzed game - BULLDOZER version."""
+    analysis = session.get(GameAnalysis, game_id)
+    if not analysis:
+        raise HTTPException(status_code=404, detail="Game analysis not found")
+
+    # Extract player info from PGN headers
+    try:
+        game = chess.pgn.read_game(io.StringIO(analysis.pgn))
+        white_username = game.headers.get("White", "") if game else ""
+        black_username = game.headers.get("Black", "") if game else ""
+        eco_code = game.headers.get("ECO", "") if game else ""
+    except:
+        white_username = ""
+        black_username = ""
+        eco_code = ""
 
     return {
-        "id": game.id,
-        "created_at": game.created_at.isoformat(),
-        "pgn": game.pgn,
-        "white_username": game.white_username,
-        "black_username": game.black_username,
-        "eco_code": game.eco_code,
-        "opening_key": game.opening_key,
-        "moves": [
-            {
-                "move_number": m.move_number,
-                "played": m.played,
-                "best": m.best,
-                "best_rank": m.best_rank,
-                "cp_loss": m.cp_loss
-            } for m in game.moves
-        ] if game.moves else [],
+        "id": analysis.id,
+        "created_at": analysis.analyzed_at.isoformat() if analysis.analyzed_at else None,
+        "pgn": analysis.pgn,
+        "white_username": white_username,
+        "black_username": black_username,
+        "analyzed_username": analysis.analyzed_username,
+        "eco_code": eco_code,
+        "analysis": analysis.analysis
     }
 
 @router.post(
     "/analyze",
     response_model=TaskQueuedOut,
     summary="Encolar análisis de una partida",
-    description="Crea un registro de partida y lanza una tarea Celery para analizar el PGN proporcionado.",
+    description="Analiza directamente el PGN proporcionado usando BULLDOZER engine.",
     status_code=status.HTTP_202_ACCEPTED,
 )
-async def analyze_game(
+async def analyze_game_endpoint(
     req: AnalyzeGameIn,
     session: Session = Depends(get_session)
 ):
-    """Analyze a single game with Stockfish."""
-    # Dedupe: evitar análisis duplicados de la misma partida
-    dedupe_key = f"dedupe:analyze_game:{hashlib.sha256(req.pgn.encode('utf-8')).hexdigest()}"
-    if not redis_client.setnx(dedupe_key, "1"):
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Duplicate analysis request")
-    redis_client.expire(dedupe_key, 3600)
-
+    """Analyze a single game with BULLDOZER engine."""
     try:
-        # Create game record in database
-        game_db = models.Game(pgn=req.pgn, move_times=req.move_times)
-        session.add(game_db)
-        session.commit()
-        session.refresh(game_db)
+        from app.analysis.bulldozer_engine import analyze_game_complete, save_analysis_to_db
 
+        # Extract username from PGN
         game_pgn_obj = chess.pgn.read_game(io.StringIO(req.pgn))
-        username = game_pgn_obj.headers.get("White") or game_pgn_obj.headers.get("Black") or "unknown"
+        if not game_pgn_obj:
+            raise HTTPException(status_code=400, detail="Invalid PGN format")
 
-        c = chain(
-            analyze_game_task.s(req.pgn, game_db.id, move_times=req.move_times),
-            extract_game_id.s(),
-            analyze_game_detailed.s(username),
-        )
-        async_res = c.apply_async()
+        white = game_pgn_obj.headers.get("White", "").lower()
+        black = game_pgn_obj.headers.get("Black", "").lower()
 
-        return TaskQueuedOut(game_id=game_db.id, task_id=async_res.id, status="queued")
+        # For single game analysis, analyze for both colors
+        results = []
+
+        for color, username in [("white", white), ("black", black)]:
+            if username:
+                # Analyze game
+                analysis = analyze_game_complete(req.pgn, username, color)
+
+                if analysis and "error" not in analysis:
+                    # Save to database
+                    analysis_id = save_analysis_to_db(req.pgn, username, color, analysis, session)
+                    session.commit()
+
+                    if analysis_id:
+                        results.append({
+                            "username": username,
+                            "color": color,
+                            "analysis_id": analysis_id
+                        })
+
+        if results:
+            return {
+                "game_id": results[0]["analysis_id"],  # Return first analysis ID
+                "task_id": f"direct_analysis_{results[0]['analysis_id']}",
+                "status": "completed",
+                "results": results
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Analysis failed for all players")
+
     except Exception as e:
         session.rollback()
-        redis_client.delete(dedupe_key)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Analysis error: {str(e)}")
 
 @router.get(
     "/{game_id}/status/{task_id}",
     response_model=GameAnalysisStatusOut,
     summary="Consultar estado del análisis de partida",
-    description="Devuelve el estado actual de la tarea de análisis asociada.",
-    responses={404: {"description": "Partida no encontrada"}},
+    description="Devuelve el estado actual del análisis - BULLDOZER version.",
+    responses={404: {"description": "Análisis no encontrado"}},
 )
 async def get_game_analysis_status(
     game_id: int,
     task_id: str,
     session: Session = Depends(get_session)
 ):
-    """Get the status of a game analysis task."""
-    # Verify game exists
-    game = session.get(models.Game, game_id)
-    if not game:
-        raise HTTPException(status_code=404, detail="Game not found")
-    
-    # Get task status
-    result = AsyncResult(task_id, app=celery_app)
-    
+    """Get the status of a game analysis - BULLDOZER version."""
+    # Check if analysis exists
+    analysis = session.get(GameAnalysis, game_id)
+    if not analysis:
+        raise HTTPException(status_code=404, detail="Game analysis not found")
+
+    # For BULLDOZER, analysis is usually complete when it exists
     return {
         "game_id": game_id,
         "task_id": task_id,
-        "status": result.state,
-        "result": result.result if result.ready() else None
+        "status": "SUCCESS",
+        "result": {"analysis_complete": True, "analysis_id": analysis.id}
     }
 
 @router.post(
     "/{game_id}/cancel/{task_id}",
     response_model=GameAnalysisCancelOut,
     summary="Cancelar el análisis de una partida",
-    description="Revoca la tarea Celery en ejecución y marca el análisis como cancelado.",
-    responses={404: {"description": "Partida no encontrada"}},
+    description="Para BULLDOZER, el análisis es directo (no cancelable).",
+    responses={404: {"description": "Análisis no encontrado"}},
 )
 async def cancel_game_analysis(
     game_id: int,
     task_id: str,
     session: Session = Depends(get_session)
 ):
-    """Cancel a running game analysis."""
-    # Verify game exists
-    game = session.get(models.Game, game_id)
-    if not game:
-        raise HTTPException(status_code=404, detail="Game not found")
-    
-    # Revoke the Celery task
-    celery_app.control.revoke(task_id, terminate=True)
-    
+    """Cancel analysis - BULLDOZER version (direct analysis, not cancellable)."""
+    # Check if analysis exists
+    analysis = session.get(GameAnalysis, game_id)
+    if not analysis:
+        raise HTTPException(status_code=404, detail="Game analysis not found")
+
+    # For BULLDOZER, analysis is direct and immediate, so "cancellation" is not applicable
     return {
-        "status": "cancelled",
+        "status": "not_cancellable",
         "game_id": game_id,
-        "task_id": task_id
+        "task_id": task_id,
+        "message": "BULLDOZER analysis is direct and cannot be cancelled"
     }

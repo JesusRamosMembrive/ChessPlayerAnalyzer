@@ -48,6 +48,10 @@ def novelty_ply(game: chess.pgn.Game, book: chess.polyglot.Reader) -> int:
     Devuelve el número de ply (1‑based) en el que la partida se desvía del libro.
     Si no se desvía, devuelve el número total de jugadas del libro disponibles.
     """
+    # Handle case where book is None
+    if book is None:
+        return 1  # No book available, consider first move as novelty
+
     board = game.board()
     for ply, move in enumerate(game.mainline_moves(), start=1):
         # Si la posición previa NO está en el libro → la novedad es en ply‑1

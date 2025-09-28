@@ -200,24 +200,9 @@ def pretty_print_sa(obj):
     import json
     print(json.dumps(sa_to_dict(obj), indent=2, ensure_ascii=False, default=str))
 
-def clean_json_numbers(obj):
-    """
-    Reemplaza NaN/inf por None y convierte numpy.* a tipos Python nativos
-    para que psycopg pueda serializar a JSON.
-    """
-    if isinstance(obj, dict):
-        return {k: clean_json_numbers(v) for k, v in obj.items()}
-    if isinstance(obj, list):
-        return [clean_json_numbers(v) for v in obj]
-    if obj is None:
-        return None
-    if obj.__class__.__name__ == "NAType":  # pandas.NA without importing pandas
-        return None
-    if isinstance(obj, (np.floating, np.integer)):
-        obj = obj.item()           # np.float64 → float, np.int64 → int
-    if isinstance(obj, float) and (math.isnan(obj) or math.isinf(obj)):
-        return None
-    return obj
+# BULLDOZER REFACTOR: clean_json_numbers() eliminated
+# Replaced with fail-fast validation in app/validation.py
+# Reason: Sanitization hides real mathematical problems instead of fixing them
 
 # ──────────────────────────────────────────────────────────────────────────────
 #  Task result caching helpers

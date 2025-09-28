@@ -1,0 +1,139 @@
+Métricas de Calidad Básicas
+avg_acpl (Average Centipawn Loss): Media de pérdida de centipeones. Representa el "valor" promedio perdido por jugadas subóptimas. Un valor muy bajo (<25 cp) para un jugador con ELO bajo puede ser sospechoso.
+
+std_acpl: Desviación estándar del ACPL. Mide la consistencia - valores muy bajos indican jugadas demasiado uniformes.
+
+avg_match_rate: Porcentaje promedio de jugadas que coinciden exactamente con la primera línea de Stockfish.
+
+std_match_rate: Desviación estándar del match rate. Baja variabilidad puede ser sospechosa.
+
+avg_ipr: Intrinsic Performance Rating - rating ELO estimado basado en la precisión de las jugadas usando el modelo de Regan.
+
+Métricas Longitudinales (ROI)
+roi_mean: Media del "Return on Investment" - rating de rendimiento calculado por partida.
+
+roi_max: Máximo ROI alcanzado en una partida.
+
+roi_std: Desviación estándar del ROI.
+
+roi_curve: Array con medias mensuales de ROI (máximo 24 meses) para detectar tendencias.
+
+Detección de Patrones Sospechosos
+step_function_detected: Booleano que indica si se detectó una mejora súbita y significativa en el rendimiento.
+
+step_function_magnitude: Magnitud del salto de calidad detectado (en centipeones o porcentaje).
+
+longest_streak: Racha más larga de partidas consecutivas con ROI > 2.75 (umbral estadístico).
+
+Comparación con Pares
+peer_delta_acpl: Diferencia en ACPL comparado con jugadores de ELO similar (±200).
+
+peer_delta_match: Diferencia en match rate vs jugadores similares.
+
+Selectividad y Patrones
+selectivity_score: Porcentaje de partidas donde la calidad está por encima de la mediana personal. Mide consistencia.
+
+time_patterns: Objeto con patrones de tiempo:
+
+mean_move_time: Tiempo promedio por jugada
+
+time_variance: Varianza en los tiempos
+
+uniformity_score: Score de uniformidad (valores altos = sospechoso)
+
+clutch_accuracy_diff: Diferencia de precisión bajo presión temporal
+
+opening_patterns: Patrones de apertura:
+
+mean_entropy: Diversidad del repertorio de aperturas (entropía de Shannon)
+
+novelty_depth: Profundidad promedio donde se desvía de la teoría
+
+opening_breadth: Número de aperturas diferentes jugadas
+
+second_choice_rate: Frecuencia de jugadas de 2ª/3ª línea del motor
+
+Tendencias Temporales
+trend_acpl: Pendiente de mejora/empeoramiento en ACPL (cp por 100 partidas).
+
+trend_match_rate: Tendencia en el match rate a lo largo del tiempo.
+
+Análisis por Fases
+phase_quality: Calidad por fase del juego:
+
+opening_acpl, middlegame_acpl, endgame_acpl: ACPL por fase
+
+blunder_rate: Tasa global de errores graves (>300 cp)
+
+Benchmarking
+benchmark: Posición relativa vs jugadores similares:
+
+percentile_acpl: Percentil de ACPL vs pares de ELO similar
+
+percentile_entropy: Percentil de variedad de aperturas
+
+Análisis Táctico
+tactical: Métricas tácticas:
+
+precision_burst_count: Número de rachas de jugadas casi perfectas
+
+second_choice_rate: Tasa de elección de líneas secundarias del motor
+
+Finales
+endgame: Eficiencia en finales:
+
+conversion_efficiency: Jugadas necesarias para convertir ventaja en victoria
+
+tb_match_rate: Coincidencia con tablebases Syzygy (si están disponibles)
+
+dtz_deviation: Desviación promedio en Distance-to-Zero
+
+Gestión del Tiempo
+time_management: Patrones temporales:
+
+mean_move_time: Tiempo promedio por jugada
+
+time_variance: Varianza temporal
+
+uniformity_score: Uniformidad (valores negativos = natural)
+
+lag_spike_count: Número de "picos" de tiempo seguidos de jugadas rápidas
+
+Precisión Bajo Presión
+clutch_accuracy: Rendimiento en situaciones críticas:
+
+avg_clutch_diff: Diferencia promedio de evaluación en últimos movimientos
+
+clutch_games_pct: Porcentaje de partidas con buena precisión bajo presión
+
+Evaluación de Riesgo
+risk: Evaluación integral de sospecha:
+
+risk_score: Puntuación 0-100 de riesgo de uso de asistencia
+
+risk_factors: Factores específicos detectados (step_function, low_acpl, etc.)
+
+confidence_level: Nivel de confianza en la evaluación
+
+suspicious_games_count: Número de partidas marcadas como sospechosas
+
+Metadatos
+games_analyzed: Número total de partidas analizadas.
+
+first_game_date, last_game_date: Rango temporal del análisis.
+
+analyzed_at: Timestamp del análisis.
+
+favorite_openings: Lista de aperturas más jugadas con códigos ECO.
+
+Significado para Detección de Trampas:
+
+ACPL muy bajo + match rate alto + step function = Muy sospechoso
+
+Uniformidad temporal alta + precision bursts = Posible automatización
+
+ROI consistentemente alto + baja variabilidad = Uso de motor
+
+Clutch accuracy anormalmente alta = Sospechoso (humanos empeoran bajo presión)
+
+El sistema usa múltiples métricas cruzadas para evitar falsos positivos y proporciona un análisis estadísticamente robusto.

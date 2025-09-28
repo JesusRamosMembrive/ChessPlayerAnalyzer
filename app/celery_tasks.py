@@ -1,524 +1,262 @@
-# app/celery_tasks_v2.py
+# app/celery_tasks.py - BULLDOZER TOTAL
 """
-Celery tasks V2 - Refactor unificado
-Usa AnalysisEngine v2 y modelos simplificados
+BULLDOZER TOTAL: Celery tasks ultra-simplificados.
+
+FILOSOFÍA:
+- Task simple: recibe username → analiza todos los juegos → guarda en BULLDOZER
+- Sin complex workflows, sin chains, sin chords
+- Error handling directo
+- Progress tracking simple
 """
 from __future__ import annotations
 
-import io
-import json
 import logging
 import os
 from datetime import datetime, timezone
-from pathlib import Path
-
-import chess.engine
-import chess.pgn
 
 # Application factories
 from app.factories import create_worker, get_logger
 
-from app.analysis.engine import AnalysisEngine
+# BULLDOZER imports
+from app.models import GameAnalysis, PlayerProgress
+from app.analysis.bulldozer_engine import analyze_game_complete, save_analysis_to_db
 from app.database import engine
+from app.utils import fetch_games, notify_ws, task_progress
 
-from app.utils import (
-    fetch_games,
-    notify_ws,
-    task_progress,
-    sa_to_dict,
-    redis_client,
-    cache_get,
-    cache_set,
-)
-from celery import chain, group, chord
 from celery import current_task
-from celery.signals import task_failure, task_revoked
-from sqlmodel import Session, select
-from sqlalchemy import func
-
-# Modelos V2
-from app.models import Game, AnalysisResult, Player, PlayerStatus
-
 from celery.exceptions import SoftTimeLimitExceeded
+from celery.signals import task_failure
+from sqlmodel import Session, select
 
-# Configuración de prioridades (0 = más alta)
-HIGH_PRIORITY   = 0
-DEFAULT_PRIORITY = 5
-LOW_PRIORITY    = 9
-
-# Configuración del motor de análisis
-ENGINE_PATH = os.getenv("STOCKFISH_PATH", "stockfish")
-MAX_DEPTH = int(os.getenv("STOCKFISH_DEPTH", "12"))
-TB_PATH = os.getenv("TABLEBASE_PATH", None)
-
-# Create Celery worker using factory
+# Configuración del worker
 celery_app = create_worker()
 logger = get_logger(__name__)
 
-# ──────────────────────────────────────────────────────────────
-#  Utility functions for V2
-# ──────────────────────────────────────────────────────────────
+# Configuración de prioridades (0 = más alta)
+HIGH_PRIORITY = 0
+DEFAULT_PRIORITY = 5
+LOW_PRIORITY = 9
 
-def update_progress(username: str, progress: int, message: str = "") -> None:
-    """Update player progress for V2 using simplified models."""
+
+@celery_app.task(bind=True, soft_time_limit=3600)  # 1 hour limit
+def process_player_bulldozer(self, username: str, months: int = 12) -> dict:
+    """
+    BULLDOZER TOTAL: Procesa un jugador completo.
+
+    Simple: fetch games → analyze each → save to BULLDOZER table → done
+    """
     try:
+        logger.info(f"BULLDOZER: Starting analysis for {username}")
+
+        # Update progress tracking
         with Session(engine) as session:
-            player = session.exec(
-                select(Player).where(Player.username == username)
-            ).first()
+            stmt = select(PlayerProgress).where(PlayerProgress.username == username)
+            progress = session.exec(stmt).first()
 
-            if player:
-                player.progress = progress
-                session.add(player)
-                session.commit()
-                logger.debug(f"Updated progress for {username}: {progress}% - {message}")
-            else:
-                logger.warning(f"Player {username} not found for progress update")
-    except Exception as e:
-        logger.error(f"Error updating progress for {username}: {e}")
-
-# Crear instancia del motor de análisis
-analysis_engine = AnalysisEngine(
-    stockfish_path=ENGINE_PATH,
-    depth=MAX_DEPTH,
-    tablebase_path=TB_PATH
-)
-
-
-@celery_app.task(
-    bind=True,
-    autoretry_for=(Exception,),
-    retry_kwargs={'max_retries': 3, 'countdown': 60},
-    soft_time_limit=1800,  # 30 minutos
-    time_limit=1860,       # 31 minutos
-)
-def analyze_game(self, game_id: int, username: str, color: str) -> dict:
-    """
-    Analiza una partida específica para un jugador usando AnalysisEngine V2.
-
-    Args:
-        game_id: ID de la partida a analizar
-        username: Usuario a analizar
-        color: 'white' o 'black'
-
-    Returns:
-        Dict con información del resultado del análisis
-    """
-    task_id = self.request.id
-    logger.info(f"Starting game analysis V2: game_id={game_id}, user={username}, color={color}, task_id={task_id}")
-
-    try:
-        with Session(engine) as session:
-            # Obtener la partida
-            game = session.exec(
-                select(Game).where(Game.id == game_id)
-            ).first()
-
-            if not game:
-                raise ValueError(f"Game {game_id} not found")
-
-            # Verificar si ya existe análisis para esta combinación
-            existing = session.exec(
-                select(AnalysisResult)
-                .where(AnalysisResult.game_id == game_id)
-                .where(AnalysisResult.player_username == username)
-                .where(AnalysisResult.player_color == color)
-            ).first()
-
-            if existing:
-                logger.info(f"Analysis already exists for game {game_id}, user {username} ({color})")
-                return {
-                    'task_id': task_id,
-                    'game_id': game_id,
-                    'username': username,
-                    'result_id': existing.id,
-                    'status': 'completed_existing'
-                }
-
-            # Realizar análisis
-            logger.info(f"Starting analysis for game {game_id}")
-            result = analysis_engine.analyze_game(game, username, color)
-
-            logger.info(f"Game analysis completed: result_id={result.id}")
-            return {
-                'task_id': task_id,
-                'game_id': game_id,
-                'username': username,
-                'result_id': result.id,
-                'status': 'completed_new',
-                'moves_analyzed': result.moves_analyzed
-            }
-
-    except SoftTimeLimitExceeded:
-        logger.error(f"Task {task_id} exceeded soft time limit")
-        raise
-    except Exception as e:
-        logger.error(f"Error analyzing game {game_id}: {e}")
-        raise
-
-
-@celery_app.task(
-    bind=True,
-    autoretry_for=(Exception,),
-    retry_kwargs={'max_retries': 2, 'countdown': 120},
-    soft_time_limit=3600,  # 1 hora
-    time_limit=3660,       # 61 minutos
-)
-def analyze_player(self, username: str) -> dict:
-    """
-    Analiza todas las partidas de un jugador y genera métricas agregadas V2.
-
-    Args:
-        username: Usuario a analizar
-
-    Returns:
-        Dict con métricas agregadas del jugador
-    """
-    task_id = self.request.id
-    logger.info(f"Starting player analysis V2: username={username}, task_id={task_id}")
-
-    try:
-        with Session(engine) as session:
-            # Actualizar estado del jugador
-            player = session.exec(
-                select(Player).where(Player.username == username)
-            ).first()
-
-            if not player:
-                # Crear registro de jugador si no existe
-                player = Player(
+            if not progress:
+                progress = PlayerProgress(
                     username=username,
-                    status=PlayerStatus.pending,
+                    status="pending",
+                    progress=0,
                     requested_at=datetime.now(timezone.utc),
-                    last_task_id=task_id
+                    last_task_id=self.request.id
                 )
-                session.add(player)
-                session.commit()
-                session.refresh(player)
+                session.add(progress)
             else:
-                player.status = PlayerStatus.pending
-                player.last_task_id = task_id
-                session.add(player)
-                session.commit()
+                progress.status = "pending"
+                progress.progress = 0
+                progress.last_task_id = self.request.id
+                progress.requested_at = datetime.now(timezone.utc)
 
-            # Realizar análisis agregado
-            logger.info(f"Starting aggregated analysis for player {username}")
-            aggregated_metrics = analysis_engine.analyze_player(username)
-
-            # Actualizar estado final del jugador
-            player.status = PlayerStatus.ready
-            player.finished_at = datetime.now(timezone.utc)
-            player.progress = 100
-            session.add(player)
             session.commit()
 
-            # Notificar a través de WebSocket si está disponible
+        # Fetch games from Chess.com
+        logger.info(f"BULLDOZER: Fetching games for {username}")
+        games = fetch_games(username, months)
+
+        if not games:
+            logger.warning(f"BULLDOZER: No games found for {username}")
+            _update_player_status(username, "error", "No games found")
+            return {"error": "No games found", "username": username}
+
+        total_games = len(games)
+        logger.info(f"BULLDOZER: Found {total_games} games for {username}")
+
+        # Update total games count
+        with Session(engine) as session:
+            stmt = select(PlayerProgress).where(PlayerProgress.username == username)
+            progress = session.exec(stmt).first()
+            if progress:
+                progress.total_games = total_games
+                session.commit()
+
+        # Process each game
+        games_processed = 0
+        games_failed = 0
+
+        for i, game_data in enumerate(games):
             try:
-                notify_ws(username, {
-                    'type': 'player_analysis_completed',
-                    'username': username,
-                    'status': 'ready'
-                })
-            except Exception as e:
-                logger.warning(f"Failed to send WebSocket notification: {e}")
+                # Check for task revocation
+                if self.request.called_directly or current_task.request.id != self.request.id:
+                    logger.info(f"BULLDOZER: Task revoked for {username}")
+                    break
 
-            logger.info(f"Player analysis completed for {username}")
-            return {
-                'task_id': task_id,
-                'username': username,
-                'status': 'completed',
-                'games_analyzed': aggregated_metrics.get('games_analyzed', 0)
-            }
-
-    except SoftTimeLimitExceeded:
-        logger.error(f"Player analysis task {task_id} exceeded soft time limit")
-        # Marcar jugador como error
-        with Session(engine) as session:
-            player = session.exec(
-                select(Player).where(Player.username == username)
-            ).first()
-            if player:
-                player.status = PlayerStatus.error
-                player.error = "Analysis timeout"
-                session.add(player)
-                session.commit()
-        raise
-    except Exception as e:
-        logger.error(f"Error analyzing player {username}: {e}")
-        # Marcar jugador como error
-        with Session(engine) as session:
-            player = session.exec(
-                select(Player).where(Player.username == username)
-            ).first()
-            if player:
-                player.status = PlayerStatus.error
-                player.error = str(e)
-                session.add(player)
-                session.commit()
-        raise
-
-
-@celery_app.task(
-    bind=True,
-    autoretry_for=(Exception,),
-    retry_kwargs={'max_retries': 3, 'countdown': 60},
-    soft_time_limit=7200,  # 2 horas
-    time_limit=7260,       # 2 horas 1 minuto
-)
-def process_player_enhanced(self, username: str, force_reanalysis: bool = False) -> dict:
-    """
-    Procesa completamente un jugador: descarga partidas + análisis V2.
-
-    Args:
-        username: Usuario a procesar
-        force_reanalysis: Si True, reanaliza partidas existentes
-
-    Returns:
-        Dict con resultado del procesamiento
-    """
-    task_id = self.request.id
-    logger.info(f"Starting enhanced player processing V2: username={username}, task_id={task_id}")
-
-    try:
-        with Session(engine) as session:
-            # Crear/actualizar jugador
-            player = session.exec(
-                select(Player).where(Player.username == username)
-            ).first()
-
-            if not player:
-                # Player debería existir ya (creado en endpoint), pero por si acaso
-                player = Player(
-                    username=username,
-                    status=PlayerStatus.pending,
-                    requested_at=datetime.now(timezone.utc),
-                    last_task_id=task_id,
-                    progress=0
-                )
-                session.add(player)
-                session.commit()
-                session.refresh(player)
-            else:
-                # Actualizar player existente con task_id actual
-                player.status = PlayerStatus.pending
-                player.last_task_id = task_id
-                player.progress = 0
-                session.add(player)
-                session.commit()
-
-            # Paso 1: Descargar partidas
-            logger.info(f"Fetching games for {username}")
-            update_progress(username, 5, "Downloading games...")
-
-            games_data = fetch_games(username)
-            if not games_data:
-                raise ValueError(f"No games found for player {username}")
-
-            player.total_games = len(games_data)
-            session.add(player)
-            session.commit()
-
-            update_progress(username, 10, f"Found {len(games_data)} games")
-
-            # Paso 2: Procesar partidas y crear registros Game
-            logger.info(f"Processing {len(games_data)} games")
-            game_ids = []
-
-            for i, game_data in enumerate(games_data):
-                # Crear registro Game V2
-                game = Game(
-                    pgn=game_data['pgn'],
-                    white_username=game_data.get('white'),  # Corregido: usar 'white' en lugar de 'white_username'
-                    black_username=game_data.get('black'),  # Corregido: usar 'black' en lugar de 'black_username'
-                    white_elo=game_data.get('white_elo'),
-                    black_elo=game_data.get('black_elo'),
-                    time_control=game_data.get('time_control'),
-                    termination=game_data.get('termination'),
-                    eco_code=game_data.get('eco_code'),
-                    opening_key=game_data.get('opening_key'),
-                    move_times=game_data.get('move_times'),
-                    created_at=game_data.get('created_at', datetime.now(timezone.utc))
-                )
-                session.add(game)
-                session.flush()  # Para obtener el ID
-                game_ids.append(game.id)
-
-                # Actualizar progreso
-                progress = 10 + (i * 30 / len(games_data))
-                update_progress(username, int(progress), f"Processing game {i+1}/{len(games_data)}")
-
-            session.commit()
-            update_progress(username, 40, f"Games processed, starting analysis...")
-
-            # Paso 3: Analizar partidas
-            analyzed_count = 0
-            username_ci = username.lower()
-            for i, game_id in enumerate(game_ids):
-                # Determinar color del jugador en esta partida (case-insensitive)
-                game = session.get(Game, game_id)
-                color = None
-                white_user = (game.white_username or "").lower()
-                black_user = (game.black_username or "").lower()
-
-                if white_user == username_ci:
-                    color = 'white'
-                elif black_user == username_ci:
-                    color = 'black'
-
-                if color is None:
-                    logger.warning(
-                        "Player %s not found in game %s participants (white=%s, black=%s)",
-                        username,
-                        game_id,
-                        game.white_username,
-                        game.black_username,
-                    )
-                    # Guardar análisis vacío para mantener el conteo consistente
-                    fallback_metrics = analysis_engine._empty_game_metrics(
-                        game,
-                        'white',
-                        error="player_not_found",
-                    )
-                    fallback_result = AnalysisResult(
-                        game_id=game_id,
-                        player_username=username,
-                        player_color='white',
-                        analyzed_at=datetime.now(timezone.utc),
-                        engine_depth=MAX_DEPTH,
-                        moves_analyzed=0,
-                        metrics=fallback_metrics,
-                    )
-                    session.add(fallback_result)
-                    analyzed_count += 1
-                    progress = 40 + (analyzed_count * 50 / len(game_ids)) if game_ids else 100
-                    player.done_games = analyzed_count
-                    player.progress = int(progress)
-                    session.add(player)
-                    session.commit()
-                    update_progress(
-                        username,
-                        int(progress),
-                        f"Analyzed {analyzed_count}/{len(game_ids)} games (fallback)",
-                    )
+                pgn = game_data.get("pgn")
+                if not pgn:
+                    logger.warning(f"BULLDOZER: No PGN for game {i+1}")
+                    games_failed += 1
                     continue
 
-                if color:
-                    try:
-                        # Lanzar análisis de partida individual
-                        logger.info(f"Analyzing game {game_id} for {username} ({color})")
-                        result = analysis_engine.analyze_game(game, username, color)
-                        analyzed_count += 1
+                # Determine player color
+                color = _determine_player_color(pgn, username)
+                if not color:
+                    logger.warning(f"BULLDOZER: Could not determine color for {username} in game {i+1}")
+                    games_failed += 1
+                    continue
 
-                        # Actualizar progreso
-                        progress = 40 + (analyzed_count * 50 / len(game_ids))
-                        player.done_games = analyzed_count
-                        player.progress = int(progress)
-                        session.add(player)
+                # BULLDOZER analysis
+                logger.debug(f"BULLDOZER: Analyzing game {i+1}/{total_games} for {username} ({color})")
+                analysis = analyze_game_complete(pgn, username, color)
+
+                if analysis and "error" not in analysis:
+                    # Save to BULLDOZER database
+                    with Session(engine) as session:
+                        analysis_id = save_analysis_to_db(pgn, username, color, analysis, session)
                         session.commit()
 
-                        update_progress(username, int(progress),
-                                      f"Analyzed {analyzed_count}/{len(game_ids)} games")
+                        if analysis_id:
+                            games_processed += 1
+                            logger.debug(f"BULLDOZER: Game {i+1} saved with ID {analysis_id}")
+                        else:
+                            games_failed += 1
+                            logger.warning(f"BULLDOZER: Failed to save game {i+1}")
+                else:
+                    games_failed += 1
+                    error_msg = analysis.get("error", "Unknown error") if analysis else "Analysis returned None"
+                    logger.warning(f"BULLDOZER: Analysis failed for game {i+1}: {error_msg}")
 
-                    except Exception as e:
-                        logger.warning(f"Failed to analyze game {game_id}: {e}")
-                        continue
+                # Update progress
+                progress_pct = int((i + 1) / total_games * 100)
+                task_progress(self, i + 1, total_games, username)
 
-            update_progress(username, 90, "Computing player metrics...")
+                with Session(engine) as session:
+                    stmt = select(PlayerProgress).where(PlayerProgress.username == username)
+                    progress = session.exec(stmt).first()
+                    if progress:
+                        progress.done_games = games_processed
+                        progress.progress = progress_pct
+                        session.commit()
 
-            # Paso 4: Análisis agregado del jugador
-            logger.info(f"Computing aggregated metrics for {username}")
-            aggregated_metrics = analysis_engine.analyze_player(username)
+            except SoftTimeLimitExceeded:
+                logger.error(f"BULLDOZER: Soft time limit exceeded for {username}")
+                _update_player_status(username, "error", "Analysis timeout")
+                return {"error": "Analysis timeout", "username": username, "games_processed": games_processed}
 
-            # Paso 5: Finalizar
-            player.status = PlayerStatus.ready
-            player.finished_at = datetime.now(timezone.utc)
-            player.progress = 100
-            player.done_games = analyzed_count
-            session.add(player)
-            session.commit()
-
-            update_progress(username, 100, "Analysis completed!")
-
-            # Notificación final
-            try:
-                notify_ws(username, {
-                    'type': 'player_processing_completed',
-                    'username': username,
-                    'status': 'ready',
-                    'games_analyzed': analyzed_count
-                })
             except Exception as e:
-                logger.warning(f"Failed to send final WebSocket notification: {e}")
+                logger.error(f"BULLDOZER: Error processing game {i+1} for {username}: {e}")
+                games_failed += 1
+                continue
 
-            logger.info(f"Enhanced player processing completed for {username}: {analyzed_count} games analyzed")
+        # Final status update
+        if games_processed > 0:
+            _update_player_status(username, "ready", None, games_processed, total_games)
+            logger.info(f"BULLDOZER: Completed analysis for {username}: {games_processed}/{total_games} games processed")
+
+            # Notify completion
+            notify_ws(username, {
+                "type": "analysis_complete",
+                "games_processed": games_processed,
+                "games_failed": games_failed,
+                "total_games": total_games
+            })
+
             return {
-                'task_id': task_id,
-                'username': username,
-                'status': 'completed',
-                'games_processed': len(game_ids),
-                'games_analyzed': analyzed_count
+                "username": username,
+                "games_processed": games_processed,
+                "games_failed": games_failed,
+                "total_games": total_games,
+                "status": "completed"
             }
+        else:
+            _update_player_status(username, "error", "No games could be processed")
+            return {"error": "No games could be processed", "username": username}
 
-    except SoftTimeLimitExceeded:
-        logger.error(f"Enhanced processing task {task_id} exceeded soft time limit")
-        with Session(engine) as session:
-            player = session.exec(
-                select(Player).where(Player.username == username)
-            ).first()
-            if player:
-                player.status = PlayerStatus.error
-                player.error = "Processing timeout"
-                session.add(player)
-                session.commit()
-        raise
     except Exception as e:
-        logger.error(f"Error in enhanced processing for {username}: {e}")
+        logger.error(f"BULLDOZER: Fatal error processing {username}: {e}")
+        _update_player_status(username, "error", str(e))
+        return {"error": str(e), "username": username}
+
+
+def _determine_player_color(pgn: str, username: str) -> str | None:
+    """Determine if username is white or black in the game."""
+    try:
+        import chess.pgn
+        import io
+
+        game = chess.pgn.read_game(io.StringIO(pgn))
+        if not game:
+            return None
+
+        white = game.headers.get("White", "").lower()
+        black = game.headers.get("Black", "").lower()
+        username_lower = username.lower()
+
+        if username_lower in white:
+            return "white"
+        elif username_lower in black:
+            return "black"
+        else:
+            return None
+
+    except Exception as e:
+        logger.error(f"Color determination failed: {e}")
+        return None
+
+
+def _update_player_status(username: str, status: str, error_message: str = None,
+                         done_games: int = None, total_games: int = None):
+    """Update player progress status in database."""
+    try:
         with Session(engine) as session:
-            player = session.exec(
-                select(Player).where(Player.username == username)
-            ).first()
-            if player:
-                player.status = PlayerStatus.error
-                player.error = str(e)
-                session.add(player)
+            stmt = select(PlayerProgress).where(PlayerProgress.username == username)
+            progress = session.exec(stmt).first()
+
+            if progress:
+                progress.status = status
+                if error_message:
+                    progress.error_message = error_message
+                if done_games is not None:
+                    progress.done_games = done_games
+                if total_games is not None:
+                    progress.total_games = total_games
+                if status == "ready":
+                    progress.finished_at = datetime.now(timezone.utc)
+                    progress.progress = 100
+
                 session.commit()
-        raise
+                logger.debug(f"Updated status for {username}: {status}")
+
+    except Exception as e:
+        logger.error(f"Failed to update player status: {e}")
 
 
-# ──────────────────────────────────────────────────────────────
-# Signal handlers
-# ──────────────────────────────────────────────────────────────
+# Backward compatibility aliases
+process_player_enhanced = process_player_bulldozer  # For existing API calls
 
+
+# Celery signal handlers
 @task_failure.connect
 def task_failure_handler(sender=None, task_id=None, exception=None, traceback=None, einfo=None, **kwargs):
-    """Maneja fallos de tasks V2"""
-    logger.error(f"Task V2 failed: {task_id}, Exception: {exception}")
-
-@task_revoked.connect
-def task_revoked_handler(sender=None, task_id=None, reason=None, **kwargs):
-    """Maneja revocación de tasks V2"""
-    logger.warning(f"Task V2 revoked: {task_id}, Reason: {reason}")
+    """Handle task failures."""
+    logger.error(f"BULLDOZER: Task {task_id} failed: {exception}")
 
 
-# ──────────────────────────────────────────────────────────────
-# Utilidades de compatibilidad
-# ──────────────────────────────────────────────────────────────
+# Health check task
+@celery_app.task
+def health_check():
+    """Simple health check for Celery worker."""
+    return {"status": "healthy", "timestamp": datetime.now(timezone.utc).isoformat()}
 
-def get_task_result(task_id: str) -> dict:
-    """Obtiene el resultado de una task V2"""
-    try:
-        result = celery_app.AsyncResult(task_id)
-        return {
-            'task_id': task_id,
-            'status': result.status,
-            'result': result.result,
-            'ready': result.ready()
-        }
-    except Exception as e:
-        logger.error(f"Error getting task result V2 {task_id}: {e}")
-        return {
-            'task_id': task_id,
-            'status': 'ERROR',
-            'result': str(e),
-            'ready': True
-        }
+
+if __name__ == "__main__":
+    celery_app.start()

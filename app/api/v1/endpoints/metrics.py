@@ -1,14 +1,19 @@
-# app/api/v1/endpoints/metrics.py
+# app/api/v1/endpoints/metrics.py - BULLDOZER TOTAL
 """
-Endpoints de métricas - arquitectura unificada.
-Compatible con la interfaz React existente.
+BULLDOZER TOTAL: Endpoints de métricas ultra-simplificados.
+
+FILOSOFÍA:
+- Usa BULLDOZER API directamente
+- Métricas completas con análisis longitudinal
+- Compatible con React frontend
 """
 from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import Session, select
+from sqlmodel import Session
 
 from app.database import get_session
-from app.models import Player, Game, AnalysisResult
+from app.models import GameAnalysis
 from app.schemas import PlayerMetricsOut
+from sqlmodel import select
 
 import logging
 logger = logging.getLogger(__name__)
@@ -24,23 +29,31 @@ router = APIRouter()
     responses={404: {"description": "No hay métricas disponibles para este jugador"}},
 )
 async def get_player_metrics(username: str, session: Session = Depends(get_session)):
-    """Get player metrics."""
-
+    """Get player metrics - BULLDOZER version."""
     try:
-        player = session.exec(
-            select(Player).where(Player.username == username)
-        ).first()
+        # Use BULLDOZER engine with session
+        from app.analysis.bulldozer_engine import get_player_analysis_summary
 
-        if not player or not player.aggregated_metrics:
-            raise HTTPException(status_code=404, detail="No metrics yet")
+        summary = get_player_analysis_summary(username, session)
 
-        # Las métricas ya están en el formato correcto para React
-        return player.aggregated_metrics
+        if "error" in summary:
+            raise HTTPException(status_code=404, detail=summary["error"])
+
+        # Frontend compatibility fix for missing benchmark fields
+        logger.info(f"DEBUG ENDPOINT: benchmark before fix: {summary.get('benchmark')}")
+        if "benchmark" in summary and summary["benchmark"] is not None:
+            if "percentile_match_rate" not in summary["benchmark"]:
+                summary["benchmark"]["percentile_match_rate"] = 50  # Default placeholder
+                logger.info(f"DEBUG ENDPOINT: Added percentile_match_rate, benchmark now: {summary['benchmark']}")
+        else:
+            logger.info(f"DEBUG ENDPOINT: No benchmark found or benchmark is None")
+
+        return summary
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error getting metrics for player {username}: {e}")
+        logger.error(f"BULLDOZER: Error getting metrics for {username}: {e}")
         raise HTTPException(
             status_code=500,
             detail=f"Error retrieving player metrics: {str(e)}"
@@ -57,31 +70,31 @@ async def get_game_metrics(game_id: int, session: Session = Depends(get_session)
     """Get game metrics."""
 
     try:
-        game = session.get(Game, game_id)
-        if not game:
-            raise HTTPException(status_code=404, detail="Game not found")
+        # BULLDOZER: Get analysis directly by ID
+        analysis = session.get(GameAnalysis, game_id)
+        if not analysis:
+            raise HTTPException(status_code=404, detail="Game analysis not found")
 
-        # Buscar análisis results para esta partida
-        analysis_results = session.exec(
-            select(AnalysisResult).where(AnalysisResult.game_id == game_id)
-        ).all()
+        # Extract player info from PGN headers
+        import chess.pgn
+        import io
 
-        if not analysis_results:
-            raise HTTPException(status_code=404, detail="No analysis available for this game")
-
-        # Para compatibilidad con React, devolver las métricas del primer análisis
-        # (o combinar si hay múltiples jugadores)
-        primary_analysis = analysis_results[0]
+        try:
+            game = chess.pgn.read_game(io.StringIO(analysis.pgn))
+            white_username = game.headers.get("White", "") if game else ""
+            black_username = game.headers.get("Black", "") if game else ""
+        except:
+            white_username = ""
+            black_username = ""
 
         response_data = {
-            "game_id": game.id,
-            "white_username": game.white_username,
-            "black_username": game.black_username,
-            "created_at": game.created_at.isoformat() if game.created_at else None,
-            "analyzed_at": primary_analysis.analyzed_at.isoformat(),
-            "engine_depth": primary_analysis.engine_depth,
-            # Las métricas están en el campo JSON
-            **primary_analysis.metrics
+            "game_id": analysis.id,
+            "white_username": white_username,
+            "black_username": black_username,
+            "analyzed_username": analysis.analyzed_username,
+            "analyzed_at": analysis.analyzed_at.isoformat() if analysis.analyzed_at else None,
+            # All metrics are in the analysis JSON field
+            **analysis.analysis
         }
 
         return response_data

@@ -1,7 +1,11 @@
-# app/api/v1/endpoints/players.py
+# app/api/v1/endpoints/players.py - BULLDOZER TOTAL
 """
-Players endpoints for the chess analyzer API.
-Unified architecture - standard implementation.
+BULLDOZER TOTAL: Players endpoints ultra-simplificados.
+
+FILOSOFÍA:
+- Endpoints simples que usan BULLDOZER API directamente
+- Sin complejidad innecesaria, sin locks complejos
+- Backward compatibility mantenida
 """
 from datetime import datetime, timezone
 from typing import List, Optional
@@ -9,8 +13,14 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
 from app.database import get_session
-from app.celery_tasks import process_player_enhanced
-from app.models import Player, PlayerStatus
+from app.celery_tasks import process_player_bulldozer
+from app.models import PlayerProgress, GameAnalysis
+from app.bulldozer_api import (
+    start_player_analysis_bulldozer,
+    get_player_status_bulldozer,
+    get_player_metrics_bulldozer,
+    get_game_analysis_bulldozer
+)
 from app.schemas import (
     PlayerStatusOut,
     PlayerAnalyzeOut,
@@ -18,8 +28,7 @@ from app.schemas import (
     PlayerListItemOut,
     PlayerMetricsOut,
 )
-from app.utils import notify_ws, player_lock
-from app.services.analysis_lock import get_analysis_lock_service
+from app.utils import notify_ws
 
 import logging
 logger = logging.getLogger(__name__)
@@ -35,14 +44,13 @@ router = APIRouter()
     responses={404: {"description": "Jugador no encontrado"}},
 )
 async def get_player(username: str, session: Session = Depends(get_session)):
-    """Get player analysis status."""
-
+    """Get player analysis status - BULLDOZER version."""
     try:
-        player = session.exec(
-            select(Player).where(Player.username == username)
-        ).first()
+        # Use database session directly - BULLDOZER simple approach
+        stmt = select(PlayerProgress).where(PlayerProgress.username == username)
+        progress = session.exec(stmt).first()
 
-        if not player:
+        if not progress:
             return {
                 "username": username,
                 "status": "not_analyzed",
@@ -56,18 +64,20 @@ async def get_player(username: str, session: Session = Depends(get_session)):
             }
 
         return {
-            "username": player.username,
-            "status": player.status.value if hasattr(player.status, 'value') else player.status,
-            "progress": player.progress,
-            "total_games": player.total_games,
-            "done_games": player.done_games,
-            "requested_at": player.requested_at.isoformat() if player.requested_at else None,
-            "finished_at": player.finished_at.isoformat() if player.finished_at else None,
-            "error": player.error,
-            "last_task_id": player.last_task_id
+            "username": progress.username,
+            "status": progress.status,
+            "progress": progress.progress,
+            "total_games": progress.total_games,
+            "done_games": progress.done_games,
+            "requested_at": progress.requested_at.isoformat() if progress.requested_at else None,
+            "finished_at": progress.finished_at.isoformat() if progress.finished_at else None,
+            "error": progress.error_message,
+            "last_task_id": progress.last_task_id
         }
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error getting player status for {username}: {e}")
+        logger.error(f"BULLDOZER: Error getting player status for {username}: {e}")
         raise HTTPException(
             status_code=500,
             detail=f"Error retrieving player status: {str(e)}"
@@ -91,70 +101,54 @@ async def analyze_player(
     force_reanalysis: bool = False,
     session: Session = Depends(get_session)
 ):
-    """Start player analysis."""
-
-    # Check analysis preconditions using unified lock service
-    analysis_lock_service = get_analysis_lock_service()
-    preconditions = analysis_lock_service.check_analysis_preconditions(username)
-
-    if not preconditions["can_proceed"]:
-        # Return the first conflict found
-        conflict = preconditions["conflicts"][0]
-        raise HTTPException(
-            status_code=423,
-            detail=conflict["message"]
-        )
-
+    """Start player analysis - BULLDOZER version."""
     try:
-        # Establecer lock de análisis usando el servicio unificado
-        analysis_lock_service.set_global_analysis_lock(username)
+        logger.info(f"BULLDOZER: Starting analysis request for {username}")
 
-        # Iniciar análisis usando task estándar
-        task = process_player_enhanced.delay(username, force_reanalysis)
-
-        # Actualizar player en BD
-        player = session.exec(
-            select(Player).where(Player.username == username)
+        # Check if already in progress
+        existing = session.exec(
+            select(PlayerProgress).where(PlayerProgress.username == username)
         ).first()
 
-        if not player:
-            player = Player(
-                username=username,
-                status=PlayerStatus.pending,
-                requested_at=datetime.now(timezone.utc),
-                last_task_id=task.id
+        if existing and existing.status == "pending":
+            raise HTTPException(
+                status_code=409,
+                detail=f"Analysis already in progress for {username}"
             )
-            session.add(player)
-        else:
-            player.status = PlayerStatus.pending
-            player.last_task_id = task.id
-            player.requested_at = datetime.now(timezone.utc)
-            session.add(player)
-        session.commit()
+
+        if existing and existing.status == "ready" and not force_reanalysis:
+            raise HTTPException(
+                status_code=409,
+                detail=f"Player {username} already analyzed. Use force_reanalysis=true to re-analyze."
+            )
+
+        # Start BULLDOZER analysis using Celery
+        task = process_player_bulldozer.delay(username, 12)  # 12 months default
 
         result = {
-            "message": f"Analysis started for player {username}",
+            "message": f"BULLDOZER analysis started for player {username}",
             "task_id": task.id,
             "username": username,
             "status": "pending"
         }
 
-        # Notificar vía WebSocket
+        # Notify via WebSocket
         try:
             notify_ws(username, {
                 'type': 'analysis_started',
                 'username': username,
-                'task_id': result['task_id']
+                'task_id': task.id,
+                'bulldozer': True
             })
         except Exception as e:
-            logger.warning(f"Failed to send WebSocket notification: {e}")
+            logger.warning(f"BULLDOZER: Failed to send WebSocket notification: {e}")
 
         return result
 
+    except HTTPException:
+        raise
     except Exception as e:
-        # Limpiar lock en caso de error usando el servicio unificado
-        analysis_lock_service.clear_global_analysis_lock()
-        logger.error(f"Error starting analysis for {username}: {e}")
+        logger.error(f"BULLDOZER: Error starting analysis for {username}: {e}")
         raise HTTPException(
             status_code=500,
             detail=f"Error starting analysis: {str(e)}"
@@ -173,12 +167,11 @@ async def list_players(
     offset: int = 0,
     session: Session = Depends(get_session)
 ):
-    """List players."""
-
+    """List players - BULLDOZER version."""
     try:
-        query = select(Player)
+        query = select(PlayerProgress)
         if status:
-            query = query.where(Player.status == status)
+            query = query.where(PlayerProgress.status == status)
 
         query = query.offset(offset).limit(limit)
         players = session.exec(query).all()
@@ -186,7 +179,7 @@ async def list_players(
         return [
             {
                 "username": p.username,
-                "status": p.status.value if hasattr(p.status, 'value') else p.status,
+                "status": p.status,
                 "progress": p.progress,
                 "total_games": p.total_games,
                 "done_games": p.done_games,
@@ -197,7 +190,7 @@ async def list_players(
         ]
 
     except Exception as e:
-        logger.error(f"Error listing players: {e}")
+        logger.error(f"BULLDOZER: Error listing players: {e}")
         raise HTTPException(
             status_code=500,
             detail=f"Error listing players: {str(e)}"
@@ -206,113 +199,42 @@ async def list_players(
 
 @router.delete(
     "/{username}",
-    status_code=204,
+    response_model=PlayerDeleteOut,
     summary="Eliminar jugador",
-    description="Elimina un jugador y todos sus datos.",
+    description="Elimina completamente un jugador y todos sus análisis.",
 )
 async def delete_player(username: str, session: Session = Depends(get_session)):
-    """Delete player."""
-
+    """Delete player - BULLDOZER version."""
     try:
-        player = session.exec(
-            select(Player).where(Player.username == username)
+        # Delete all game analyses for the player
+        analyses = session.exec(
+            select(GameAnalysis).where(GameAnalysis.analyzed_username == username)
+        ).all()
+
+        for analysis in analyses:
+            session.delete(analysis)
+
+        # Delete player progress
+        progress = session.exec(
+            select(PlayerProgress).where(PlayerProgress.username == username)
         ).first()
 
-        if not player:
-            raise HTTPException(404, "Player not found")
+        if progress:
+            session.delete(progress)
 
-        session.delete(player)
         session.commit()
 
-        # Notificar vía WebSocket
-        try:
-            notify_ws(username, {
-                'type': 'player_deleted',
-                'username': username
-            })
-        except Exception as e:
-            logger.warning(f"Failed to send WebSocket notification: {e}")
+        logger.info(f"BULLDOZER: Deleted player {username} and {len(analyses)} analyses")
 
-        return  # 204 No Content debe estar vacío
+        return {
+            "username": username,
+            "deleted": True,
+            "analyses_deleted": len(analyses)
+        }
 
-    except HTTPException:
-        raise
     except Exception as e:
-        logger.error(f"Error deleting player {username}: {e}")
+        logger.error(f"BULLDOZER: Error deleting player {username}: {e}")
         raise HTTPException(
             status_code=500,
             detail=f"Error deleting player: {str(e)}"
-        )
-
-
-@router.post(
-    "/{username}/refresh",
-    response_model=PlayerAnalyzeOut,
-    summary="Refrescar análisis de jugador",
-    description="Vuelve a analizar un jugador.",
-)
-async def refresh_player(username: str, session: Session = Depends(get_session)):
-    """Refresh player analysis."""
-
-    # Verificar que el jugador existe
-    player = session.exec(
-        select(Player).where(Player.username == username)
-    ).first()
-
-    if not player:
-        raise HTTPException(status_code=404, detail="Player not found")
-
-    # Forzar re-análisis
-    return await analyze_player(username, force_reanalysis=True, session=session)
-
-
-@router.post(
-    "/{username}/stop",
-    summary="Detener análisis de jugador",
-    description="Detiene el análisis en progreso de un jugador.",
-)
-async def stop_player_analysis(username: str, session: Session = Depends(get_session)):
-    """Stop player analysis."""
-
-    try:
-        # Obtener estado del jugador
-        player = session.exec(
-            select(Player).where(Player.username == username)
-        ).first()
-
-        if not player:
-            raise HTTPException(status_code=404, detail="Player not found")
-
-        task_id = player.last_task_id
-        if not task_id:
-            raise HTTPException(status_code=400, detail="No active task found")
-
-        # Revocar task usando celery estándar
-        from app.celery_tasks import celery_app
-        celery_app.control.revoke(task_id, terminate=True)
-
-        # Limpiar locks Redis usando el servicio unificado
-        analysis_lock_service = get_analysis_lock_service()
-        analysis_lock_service.clear_global_analysis_lock()
-        analysis_lock_service.clear_cleanup_lock()
-
-        # Notificar vía WebSocket
-        try:
-            notify_ws(username, {
-                'type': 'analysis_stopped',
-                'username': username,
-                'task_id': task_id
-            })
-        except Exception as e:
-            logger.warning(f"Failed to send WebSocket notification: {e}")
-
-        return {"message": f"Analysis stopped for player {username}", "task_id": task_id}
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error stopping analysis for {username}: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error stopping analysis: {str(e)}"
         )

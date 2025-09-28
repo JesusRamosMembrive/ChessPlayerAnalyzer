@@ -178,6 +178,9 @@ class BenchmarkOut(BaseModel):
     percentile_acpl: Optional[int] = Field(
         None, ge=0, le=100, description="Percentile of average ACPL vs peers"
     )
+    percentile_match_rate: Optional[int] = Field(
+        None, ge=0, le=100, description="Percentile of match rate vs peers"
+    )
     percentile_entropy: Optional[int] = Field(
         None, ge=0, le=100, description="Percentile of opening variety"
     )
@@ -186,6 +189,7 @@ class BenchmarkOut(BaseModel):
         schema_extra = {
             "example": {
                 "percentile_acpl": 85,
+                "percentile_match_rate": 70,
                 "percentile_entropy": 60
             }
         }

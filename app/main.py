@@ -75,8 +75,8 @@ app.include_router(api_router, prefix="/api")
 app.include_router(api_router)
 
 # Imports para endpoints principales
-from app.models import Player
-from app.celery_tasks import process_player_enhanced
+from app.models import PlayerProgress
+from app.celery_tasks import process_player_bulldozer
 
 @app.get("/")
 async def root():
@@ -144,9 +144,9 @@ def list_players(
     session: Session = Depends(get_session)
 ):
     """Lista jugadores con filtros."""
-    query = select(Player)
+    query = select(PlayerProgress)
     if status:
-        query = query.where(Player.status == status)
+        query = query.where(PlayerProgress.status == status)
 
     query = query.offset(offset).limit(limit)
     players = session.exec(query).all()

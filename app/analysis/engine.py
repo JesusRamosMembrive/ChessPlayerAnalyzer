@@ -19,7 +19,8 @@ from sqlmodel import Session, select
 from sqlalchemy.orm import selectinload
 
 # Importar modelos unificados
-from app.models import Game, AnalysisResult, Player
+# BULLDOZER TOTAL: This engine is deprecated. Use bulldozer_engine.py instead.
+# from app.models import Game, AnalysisResult, Player
 from app.database import engine as db_engine
 
 # Importar módulos de análisis (sin cambios en la API)
@@ -30,7 +31,7 @@ from . import endgame
 from . import longitudinal
 
 # Utils
-from app.utils import clean_json_numbers
+from app.validation import validate_analysis_metrics, InvalidAnalysisDataError
 from app.analysis.eco_table import ECO_NAMES
 
 try:
@@ -361,14 +362,13 @@ class AnalysisEngine:
 
         # 5. MOVES DATA (para análisis posteriores)
         moves_data = moves_df.to_dict('records')
-        moves_data = clean_json_numbers(moves_data)
 
-        # Estructura final unificada
+        # Estructura final unificada - NO sanitization, validate for real problems
         all_metrics = {
-            'quality': clean_json_numbers(quality_metrics),
-            'timing': clean_json_numbers(timing_metrics),
-            'opening': clean_json_numbers(opening_metrics),
-            'endgame': clean_json_numbers(endgame_metrics),
+            'quality': quality_metrics,
+            'timing': timing_metrics,
+            'opening': opening_metrics,
+            'endgame': endgame_metrics,
             'moves': moves_data,
             'metadata': {
                 'game_id': game.id,
@@ -380,43 +380,51 @@ class AnalysisEngine:
             }
         }
 
-        all_metrics = clean_json_numbers(all_metrics)
+        # BULLDOZER: Validate real data or fail fast - no sanitization
+        try:
+            validate_analysis_metrics(all_metrics, f"game {game.id} for {username}")
+        except InvalidAnalysisDataError as e:
+            logger.error(f"Analysis validation failed: {e}")
+            raise  # Let it explode - don't hide the problem
         logger.info("All metrics computed successfully")
         return all_metrics
 
     def _empty_game_metrics(self, game: Game, color: str, error: Optional[str] = None) -> Dict:
-        """Genera un bloque de métricas vacías cuando el análisis falla."""
+        """
+        BULLDOZER: Return explicit None values when analysis fails.
+        No NaN values - if we don't have data, we say so explicitly.
+        """
         player_elo = game.white_elo if color == 'white' else game.black_elo
         metrics = {
             'quality': {
-                'acpl': float('nan'),
-                'wdl_loss': float('nan'),
-                'match_rate': float('nan'),
-                'weighted_match_rate': float('nan'),
-                'ipr': float('nan'),
-                'ipr_z_score': float('nan'),
+                'acpl': None,  # No data available
+                'wdl_loss': None,
+                'match_rate': None,
+                'weighted_match_rate': None,
+                'ipr': None,
+                'ipr_z_score': None,
                 'precision_burst_count': None,
-                'opening_acpl': float('nan'),
-                'middlegame_acpl': float('nan'),
-                'endgame_acpl': float('nan'),
-                'opening_blunder_rate': float('nan'),
-                'middlegame_blunder_rate': float('nan'),
-                'endgame_blunder_rate': float('nan'),
-                'blunder_rate': float('nan'),
-                'second_choice_rate': float('nan'),
+                'opening_acpl': None,
+                'middlegame_acpl': None,
+                'endgame_acpl': None,
+                'opening_blunder_rate': None,
+                'middlegame_blunder_rate': None,
+                'endgame_blunder_rate': None,
+                'blunder_rate': None,
+                'second_choice_rate': None,
             },
             'timing': {
-                'mean_move_time': float('nan'),
-                'time_variance': float('nan'),
-                'time_complexity_corr': float('nan'),
+                'mean_move_time': None,
+                'time_variance': None,
+                'time_complexity_corr': None,
                 'lag_spike_count': 0,
-                'uniformity_score': float('nan'),
+                'uniformity_score': None,
                 'clutch_accuracy_diff': None,
             },
             'opening': {
-                'opening_entropy': float('nan'),
+                'opening_entropy': None,
                 'novelty_depth': None,
-                'second_choice_rate': float('nan'),
+                'second_choice_rate': None,
                 'opening_breadth': 0,
             },
             'endgame': {
@@ -439,7 +447,8 @@ class AnalysisEngine:
         if error:
             metrics['metadata']['analysis_error'] = error
 
-        return clean_json_numbers(metrics)
+        # BULLDOZER: Return real data - no sanitization
+        return metrics
 
     @trace
     def analyze_player(self, username: str) -> Dict:
@@ -584,8 +593,8 @@ class AnalysisEngine:
             risk_score += 25
             risk_factors['step_function'] = 1
 
-        # Estructura compatible con React frontend
-        return clean_json_numbers({
+        # BULLDOZER: Return real data - no sanitization
+        player_metrics = {
             'username': username,
             'games_analyzed': games_analyzed,
             'avg_acpl': avg_acpl,
@@ -676,4 +685,13 @@ class AnalysisEngine:
             },
 
             'analyzed_at': datetime.now(timezone.utc).isoformat()
-        })
+        }
+
+        # BULLDOZER: Validate real data or fail fast - no sanitization
+        try:
+            validate_analysis_metrics(player_metrics, f"player analysis for {username}")
+        except InvalidAnalysisDataError as e:
+            logger.error(f"Player analysis validation failed: {e}")
+            raise  # Let it explode - don't hide the problem
+
+        return player_metrics
