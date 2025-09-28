@@ -1,7 +1,7 @@
 # 🚀 Refactor V3 - Estado Actual
 
-> **Última actualización**: 2024-09-24
-> **Progreso FASE 1**: 60% (3 de 5 sub-fases completadas)
+> **Última actualización**: 2024-09-28
+> **Progreso FASE 1**: 80% (4 de 5 sub-fases completadas)
 
 ## 🎯 Inicio rápido para próxima sesión
 
@@ -69,20 +69,21 @@ app.factories → app.otel → app.database → ¡conexión DB!
 - **✅ setup_dev.sh** y **install_deps.py** para instalación fácil
 - **✅ Validación** automática de dependencies
 
-## ✅ FASE 1C COMPLETADA
+## ✅ FASE 1D COMPLETADA
 
-**AnalysisLockService** - Locks unificados ✅
-- **✅ Completado**: Unificadas 3 implementaciones de locks diferentes
-- **✅ Consolidada**: Lógica compleja en `check_analysis_preconditions()`
-- **✅ Tests pasando**: 37/37 tests unitarios pasan con dependencias reales
-- **✅ Backward compatibility**: 100% mantenida
+**HttpClient** - Chess.com API extraction ✅
+- **✅ Completado**: Extraídas HTTP calls de `app/utils.py` a `app/infrastructure/http_client.py`
+- **✅ Independiente**: HttpClient importa sin side effects (sin DB/Redis)
+- **✅ Tests pasando**: 4/4 tests unitarios con mocks completos
+- **✅ Backward compatibility**: `fetch_games()` mantiene misma interfaz
+- **✅ Testeable**: Cliente HTTP testeable independientemente con mocks
 
-## 🎯 Próximo objetivo: FASE 1D
+## 🎯 Próximo objetivo: FASE 1E
 
-**HttpClient** - Extraer Chess.com API calls
-- **Target**: `app/utils.py` líneas 50-150 (HTTP calls y fetch_games)
-- **Beneficio**: HTTP client testeable independientemente
-- **Complejidad**: Baja (extracción sin cambio de lógica)
+**Legacy Cleanup** - Limpieza final
+- **Target**: Eliminar imports obsoletos y dependencias circulares
+- **Beneficio**: Imports limpios sin side effects
+- **Complejidad**: Media (requiere cuidado con dependencias)
 - **Duración estimada**: 1 día
 
 ## 📁 Archivos importantes
@@ -93,6 +94,7 @@ tests/refactor/phases/                        # ✅ Tests organizados por fase
 ├── fase1a/test_factories.py                 # ✅ Factory pattern tests
 ├── fase1b/test_redis_service.py              # ✅ RedisService tests
 ├── fase1c/test_fase_1c.py                   # ✅ AnalysisLockService tests
+├── fase1d/test_http_client.py               # ✅ HttpClient tests
 ├── run_all_phases.py                        # ✅ Unified phase runner
 └── test_status.py                           # ✅ Quick status check
 tests/refactor/fixtures/                      # ✅ Test data from old_tests_with_real_data
@@ -104,6 +106,7 @@ tests/refactor/integration/                  # ✅ Backward compatibility tests
 ```
 app/factories.py                              # ✅ Factory patterns
 app/infrastructure/redis_service.py           # ✅ Redis operations
+app/infrastructure/http_client.py             # ✅ Chess.com API client
 app/services/analysis_lock.py                 # ✅ Unified lock service
 tests/refactor/run_refactor_tests.py          # ✅ Test runner
 tests/refactor/test_dependencies.py           # ✅ Dependency validation
@@ -152,15 +155,19 @@ python3 -m pytest tests/refactor/integration/ -v
 
 # Solo validar dependencies
 python3 -m pytest tests/refactor/test_dependencies.py -v
+
+# Tests específicos FASE 1D
+python3 tests/refactor/phases/fase1d/test_http_client.py
 ```
 
 ## 📈 Beneficios ya obtenidos
 
-1. **🧪 Testing independiente**: RedisService testeable con mocks
-2. **🔧 Imports limpios**: Sin conexiones automáticas a servicios
+1. **🧪 Testing independiente**: RedisService y HttpClient testeables con mocks
+2. **🔧 Imports limpios**: HttpClient sin side effects, progreso hacia imports limpios
 3. **📦 Setup automatizado**: Scripts para nuevos desarrolladores
 4. **🔄 Backward compatibility**: Código existente funciona sin cambios
 5. **🛡️ Validación automática**: Tests que aseguran que requirements están bien
+6. **🌐 HTTP independiente**: Chess.com API calls extraídas y testeables
 
 ## ⚠️ Notas importantes
 

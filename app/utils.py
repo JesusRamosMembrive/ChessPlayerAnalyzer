@@ -1,31 +1,24 @@
 # app/utils.py
 from __future__ import annotations
 
-import json
 import logging
 import math
-import pathlib
-import re
 from contextlib import contextmanager
-from datetime import datetime, UTC
 from typing import List, Dict
-
-import requests
 from sqlalchemy.inspection import inspect
 from app import models
 from app.database import engine
 from sqlmodel import Session, select
 import numpy as np
 
-import os
-from pathlib import Path
 import hashlib
 
 from celery import current_task, Task  # noqa: E402 (circular import safe here)
 
-# Import new Redis service and Analysis Lock service
+# Import new Redis service, Analysis Lock service, and Http client
 from app.infrastructure.redis_service import get_redis_service
 from app.services.analysis_lock import get_analysis_lock_service
+from app.infrastructure.http_client import get_http_client
 
 # ──────────────────────────────────────────────────────────────────────────────
 #  Configuration & Backward Compatibility
@@ -33,98 +26,34 @@ from app.services.analysis_lock import get_analysis_lock_service
 # Get service instances
 _redis_service = get_redis_service()
 _analysis_lock_service = get_analysis_lock_service()
+_http_client = get_http_client()
 
 # Maintain backward compatibility with direct redis_client usage
 redis_client = _redis_service.client
 
-CLK_RGX = re.compile(r"\[%clk\s+([\d:.]+)]")
-UA = "chess-analyzer/0.2 (+https://github.com/tu_usuario)"
+import os
+from pathlib import Path
+
 TB_PATH = Path(os.getenv("SYZYGY_PATH", "/data/syzygy"))  # default, cámbialo
 
 # ──────────────────────────────────────────────────────────────────────────────
 #  1. Descarga de partidas
 # ──────────────────────────────────────────────────────────────────────────────
-def _sec(t: str) -> int:
-    """Convierte «hh:mm:ss.f» o «m:ss.f»  → segundos (int)."""
-    parts = list(map(float, t.split(":")))
-    parts = [0] * (3 - len(parts)) + parts
-    if len(parts) == 3:
-        h, m, s = parts
-    else:
-        h, m, s = 0, *parts
-    return int(h * 3600 + m * 60 + s)
-
-
 def fetch_games(username: str, months: int = 12) -> List[Dict]:
     """
     Devuelve una lista de dicts con **pgn** y **move_times** de los últimos
     `months` meses del jugador `username`.
+
+    REFACTOR: Ahora usa HttpClient interno (fase 1D).
+    Mantiene 100% backward compatibility.
     """
     logging.info(f"fetch_games: Starting for {username}, months={months}")
 
-    s = requests.Session()
-    s.headers["User-Agent"] = UA
+    # Use HttpClient for Chess.com API calls
+    games = _http_client['fetch_games_from_chesscom'](username, months)
 
-    arch_url = f"https://api.chess.com/pub/player/{username}/games/archives"
-    logging.info(f"fetch_games: Fetching archives from {arch_url}")
-
-    try:
-        resp = s.get(arch_url, timeout=10)
-        resp.raise_for_status()
-    except requests.exceptions.RequestException as e:
-        logging.error(f"fetch_games: Error fetching archives: {e}")
-        raise
-
-    archives = resp.json()["archives"][-months:]  # los más recientes
-    logging.info(f"fetch_games: Found {len(archives)} archives to process")
-
-    games: list[dict] = []
-
-    for idx, url in enumerate(archives):
-        logging.info(f"fetch_games: Processing archive {idx + 1}/{len(archives)}: {url}")
-        try:
-            data = s.get(url, timeout=10).json()
-            logging.info(f"fetch_games: Found {len(data.get('games', []))} games in archive")
-
-            for g in data["games"]:
-                pgn = g["pgn"]
-                clocks = CLK_RGX.findall(pgn)
-                move_times = [
-                    _sec(clocks[i - 1]) - _sec(clocks[i])
-                    for i in range(1, len(clocks))
-                ] if clocks else []
-
-                games.append({
-                    "pgn": pgn,
-                    "move_times": move_times,
-                    "white": g["white"]["username"],
-                    "black": g["black"]["username"],
-                    "end_time": datetime.fromtimestamp(g["end_time"], UTC).isoformat(),
-                })
-        except Exception as e:
-            logging.error(f"fetch_games: Error processing archive {url}: {e}")
-            continue
-
-    # ---------------------------------------------------------------
-    #  Guardar copia local de las partidas descargadas
-    # ---------------------------------------------------------------
-    try:
-        archive_dir = pathlib.Path(
-            os.getenv("FETCH_ARCHIVE_DIR", "archives")
-        ).expanduser().resolve()  # ← ABSOLUTA
-
-        archive_dir.mkdir(parents=True, exist_ok=True)
-
-        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        out_path = archive_dir / f"{username}_{stamp}.json"
-
-        with out_path.open("w", encoding="utf-8") as fh:
-            json.dump(games, fh, ensure_ascii=False, indent=2)
-
-        logging.info(f"fetch_games: Saved {len(games)} games to {out_path}")
-    except Exception as exc:
-        # No queremos que un fallo de disco interrumpa el análisis
-        logging.warning(f"fetch_games: could not archive games → {exc}")
+    # Save archive using HttpClient
+    _http_client['save_games_archive'](games, username)
 
     logging.info(f"fetch_games: {username} → {len(games)} partidas")
     return games
